@@ -1,13 +1,18 @@
 import speech_recognition as sr
 import os
 import tempfile
+import emoji
 
 from pydub import AudioSegment
 
 
+def is_emoji(text: str) -> bool:
+    return bool(emoji.emoji_count(text))
+
+
 # Функция для преобразования голосового сообщения в текст
 def voice_to_text(file_path):
-    
+
     recognizer = sr.Recognizer()
     audio = AudioSegment.from_file(file_path)
     

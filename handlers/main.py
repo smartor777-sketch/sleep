@@ -2,12 +2,12 @@ import logging
 import tempfile
 import os
 
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from fluentogram import TranslatorRunner
 
-from utils import db, voice_to_text, MainSG
+from utils import db, voice_to_text, clear_cache
 from keyboards import keyboards as kb
 
 main = Router()
@@ -19,11 +19,12 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@main.message(MainSG.main_menu)
+@main.message(F.data == "main_menu")
 async def any_text(message: Message,
                    i18n: TranslatorRunner):
                    
     user_id = message.from_user.id
+    clear_cache(user_id)
 
     logger.info(f"New Dream by user {user_id}: {message.text[32:]}...")
 

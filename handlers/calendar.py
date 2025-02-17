@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 from fluentogram import TranslatorRunner
 
 from keyboards import keyboards as kb
-from utils import CalendarSG, db, cache, clear_cache, get_cache, update_cache
+from utils import CalendarSG, db, cache, get_cache, update_cache, is_emoji
 
 calendar = Router()
 logger = logging.getLogger(__name__)
@@ -18,12 +18,10 @@ logging.basicConfig(
 
 
 @calendar.callback_query(F.data =='calendar')
-async def calendar_inline(callback: CallbackQuery,
-                          state: FSMContext): 
+async def calendar_inline(callback: CallbackQuery): 
 
     _, year, month = callback.data.split('_')
     user_id = callback.from_user.id
-    await state.set_state(CalendarSG.calendar)
 
     logger.info(f"Current month: {year}-{month}")
 
@@ -32,21 +30,20 @@ async def calendar_inline(callback: CallbackQuery,
     await callback.message.edit_reply_markup(reply_markup=keyboard)
 
 
-@calendar.callback_query(CalendarSG.calendar, F.data[:5] == 'day_')
+@calendar.callback_query(F.data[:5] == 'day_')
 async def day_inline(callback: CallbackQuery,
-                     state: FSMContext,
                      i18n: TranslatorRunner):
 
     _, year, month, day = callback.data.split('_')
     selected_date = f"{year}-{month}-{day}"
     user_id = callback.from_user.id
-    await state.set_state(CalendarSG.day)
     
     logger.info(f"Selected day: {selected_date}")
 
-    # Получаем записи за выбранный день
-    dreams = await db.get_dreams(user_id, selected_date)
-    
+    dreams = get_cache(user_id)[day]
+
+    logger.info(f"Dreams of user {user_id}: {dreams}")
+
     if not dreams:
         await callback.message.answer(i18n.no.dreams(selected_date))
         return
@@ -58,10 +55,230 @@ async def day_inline(callback: CallbackQuery,
     await callback.message.answer(i18n.dreams.day(selected_date), reply_markup=keyboard)
 
 
-@calendar.callback_query(CalendarSG.Day, F.data[:5] == 'dream_')
+@calendar.callback_query(F.data[:5] == 'dream_')
 async def dream_inline(callback: CallbackQuery,
-                       state: FSMContext,
                        i18n: TranslatorRunner):
     
     user_id = callback.from_user.id
     dream_id = callback.data[5:]
+
+    logger.info(f"User {user_id} select dream {dream_id}")
+
+    # Получаем кэш для пользователя
+    user_cache = get_cache(user_id)
+
+    # Ищем запись по dream_id
+    found_dream = None
+    for day, dreams in user_cache.items():
+        for dream in dreams:
+            if dream[0] == dream_id:  # dream[0] — это id записи
+                found_dream = dream
+                break
+        if found_dream:
+            break
+
+    if not found_dream:
+        await callback.message.answer(i18n.dream.notfound())
+        return
+
+    # Формируем сообщение с деталями записи
+    dream_id, title, content, emoji, comment, cover, create_time = found_dream
+    message_text = (
+        f"📅 {create_time.strftime('%Y-%m-%d %H:%M')}\n"
+        f"{emoji} {title} {emoji}\n\n"
+        f"📝 {content}\n\n"
+        f"{comment}"
+    )
+
+    # Отправляем сообщение с деталями записи
+    if cover:
+        await callback.message.answer_photo(cover, caption=message_text, reply_markup=kb.dream_edit(i18n, dream_id))
+    else:
+        await callback.message.answer(message_text, reply_markup=kb.dream_edit(i18n, dream_id))
+
+
+@calendar.callback_query(F.data[:5] == 'edit_')
+async def edit_dream_menu(callback: CallbackQuery,
+                          state: FSMContext,
+                          i18n: TranslatorRunner):
+    
+    user_id = callback.from_user.id
+    action = callback.data[:8]
+    dream_id = callback.data[9:]
+    await state.update_data(dream_id=dream_id)
+    await state.update_data(edit_action=action)
+
+    # Получаем кэш для пользователя
+    user_cache = get_cache(user_id)
+
+    # Ищем запись по dream_id
+    found_dream = None
+    for day, dreams in user_cache.items():
+        for dream in dreams:
+            if dream[0] == dream_id:  # dream[0] — это id записи
+                found_dream = dream
+                break
+        if found_dream:
+            break
+
+    if not found_dream:
+        await callback.message.answer(i18n.dream.notfound())
+        return
+
+    # Формируем сообщение с деталями записи
+    dream_id, title, content, emoji, comment, cover, create_time = found_dream
+
+    # Переводим пользователя в соответствующее состояние
+    if action == "edit_con":
+        await state.set_state(CalendarSG.edit_content)
+        await callback.message.answer(content)
+        await callback.message.answer(i18n.newcontent(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+    elif action == "edit_tit":
+        await state.set_state(CalendarSG.edit_title)
+        if title == "" or title is None:
+            await callback.message.answer(i18n.notitle(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        else:
+            await callback.message.answer(title)
+        await callback.message.answer(i18n.newtitle(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+    elif action == "edit_com":
+        await state.set_state(CalendarSG.edit_comment)
+        if comment == "" or comment is None:
+            await callback.message.answer(i18n.nocomment(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        else:
+            await callback.message.answer(comment)
+        await callback.message.answer(i18n.newcomment(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+    elif action == "edit_cov":
+        await state.set_state(CalendarSG.edit_cover)
+        if comment == "" or comment is None:
+            await callback.message.answer(i18n.nocover(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        else:
+            await callback.message.answer(cover)
+        await callback.message.answer(i18n.newcover(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+    elif action == "edit_emo":
+        await state.set_state(CalendarSG.edit_dream_emoji)
+        if emoji == "" or emoji is None:
+            await callback.message.answer(i18n.noemoji(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        else:
+            await callback.message.answer(emoji)
+        await callback.message.answer(i18n.newemoji(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+    await callback.answer()
+
+
+@calendar.message(CalendarSG.edit_content)
+async def edit_content(message: Message, 
+                       state: FSMContext,
+                       i18n: TranslatorRunner):
+    user_id = message.from_user.id
+    new_content = message.text
+
+    # Проверяем длину содержания
+    if len(new_content) > 1024:
+        await message.answer(i18n.toolong.content())
+        return
+
+    # Получаем данные из состояния (например, dream_id)
+    data = await state.get_data()
+    dream_id = data.get("dream_id")
+
+    await db.update_content(new_content, dream_id, user_id)
+    await state.finish()
+    await message.answer(i18n.content.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+
+@calendar.message(CalendarSG.edit_title)
+async def edit_title(message: Message, 
+                     state: FSMContext,
+                     i18n: TranslatorRunner):
+    
+    user_id = message.from_user.id
+    new_title = message.text
+
+    # Проверяем длину заголовка
+    if len(new_title) > 64:
+        await message.answer(i18n.toolong.title())
+        return
+
+    # Получаем данные из состояния (например, dream_id)
+    data = await state.get_data()
+    dream_id = data.get("dream_id")
+
+    await db.update_title(new_title, dream_id, user_id)
+    await state.finish()
+    await message.answer(i18n.title.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+
+@calendar.message(CalendarSG.edit_comment)
+async def edit_comment(message: Message, 
+                       state: FSMContext,
+                       i18n: TranslatorRunner):
+    
+    user_id = message.from_user.id
+    new_comment = message.text
+
+    # Проверяем длину комментария
+    if len(new_comment) > 128:
+        await message.answer(i18n.toolong.comment())
+        return
+
+    # Получаем данные из состояния (например, dream_id)
+    data = await state.get_data()
+    dream_id = data.get("dream_id")
+
+    await db.update_comment(new_comment, dream_id, user_id)
+    await state.finish()
+    await message.answer(i18n.comment.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+
+@calendar.message(CalendarSG.edit_image)
+async def edit_image(message: Message, 
+                     state: FSMContext,
+                     i18n: TranslatorRunner):
+
+    user_id = message.from_user.id
+    image_url = message.text
+
+    # Проверяем, что URL валидный (можно добавить более сложную проверку)
+    if not image_url.startswith(("http://", "https://")):
+        await message.answer(i18n.incorrect.url())
+        return
+
+    # Получаем данные из состояния (например, dream_id)
+    data = await state.get_data()
+    dream_id = data.get("dream_id")
+
+    # Обновляем запись в базе данных
+    await db.update_cover(image_url, dream_id, user_id)
+    await state.finish()
+    await message.answer(i18n.cover.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+
+
+@calendar.message(CalendarSG.edit_dream_emoji)
+async def edit_emoji(message: Message, 
+                     state: FSMContext,
+                     i18n: TranslatorRunner):
+    
+    user_id = message.from_user.id
+    new_emoji = message.text
+
+    # Проверяем длину эмодзи
+    if len(new_emoji) > 4:
+        await message.answer(i18n.toolong.emoji())
+        return
+    
+    # Проверяем, что введенный текст — это эмодзи
+    if not is_emoji(new_emoji):
+        await message.answer(i18n.notemoji())
+        return
+
+    # Получаем данные из состояния (например, dream_id)
+    data = await state.get_data()
+    dream_id = data.get("dream_id")
+
+    await db.update_emoji(new_emoji, dream_id, user_id)
+    await state.finish()
+    await message.answer(i18n.emoji.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))

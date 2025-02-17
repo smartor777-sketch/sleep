@@ -45,6 +45,7 @@ async def start():
         "content VARCHAR(1024),"  # Основное содержание записи
         "emoji VARCHAR(4) DEFAULT '',"  # Эмодзи записи
         "comment VARCHAR(128) DEFAULT '',"  # Комментарий к записи
+        "cover VARCHAR(128) DEFAULT '',"  # Обложка
         "create_time TIMESTAMP DEFAULT NOW()"  # Время создания записи 
     )
 
@@ -102,18 +103,87 @@ async def load_month(user_id: int,
     try:
         # Выполняем запрос и получаем все строки
         dreams = await conn.fetch(
-            "SELECT id, title, content, emoji, comment, create_time FROM dreams "
+            "SELECT id, title, content, emoji, comment, cover, create_time FROM dreams "
             "WHERE user_id = $1 AND DATE_PART('year', create_time) = $2 AND DATE_PART('month', create_time) = $3",
             user_id, year, month
         )
         
         # Группируем записи по дням
         for dream in dreams:
-            dream_id, title, content, emoji, comment, create_time = dream
+            dream_id, title, content, emoji, comment, cover, create_time = dream
             day = create_time.day
+
+            logger.info(f"Getting dream from DB: {dream}, day: {day}")
+            
             if day not in cache[user_id]:
                 cache[user_id][day] = []
             cache[user_id][day].append(dream)
     finally:
         # Закрываем соединение
         await conn.close()
+
+
+# Редактирование содержания Сна
+async def update_content(new_content: str,
+                         dream_id: int,
+                         user_id: int | str):
+    
+    conn: Connection = await get_conn()
+
+    await conn.execute(
+        "UPDATE dreams SET content = $1 WHERE id = $2 AND user_id = $3",
+        new_content, dream_id, user_id
+    )
+    await conn.close()
+
+
+# Редактирование заголовка Сна
+async def update_title(new_title: str,
+                       dream_id: int,
+                       user_id: int | str):
+    
+    conn: Connection = await get_conn()
+    await conn.execute(
+        "UPDATE dreams SET title = $1 WHERE id = $2 AND user_id = $3",
+        new_title, dream_id, user_id
+    )
+    await conn.close()
+
+
+# Редактирование комментария Сна
+async def update_comment(new_comment: str,
+                         dream_id: int,
+                         user_id: int | str):
+    
+    conn: Connection = await get_conn()
+    await conn.execute(
+        "UPDATE dreams SET comment = $1 WHERE id = $2 AND user_id = $3",
+        new_comment, dream_id, user_id
+    )
+    await conn.close()
+
+
+# Редактирование обложки Сна
+async def update_cover(new_cover: str,
+                       dream_id: int,
+                       user_id: int | str):
+    
+    conn: Connection = await get_conn()
+    await conn.execute(
+        "UPDATE dreams SET cover = $1 WHERE id = $2 AND user_id = $3",
+        new_cover, dream_id, user_id
+    )
+    await conn.close()
+
+
+# Редактирование эмодзи Сна
+async def update_emoji(new_emoji: str,
+                       dream_id: int,
+                       user_id: int | str):
+    
+    conn: Connection = await get_conn()
+    await conn.execute(
+        "UPDATE dreams SET emoji = $1 WHERE id = $2 AND user_id = $3",
+        new_emoji, dream_id, user_id
+    )
+    await conn.close()

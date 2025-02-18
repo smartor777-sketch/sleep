@@ -3,11 +3,28 @@ import os
 import tempfile
 import emoji
 
+from collections import Counter
 from pydub import AudioSegment
+
+from utils import get_cache
 
 
 def is_emoji(text: str) -> bool:
     return bool(emoji.emoji_count(text))
+
+
+def day_emoji(user_id: int, day: int) -> str:
+    """
+    Возвращает самый частый эмодзи для указанного дня.
+    Если записей нет или у них нет эмодзи, возвращает пустую строку.
+    """
+    cache = get_cache(user_id)
+    if day in cache:
+        emojis = [dream[3] for dream in cache[day] if dream[3]]  # Собираем все непустые эмодзи
+        if emojis:
+            most_common_emoji = Counter(emojis).most_common(1)[0][0]  # Самый частый эмодзи
+            return most_common_emoji
+    return ""
 
 
 # Функция для преобразования голосового сообщения в текст

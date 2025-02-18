@@ -17,16 +17,22 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@calendar.callback_query(F.data =='calendar')
-async def calendar_inline(callback: CallbackQuery): 
-
+@calendar.callback_query(F.data == 'calendar')
+async def calendar_inline(callback: CallbackQuery,
+                          i18n: TranslatorRunner):
+     
     _, year, month = callback.data.split('_')
     user_id = callback.from_user.id
 
     logger.info(f"Current month: {year}-{month}")
 
-    await db.load_month(user_id)
-    keyboard = kb.calendar(int(year), int(month))
+    # Загружаем данные за месяц
+    await db.load_month(user_id, int(year), int(month))
+    
+    # Генерируем клавиатуру с эмодзи
+    keyboard = kb.calendar(int(year), int(month), i18n, user_id)
+    
+    # Обновляем сообщение с календарем
     await callback.message.edit_reply_markup(reply_markup=keyboard)
 
 

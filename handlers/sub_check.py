@@ -46,7 +46,6 @@ async def command_start_getter(message: Message,
     if user is None:
         await message.answer(i18n.channel.subscription(), reply_markup=kb.subscribe(i18n, payload))
     else:
-        await state.set_state(MainSG.main_menu)
         await message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
 
 

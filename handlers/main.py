@@ -3,7 +3,7 @@ import tempfile
 import os
 
 from aiogram import Router, F
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from fluentogram import TranslatorRunner
 
@@ -19,12 +19,23 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@main.message(F.data == "main_menu")
+@main.callback_query(F.data == "main_menu")
+async def any_text(callback: CallbackQuery,
+                   state: FSMContext,
+                   i18n: TranslatorRunner):
+                   
+    user_id = callback.from_user.id
+    clear_cache(user_id)
+
+    await state.finish()
+    await callback.message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+
+
+@main.message()
 async def any_text(message: Message,
                    i18n: TranslatorRunner):
                    
     user_id = message.from_user.id
-    clear_cache(user_id)
 
     logger.info(f"New Dream by user {user_id}: {message.text[32:]}...")
 

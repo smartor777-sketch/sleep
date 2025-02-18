@@ -1,6 +1,6 @@
-import logging 
+import logging
 
-from aiogram import Router, Bot, F
+from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from fluentogram import TranslatorRunner
@@ -8,7 +8,7 @@ from fluentogram import TranslatorRunner
 from keyboards import keyboards as kb
 from utils import SearchSG, get_cache
 
-search = Router()
+search_router = Router()
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
@@ -17,25 +17,39 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@search.callback_query(F.data == 'search')
+MAX_RESULTS = 5  # Ограничение на количество результатов поиска
+
+@search_router.callback_query(F.data == 'search')
 async def search_menu(callback: CallbackQuery,
                       state: FSMContext,
                       i18n: TranslatorRunner):
-     
     await state.set_state(SearchSG.search)
     await callback.message.answer(i18n.search.menu(), reply_markup=kb.back_to_menu())
 
 
-@search.message(SearchSG.search)
+@search_router.message(SearchSG.search)
 async def process_search(message: Message, 
                          state: FSMContext, 
                          i18n: TranslatorRunner):
     
     user_id = message.from_user.id
-    query = message.text.lower()  # Приводим запрос к нижнему регистру для удобства поиска
-    cache = get_cache(user_id)
+    query = message.text.strip().lower()  # Приводим запрос к нижнему регистру и убираем лишние пробелы
 
-    # Проверяем, есть ли данные в кэше
+    # Если запрос пустой, завершаем выполнение
+    if not query:
+        await message.answer(i18n.search.empty_query())
+        await state.finish()
+        return
+
+    try:
+        cache = get_cache(user_id)
+    except Exception as e:
+        logger.error(f"Error retrieving cache for user {user_id}: {e}")
+        await message.answer(i18n.search.cache_error())
+        await state.finish()
+        return
+
+    # Если нет данных в кэше
     if not cache:
         await message.answer(i18n.search.no_data())
         await state.finish()
@@ -48,7 +62,7 @@ async def process_search(message: Message,
         for dream in dreams:
             dream_id, title, content, emoji, comment, cover, create_time = dream
 
-            # Ищем совпадения в заголовке и содержании
+            # Ищем совпадения в заголовке и содержимом
             if (query in title.lower()) or (query in content.lower()):
                 # Формируем результат
                 result = (
@@ -65,10 +79,17 @@ async def process_search(message: Message,
         await state.finish()
         return
 
+    # Ограничиваем количество результатов
+    if len(results) > MAX_RESULTS:
+        results = results[:MAX_RESULTS]
+        await message.answer(i18n.search.too_many_results())
+
+    # Логируем результат поиска
+    logger.info(f"User {user_id} searched for: {query}. Found {len(results)} results.")
+
     # Отправляем результаты пользователю
     response = i18n.search.results_header() + "\n\n" + "\n\n".join(results)
-    await message.answer(response, reply_markup=kb.dreams_list(dreams))
+    await message.answer(response, reply_markup=kb.dreams_list(dreams_list))
 
     # Завершаем состояние поиска
-    await state.finish()
-
+    await state.clear()

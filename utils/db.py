@@ -5,9 +5,13 @@ from datetime import datetime, date, time, timedelta
 from typing import Dict, Any
 from asyncpg import Connection
 
-from config import DB_USER, DB_HOST, DB_DATABASE, DB_PASSWORD
-from utils import cache
+from utils import cache, get_config, DbConfig
 
+database = get_config(DbConfig, 'database')
+DB_USER = database.user
+DB_PASSWORD = database.password.get_secret_value()
+DB_DATABASE = database.database
+DB_HOST = database.host
 
 logger = logging.getLogger(__name__)
 
@@ -187,3 +191,57 @@ async def update_emoji(new_emoji: str,
         new_emoji, dream_id, user_id
     )
     await conn.close()
+
+
+async def get_user_stats(user_id: int):
+    """
+    Возвращает статистику пользователя:
+    - Имя, время регистрации, пригласивший, подписка.
+    - Количество снов.
+    - Количество оплат и их сумма.
+    """
+    async with await get_conn() as conn:
+        # Получаем данные из таблицы users
+        user_data = await conn.fetchrow(
+            "SELECT first_name, reg_time, inviter, sub_time, sub_type FROM users WHERE user_id = $1",
+            user_id
+        )
+
+        # Получаем количество снов
+        dreams_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM dreams WHERE user_id = $1",
+            user_id
+        )
+
+        # Получаем количество оплат и их сумму
+        orders_data = await conn.fetchrow(
+            "SELECT COUNT(*), SUM(amount) FROM orders WHERE user_id = $1 AND pay_time IS NOT NULL",
+            user_id
+        )
+        orders_count, orders_total = orders_data if orders_data else (0, 0)
+
+    # Форматируем данные
+    stats = {
+        "first_name": user_data["first_name"] if user_data else "Неизвестно",
+        "reg_time": datetime.fromtimestamp(user_data["reg_time"]).strftime("%Y-%m-%d %H:%M") if user_data and user_data["reg_time"] else "Неизвестно",
+        "inviter": user_data["inviter"] if user_data and user_data["inviter"] else "Нет",
+        "sub_time": user_data["sub_time"].strftime("%Y-%m-%d %H:%M") if user_data and user_data["sub_time"] else "Нет",
+        "sub_type": user_data["sub_type"] if user_data and user_data["sub_type"] else "Нет",
+        "dreams_count": dreams_count,
+        "orders_count": orders_count,
+        "orders_total": orders_total
+    }
+
+    return stats
+
+
+async def get_last_10_dreams(user_id: int):
+    """
+    Возвращает последние 10 записей снов пользователя.
+    """
+    async with await get_conn() as conn:
+        dreams = await conn.fetch(
+            "SELECT content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT 10",
+            user_id
+        )
+    return [dream["content"] for dream in dreams]

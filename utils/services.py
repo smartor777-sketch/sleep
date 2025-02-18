@@ -2,15 +2,24 @@ import speech_recognition as sr
 import os
 import tempfile
 import emoji
+import logging
 
 from collections import Counter
 from pydub import AudioSegment
+from yandex_cloud_ml_sdk import YCloudML
 
 from utils import get_cache
 
+logger = logging.getLogger(__name__)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(filename)s:%(lineno)d #%(levelname)-8s '
+           '[%(asctime)s] - %(name)s - %(message)s')
+
 
 def is_emoji(text: str) -> bool:
-    return bool(emoji.emoji_count(text))
+    return text in emoji.EMOJI_DATA
 
 
 def day_emoji(user_id: int, day: int) -> str:
@@ -50,3 +59,33 @@ def voice_to_text(file_path):
         return "Не удалось распознать речь"
     except sr.RequestError:
         return "Ошибка запроса к сервису распознавания"
+    
+
+async def analyze_dreams(dreams_text: str, 
+                         folder_id: str, 
+                         api_key: str):
+    """
+    Анализирует текст снов с помощью YandexGPT.
+    """
+    messages = [
+        {
+            "role": "system",
+            "text": "Ты — психолог. Проанализируй сны пользователя и сделай выводы о его эмоциональном состоянии, страхах и желаниях. Будь краток и точен."
+        },
+        {
+            "role": "user",
+            "text": dreams_text
+        }
+    ]
+
+    sdk = YCloudML(
+        folder_id=folder_id,
+        auth=api_key,
+    )
+
+    result = (
+        sdk.models.completions("yandexgpt").configure(temperature=0.5).run(messages)
+    )
+
+    # Возвращаем первый вариант ответа
+    return result[0] if result else "Анализ недоступен."

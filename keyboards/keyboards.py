@@ -12,8 +12,8 @@ channel_url = get_config(Channel, "channel")
 def subscribe(i18n: TranslatorRunner, 
               payload='none') -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(row_width=1).add(
-        InlineKeyboardButton(i18n.subscription.offer(), url=str(channel_url.url)),
-        InlineKeyboardButton(i18n.subscription.check(), callback_data=f"check_subscribe_{payload}")
+        InlineKeyboardButton(i18n.sub.offer.button(), url=str(channel_url.url)),
+        InlineKeyboardButton(i18n.sub.check.button(), callback_data=f"check_subscribe_{payload}")
     )
 
 
@@ -22,6 +22,7 @@ def main_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
 
     return InlineKeyboardMarkup(row_width=1).add(
         InlineKeyboardButton(i18n.calendar.button(), callback_data="calendar"),
+        InlineKeyboardButton(i18n.analyze.button(), callback_data='analyze'),
         InlineKeyboardButton(i18n.account.button(), callback_data='account')
     )
 
@@ -90,7 +91,7 @@ def dream_edit(i18n: TranslatorRunner,
 
     keyboard = InlineKeyboardMarkup(row_width=2).add(
         InlineKeyboardButton(i18n.edit.title.button(), callback_data=f"edit_tit_{dream_id}"),
-        InlineKeyboardButton(i18n.edit.title.button(), callback_data=f"edit_tit_{dream_id}"),
+        InlineKeyboardButton(i18n.edit.comment.button(), callback_data=f"edit_com_{dream_id}"),
     )
 
     keyboard.add(
@@ -110,6 +111,22 @@ def back_to_dream(i18n: TranslatorRunner,
                   dream_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(row_width=1).add(
         InlineKeyboardButton(i18n.back.button(), callback_data=f"dream_{dream_id}")
+    )
+
+
+def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(row_width=1).add(
+        InlineKeyboardButton(i18n.sub.button(), callback_data=f"subscription"),
+        InlineKeyboardButton(i18n.back.button(), callback_data=f"main_menu")
+    )
+
+
+def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(row_width=1).add(
+        InlineKeyboardButton(i18n.month1.sub.button(), callback_data='sub_1'),
+        InlineKeyboardButton(i18n.month3.sub.button(), callback_data='sub_3'),
+        InlineKeyboardButton(i18n.month6.sub.button(), callback_data='sub_6'),
+        InlineKeyboardButton(i18n.back.button(), callback_data='account')
     )
 
 

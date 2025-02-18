@@ -8,7 +8,7 @@ from fluentogram import TranslatorRunner
 from keyboards import keyboards as kb
 from utils import CalendarSG, db, cache, get_cache, update_cache, is_emoji
 
-calendar = Router()
+calendar_router = Router()
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
@@ -17,7 +17,7 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@calendar.callback_query(F.data == 'calendar')
+@calendar_router.callback_query(F.data == 'calendar')
 async def calendar_inline(callback: CallbackQuery,
                           i18n: TranslatorRunner):
      
@@ -26,17 +26,19 @@ async def calendar_inline(callback: CallbackQuery,
 
     logger.info(f"Current month: {year}-{month}")
 
-    # Загружаем данные за месяц
-    await db.load_month(user_id, int(year), int(month))
-    
-    # Генерируем клавиатуру с эмодзи
-    keyboard = kb.calendar(int(year), int(month), i18n, user_id)
+    try:
+        await db.load_month(user_id, int(year), int(month))
+    except Exception as e:
+        logger.error(f"Error loading data for user {user_id}, year {year}, month {month}: {e}")
+        await callback.message.answer(i18n.error.loading_data())
+        return
     
     # Обновляем сообщение с календарем
+    keyboard = kb.calendar(int(year), int(month), i18n, user_id)
     await callback.message.edit_reply_markup(reply_markup=keyboard)
 
 
-@calendar.callback_query(F.data[:5] == 'day_')
+@calendar_router.callback_query(F.data[:5] == 'day_')
 async def day_inline(callback: CallbackQuery,
                      i18n: TranslatorRunner):
 
@@ -61,33 +63,21 @@ async def day_inline(callback: CallbackQuery,
     await callback.message.answer(i18n.dreams.day(selected_date), reply_markup=keyboard)
 
 
-@calendar.callback_query(F.data[:5] == 'dream_')
-async def dream_inline(callback: CallbackQuery,
-                       i18n: TranslatorRunner):
-    
+@calendar_router.callback_query(F.data[:5] == 'dream_')
+async def dream_inline(callback: CallbackQuery, i18n: TranslatorRunner):
     user_id = callback.from_user.id
     dream_id = callback.data[5:]
-
     logger.info(f"User {user_id} select dream {dream_id}")
 
-    # Получаем кэш для пользователя
     user_cache = get_cache(user_id)
-
-    # Ищем запись по dream_id
-    found_dream = None
-    for day, dreams in user_cache.items():
-        for dream in dreams:
-            if dream[0] == dream_id:  # dream[0] — это id записи
-                found_dream = dream
-                break
-        if found_dream:
-            break
+    dreams_dict = {dream[0]: dream for day, dreams in user_cache.items() for dream in dreams}
+    
+    found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:
         await callback.message.answer(i18n.dream.notfound())
         return
 
-    # Формируем сообщение с деталями записи
     dream_id, title, content, emoji, comment, cover, create_time = found_dream
     message_text = (
         f"📅 {create_time.strftime('%Y-%m-%d %H:%M')}\n"
@@ -96,14 +86,13 @@ async def dream_inline(callback: CallbackQuery,
         f"{comment}"
     )
 
-    # Отправляем сообщение с деталями записи
     if cover:
         await callback.message.answer_photo(cover, caption=message_text, reply_markup=kb.dream_edit(i18n, dream_id))
     else:
         await callback.message.answer(message_text, reply_markup=kb.dream_edit(i18n, dream_id))
 
 
-@calendar.callback_query(F.data[:5] == 'edit_')
+@calendar_router.callback_query(F.data[:5] == 'edit_')
 async def edit_dream_menu(callback: CallbackQuery,
                           state: FSMContext,
                           i18n: TranslatorRunner):
@@ -175,7 +164,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     await callback.answer()
 
 
-@calendar.message(CalendarSG.edit_content)
+@calendar_router.message(CalendarSG.edit_content)
 async def edit_content(message: Message, 
                        state: FSMContext,
                        i18n: TranslatorRunner):
@@ -196,7 +185,7 @@ async def edit_content(message: Message,
     await message.answer(i18n.content.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar.message(CalendarSG.edit_title)
+@calendar_router.message(CalendarSG.edit_title)
 async def edit_title(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -218,7 +207,7 @@ async def edit_title(message: Message,
     await message.answer(i18n.title.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar.message(CalendarSG.edit_comment)
+@calendar_router.message(CalendarSG.edit_comment)
 async def edit_comment(message: Message, 
                        state: FSMContext,
                        i18n: TranslatorRunner):
@@ -240,7 +229,7 @@ async def edit_comment(message: Message,
     await message.answer(i18n.comment.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar.message(CalendarSG.edit_image)
+@calendar_router.message(CalendarSG.edit_image)
 async def edit_image(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -263,7 +252,7 @@ async def edit_image(message: Message,
     await message.answer(i18n.cover.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar.message(CalendarSG.edit_dream_emoji)
+@calendar_router.message(CalendarSG.edit_dream_emoji)
 async def edit_emoji(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):

@@ -8,6 +8,7 @@ from fluentogram import TranslatorRunner
 from keyboards import keyboards as kb
 from utils import CalendarSG, db, cache, get_cache, is_emoji
 
+
 calendar_router = Router()
 logger = logging.getLogger(__name__)
 
@@ -125,12 +126,12 @@ async def edit_dream_menu(callback: CallbackQuery,
 
     # Переводим пользователя в соответствующее состояние
     if action == "edit_con":
-        await state.set_state(CalendarSG.edit_content)
+        await state.set_state(CalendarSG.edit_con)
         await callback.message.answer(content)
         await callback.message.answer(i18n.newcontent(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_tit":
-        await state.set_state(CalendarSG.edit_title)
+        await state.set_state(CalendarSG.edit_tit)
         if title == "" or title is None:
             await callback.message.answer(i18n.notitle(), reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
@@ -138,7 +139,7 @@ async def edit_dream_menu(callback: CallbackQuery,
         await callback.message.answer(i18n.newtitle(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_com":
-        await state.set_state(CalendarSG.edit_comment)
+        await state.set_state(CalendarSG.edit_com)
         if comment == "" or comment is None:
             await callback.message.answer(i18n.nocomment(), reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
@@ -146,7 +147,7 @@ async def edit_dream_menu(callback: CallbackQuery,
         await callback.message.answer(i18n.newcomment(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_cov":
-        await state.set_state(CalendarSG.edit_cover)
+        await state.set_state(CalendarSG.edit_cov)
         if comment == "" or comment is None:
             await callback.message.answer(i18n.nocover(), reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
@@ -154,7 +155,7 @@ async def edit_dream_menu(callback: CallbackQuery,
         await callback.message.answer(i18n.newcover(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_emo":
-        await state.set_state(CalendarSG.edit_dream_emoji)
+        await state.set_state(CalendarSG.edit_emo)
         if emoji == "" or emoji is None:
             await callback.message.answer(i18n.noemoji(), reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
@@ -164,10 +165,11 @@ async def edit_dream_menu(callback: CallbackQuery,
     await callback.answer()
 
 
-@calendar_router.message(CalendarSG.edit_content)
+@calendar_router.message(CalendarSG.edit_con)
 async def edit_content(message: Message, 
                        state: FSMContext,
                        i18n: TranslatorRunner):
+    
     user_id = message.from_user.id
     new_content = message.text
 
@@ -185,7 +187,7 @@ async def edit_content(message: Message,
     await message.answer(i18n.content.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_title)
+@calendar_router.message(CalendarSG.edit_tit)
 async def edit_title(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -207,7 +209,7 @@ async def edit_title(message: Message,
     await message.answer(i18n.title.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_comment)
+@calendar_router.message(CalendarSG.edit_com)
 async def edit_comment(message: Message, 
                        state: FSMContext,
                        i18n: TranslatorRunner):
@@ -229,7 +231,7 @@ async def edit_comment(message: Message,
     await message.answer(i18n.comment.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_image)
+@calendar_router.message(CalendarSG.edit_cov)
 async def edit_image(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -252,7 +254,7 @@ async def edit_image(message: Message,
     await message.answer(i18n.cover.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_dream_emoji)
+@calendar_router.message(CalendarSG.edit_emo)
 async def edit_emoji(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):

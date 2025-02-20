@@ -3,7 +3,8 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 from datetime import datetime, timedelta
 from fluentogram import TranslatorRunner
 
-from utils import get_config, day_emoji, Channel
+from utils import day_emoji
+from config import get_config, Channel
 
 channel_url = get_config(Channel, "channel")
 

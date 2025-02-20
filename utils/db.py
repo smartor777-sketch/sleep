@@ -4,7 +4,8 @@ import logging
 from datetime import datetime
 from asyncpg import Connection
 
-from utils import cache, get_config, DbConfig
+from utils import cache
+from config import get_config, DbConfig
 
 database = get_config(DbConfig, 'database')
 DB_USER = database.user

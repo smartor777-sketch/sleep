@@ -1,12 +1,12 @@
 import logging 
 
-from aiogram import Router, Bot, F
+from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from fluentogram import TranslatorRunner
 
 from keyboards import keyboards as kb
-from utils import CalendarSG, db, cache, get_cache, update_cache, is_emoji
+from utils import CalendarSG, db, cache, get_cache, is_emoji
 
 calendar_router = Router()
 logger = logging.getLogger(__name__)

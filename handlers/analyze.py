@@ -5,8 +5,10 @@ from aiogram.types import CallbackQuery
 from fluentogram import TranslatorRunner
 
 from keyboards import keyboards as kb
-from utils import db, get_config, Yandex, analyze_dreams
+from utils import db, analyze_dreams
 from aiogram.exceptions import TelegramAPIError
+from config import get_config, Yandex
+
 
 analyze_router = Router()
 logger = logging.getLogger(__name__)

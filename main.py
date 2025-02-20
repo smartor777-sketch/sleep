@@ -6,9 +6,11 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from fluentogram import TranslatorHub
 
-from utils import get_config, BotConfig, TranslatorHub, create_translator_hub, TranslatorRunnerMiddleware
+from utils import TranslatorHub, create_translator_hub, TranslatorRunnerMiddleware
 from handlers import (account_router, analyze_router, calendar_router, main_router, start_router, 
                       search_router)
+from config import get_config, BotConfig
+
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ import os
 import asyncio
 
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, ContentType
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError
 from fluentogram import TranslatorRunner
@@ -49,7 +49,7 @@ async def any_text(message: Message,
     await message.answer(i18n.dream.writed(), reply_markup=kb.edit_dream())
 
 
-@main_router.message(content_types=['voice'])
+@main_router.message(F.content_type == ContentType.VOICE)
 async def any_voice(message: Message,
                     i18n: TranslatorRunner):
     

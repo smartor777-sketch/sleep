@@ -11,7 +11,7 @@ COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Устанавливаем ffmpeg для работы с pydub
-RUN apt-get update && apt-get install -y ffmpeg
+RUN apt-get install -y ffmpeg
 
 # Указываем переменную окружения для работы с config.yaml
 ENV CONFIG_PATH="/app/config.yaml"

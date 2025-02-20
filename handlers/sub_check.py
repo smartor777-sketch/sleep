@@ -8,7 +8,8 @@ from aiogram.types import CallbackQuery, Message
 from fluentogram import TranslatorRunner
 
 from keyboards import keyboards as kb
-from utils import db, get_config, Channel, SubCheckSG, MainSG
+from utils import db, SubCheckSG
+from config import get_config, Channel
 
 start_router = Router()
 channel_id = get_config(Channel, "channel")

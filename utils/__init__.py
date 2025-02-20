@@ -1,4 +1,3 @@
-from ..config import *
 from .db import *
 from .i18n import *
 from .middleware import *

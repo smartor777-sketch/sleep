@@ -8,8 +8,6 @@ from collections import Counter
 from pydub import AudioSegment
 from yandex_cloud_ml_sdk import YCloudML
 
-from utils import get_cache
-
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
@@ -27,6 +25,7 @@ def day_emoji(user_id: int, day: int) -> str:
     Возвращает самый частый эмодзи для указанного дня.
     Если записей нет или у них нет эмодзи, возвращает пустую строку.
     """
+    from utils import get_cache
     cache = get_cache(user_id)
     if day in cache:
         emojis = [dream[3] for dream in cache[day] if dream[3]]  # Собираем все непустые эмодзи

@@ -9,7 +9,7 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
-    command: ["python", "-m", "__main__"]
+    command: ["python", "main.py"]
 
   db:
     image: postgres:13

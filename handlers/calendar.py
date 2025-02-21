@@ -122,7 +122,7 @@ async def dream_inline(callback: CallbackQuery,
     logger.info(f"User {user_id} select dream {dream_id}")
 
     try:
-        dreams_dict = {dream[0]: dream for day, dreams in user_cache.items() for dream in dreams}
+        dreams_dict = {str(dream[0]): dream for day, dreams in user_cache.items() for dream in dreams}
     except KeyError:
         await callback.message.edit_text(i18n.dream.notfound(), 
                                          reply_markup=kb.back_to_calendar(i18n))

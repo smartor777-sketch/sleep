@@ -48,7 +48,7 @@ async def any_text(message: Message,
     logger.info(f"New Dream by user {user_id}: {dream_text}...")
 
     await db.create_dream(user_id, dream_text)
-    await message.answer(i18n.dream.writed(), reply_markup=kb.edit_dream())
+    await message.answer(i18n.dream.writed(), reply_markup=kb.main_menu(i18n))
 
 
 @main_router.message(MainSG.ready_for_dream, F.content_type == ContentType.VOICE)

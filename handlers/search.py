@@ -26,7 +26,7 @@ async def search_menu(callback: CallbackQuery,
                       i18n: TranslatorRunner):
     await state.set_state(SearchSG.search)
     try:
-        await callback.message.answer(i18n.search.menu(), reply_markup=kb.back_to_menu(i18n))
+        await callback.message.edit_text(i18n.search.menu(), reply_markup=kb.back_to_menu(i18n))
     except TelegramBadRequest:
         await callback.answer()
 

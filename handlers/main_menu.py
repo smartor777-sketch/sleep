@@ -20,7 +20,7 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@main_router.callback_query(MainSG.ready_for_dream, F.data == "main_menu")
+@main_router.callback_query(F.data == "main_menu")
 async def any_text(callback: CallbackQuery,
                    state: FSMContext,
                    i18n: TranslatorRunner):

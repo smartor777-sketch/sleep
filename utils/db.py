@@ -115,7 +115,7 @@ async def load_month(user_id: int,
         # Группируем записи по дням
         for dream in dreams:
             dream_id, title, content, emoji, comment, cover, create_time = dream
-            day = create_time.day
+            day = str(create_time.day)
 
             logger.info(f"Getting dream from DB: {dream}, day: {day}")
             

@@ -82,7 +82,7 @@ async def day_inline(callback: CallbackQuery,
     user_id = callback.from_user.id 
     dreams_cache = get_cache(user_id)
     
-    logger.info(f"Selected day: {selected_date}, dreams_cache: {dreams_cache}")
+    logger.info(f"Selected day: {day}, month: {month}, year: {year}. dreams_cache: {dreams_cache}")
 
     try:
         dreams = dreams_cache[day]

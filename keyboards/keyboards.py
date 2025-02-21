@@ -100,12 +100,6 @@ def dream_edit(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def back_to_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"dream_{dream_id}"))
-    return builder.as_markup()
-
-
 def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
@@ -119,6 +113,18 @@ def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text=i18n.month3.sub.button(), callback_data="sub_3"))
     builder.row(InlineKeyboardButton(text=i18n.month6.sub.button(), callback_data="sub_6"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="account"))
+    return builder.as_markup()
+
+
+def back_to_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"dream_{dream_id}"))
+    return builder.as_markup()
+
+
+def back_to_calendar(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.calendar.button(), callback_data=f"calendar"))
     return builder.as_markup()
 
 

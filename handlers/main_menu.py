@@ -72,4 +72,4 @@ async def any_voice(message: Message,
     asyncio.create_task(remove_file(temp_ogg_path))
 
     await db.create_dream(user_id, text)
-    await message.answer(i18n.dream.writed(), reply_markup=kb.edit_dream())
+    await message.answer(i18n.dream.writed(), reply_markup=kb.main_menu(i18n))

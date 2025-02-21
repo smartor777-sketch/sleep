@@ -77,20 +77,20 @@ async def day_inline(callback: CallbackQuery,
     try:
         dreams = get_cache(user_id)[day]
     except KeyError:
-        await callback.message.edit_text(i18n.no.dreams(selected_date), reply_markup=kb.back_to_menu())
+        await callback.message.edit_text(i18n.no.dreams(selected_date=selected_date), reply_markup=kb.back_to_menu(i18n))
         return
 
     logger.info(f"Dreams of user {user_id}: {dreams}")
 
     if not dreams:
-        await callback.message.edit_text(i18n.no.dreams(selected_date), reply_markup=kb.back_to_menu())
+        await callback.message.edit_text(i18n.no.dreams(selected_date=selected_date), reply_markup=kb.back_to_menu(i18n))
         return
 
     # Создаем клавиатуру с записями
     keyboard = kb.dreams_list(i18n, dreams)
     
     # Отправляем сообщение с клавиатурой
-    await callback.message.edit_text(i18n.dreams.day(selected_date), reply_markup=keyboard)
+    await callback.message.edit_text(i18n.dreams.day(selected_date=selected_date), reply_markup=keyboard)
 
 
 @calendar_router.callback_query(F.data.startswith('dream_'))
@@ -102,17 +102,17 @@ async def dream_inline(callback: CallbackQuery,
     logger.info(f"User {user_id} select dream {dream_id}")
 
     user_cache = get_cache(user_id)
-    
+
     try:
         dreams_dict = {dream[0]: dream for day, dreams in user_cache.items() for dream in dreams}
     except KeyError:
-        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(dream_id))
+        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
         return
 
     found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:
-        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(dream_id))
+        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
         return
 
     dream_id, title, content, emoji, comment, cover, create_time = found_dream
@@ -154,7 +154,7 @@ async def edit_dream_menu(callback: CallbackQuery,
             break
 
     if not found_dream:
-        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(dream_id))
+        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
         return
 
     # Формируем сообщение с деталями записи

@@ -41,6 +41,8 @@ async def start():
         "sub_type VARCHAR(16) DEFAULT 'none'"  # Тип подписки - месяц, 3, полгода
     )
 
+    logger.info("TABLE 'users' created")
+
     await conn.execute(
         "CREATE TABLE IF NOT EXISTS dreams("
         "id SERIAL PRIMARY KEY,"  # Уникальный идентификатор записи
@@ -53,6 +55,8 @@ async def start():
         "create_time TIMESTAMP DEFAULT NOW()"  # Время создания записи 
     )
 
+    logger.info("TABLE 'dreams' created")
+
     await conn.execute(
         "CREATE TABLE IF NOT EXISTS orders("
         "id SERIAL PRIMARY KEY,"  # Уникальный идентификатор заказа
@@ -61,6 +65,8 @@ async def start():
         "create_time TIMESTAMP DEFAULT NOW(),"  # Время создания заказа
         "pay_time TIMESTAMP)"  # Время оплаты заказа
     )
+
+    logger.info("TABLE 'orders' created")
 
 
 # Получение user по user_id

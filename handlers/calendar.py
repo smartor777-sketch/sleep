@@ -8,7 +8,7 @@ from fluentogram import TranslatorRunner
 from datetime import datetime
 
 from keyboards import keyboards as kb
-from utils import CalendarSG, db, cache, get_cache, is_emoji
+from utils import CalendarSG, db, cache_object, get_cache, is_emoji
 
 
 calendar_router = Router()

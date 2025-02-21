@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from asyncpg import Connection
 
-from utils import cache
+from utils import cache_object
 from config import get_config, DbConfig
 
 database = get_config(DbConfig, 'database')
@@ -119,9 +119,9 @@ async def load_month(user_id: int,
 
             logger.info(f"Getting dream from DB: {dream}, day: {day}")
             
-            if day not in cache[user_id]:
-                cache[user_id][day] = []
-            cache[user_id][day].append(dream)
+            if day not in cache_object[user_id]:
+                cache_object[user_id][day] = []
+            cache_object[user_id][day].append(dream)
     finally:
         # Закрываем соединение
         await conn.close()

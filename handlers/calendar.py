@@ -122,14 +122,16 @@ async def dream_inline(callback: CallbackQuery,
     try:
         dreams_dict = {dream[0]: dream for day, dreams in user_cache.items() for dream in dreams}
     except KeyError:
-        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        await callback.message.edit_text(i18n.dream.notfound(), 
+                                         reply_markup=kb.back_to_dream(i18n, dream_id))
         return
 
     found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:
         try:
-            await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.edit_text(i18n.dream.notfound(), 
+                                             reply_markup=kb.back_to_dream(i18n, dream_id))
         except TelegramBadRequest:
             await callback.answer()
         return
@@ -145,7 +147,8 @@ async def dream_inline(callback: CallbackQuery,
     if cover:
         await callback.message.answer_photo(cover, caption=message_text, reply_markup=kb.dream_edit(i18n, dream_id))
     else:
-        await callback.message.answer(message_text, reply_markup=kb.dream_edit(i18n, dream_id))
+        await callback.message.answer(message_text, 
+                                      reply_markup=kb.dream_edit(i18n, dream_id))
 
 
 @calendar_router.callback_query(F.data.startswith('edit_'))
@@ -174,7 +177,8 @@ async def edit_dream_menu(callback: CallbackQuery,
 
     if not found_dream:
         try:
-            await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.edit_text(i18n.dream.notfound(), 
+                                             reply_markup=kb.back_to_dream(i18n, dream_id))
         except TelegramBadRequest:
             await callback.answer()
         return
@@ -186,39 +190,48 @@ async def edit_dream_menu(callback: CallbackQuery,
     if action == "edit_con":
         await state.set_state(CalendarSG.edit_con)
         await callback.message.answer(content)
-        await callback.message.answer(i18n.newcontent(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        await callback.message.answer(i18n.newcontent(), 
+                                      reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_tit":
         await state.set_state(CalendarSG.edit_tit)
         if title == "" or title is None:
-            await callback.message.answer(i18n.notitle(), reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.notitle(), 
+                                          reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
             await callback.message.answer(title)
-        await callback.message.answer(i18n.newtitle(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        await callback.message.answer(i18n.newtitle(), 
+                                      reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_com":
         await state.set_state(CalendarSG.edit_com)
         if comment == "" or comment is None:
-            await callback.message.answer(i18n.nocomment(), reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.nocomment(), 
+                                          reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
             await callback.message.answer(comment)
-        await callback.message.answer(i18n.newcomment(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        await callback.message.answer(i18n.newcomment(), 
+                                      reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_cov":
         await state.set_state(CalendarSG.edit_cov)
         if comment == "" or comment is None:
-            await callback.message.answer(i18n.nocover(), reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.nocover(), 
+                                          reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
             await callback.message.answer(cover)
-        await callback.message.answer(i18n.newcover(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        await callback.message.answer(i18n.newcover(), 
+                                      reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_emo":
         await state.set_state(CalendarSG.edit_emo)
         if emoji == "" or emoji is None:
-            await callback.message.answer(i18n.noemoji(), reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.noemoji(), 
+                                          reply_markup=kb.back_to_dream(i18n, dream_id))
         else:
             await callback.message.answer(emoji)
-        await callback.message.answer(i18n.newemoji(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        await callback.message.answer(i18n.newemoji(), 
+                                      reply_markup=kb.back_to_dream(i18n, dream_id))
 
     await callback.answer()
 
@@ -242,7 +255,8 @@ async def edit_content(message: Message,
 
     await db.update_content(new_content, dream_id, user_id)
     await state.clear()
-    await message.answer(i18n.content.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+    await message.answer(i18n.content.updated(), 
+                         reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
 @calendar_router.message(CalendarSG.edit_tit)
@@ -264,7 +278,8 @@ async def edit_title(message: Message,
 
     await db.update_title(new_title, dream_id, user_id)
     await state.clear()
-    await message.answer(i18n.title.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+    await message.answer(i18n.title.updated(), 
+                         reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
 @calendar_router.message(CalendarSG.edit_com)
@@ -286,7 +301,8 @@ async def edit_comment(message: Message,
 
     await db.update_comment(new_comment, dream_id, user_id)
     await state.clear()
-    await message.answer(i18n.comment.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+    await message.answer(i18n.comment.updated(), 
+                         reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
 @calendar_router.message(CalendarSG.edit_cov)
@@ -309,7 +325,8 @@ async def edit_image(message: Message,
     # Обновляем запись в базе данных
     await db.update_cover(image_url, dream_id, user_id)
     await state.clear()
-    await message.answer(i18n.cover.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+    await message.answer(i18n.cover.updated(), 
+                         reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
 @calendar_router.message(CalendarSG.edit_emo)
@@ -336,4 +353,5 @@ async def edit_emoji(message: Message,
 
     await db.update_emoji(new_emoji, dream_id, user_id)
     await state.clear()
-    await message.answer(i18n.emoji.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
+    await message.answer(i18n.emoji.updated(), 
+                         reply_markup=kb.back_to_dream(i18n, dream_id))

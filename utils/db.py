@@ -66,7 +66,7 @@ async def db_start():
 # Получение user по user_id
 async def get_user(user_id: str | int):
 
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     row = await conn.fetchrow("SELECT * FROM users WHERE user_id = $1", user_id)
     await conn.close()
     return row
@@ -78,7 +78,7 @@ async def add_user(payload: str,
                    username: str, 
                    first_name: str):
 
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     await conn.execute(
         "INSERT INTO users(user_id, username, first_name, reg_time, inviter) VALUES ($1, $2, $3, $4, $5)",
         user_id, username, first_name, int(datetime.now().timestamp()), payload
@@ -90,7 +90,7 @@ async def add_user(payload: str,
 async def create_dream(user_id: str | int, 
                        content: str):
     
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     await conn.execute(
         "INSERT INTO dreams(user_id, title, content) VALUES ($1, $2, $3)",
         user_id, str(content[:16] + '...'), content
@@ -103,7 +103,7 @@ async def load_month(user_id: int,
                      year: int, 
                      month: int):
 
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     try:
         # Выполняем запрос и получаем все строки
         dreams = await conn.fetch(
@@ -132,7 +132,7 @@ async def update_content(new_content: str,
                          dream_id: int,
                          user_id: int | str):
     
-    conn: Connection = await get_conn()
+    conn = await get_conn()
 
     await conn.execute(
         "UPDATE dreams SET content = $1 WHERE id = $2 AND user_id = $3",
@@ -146,7 +146,7 @@ async def update_title(new_title: str,
                        dream_id: int,
                        user_id: int | str):
     
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     await conn.execute(
         "UPDATE dreams SET title = $1 WHERE id = $2 AND user_id = $3",
         new_title, dream_id, user_id
@@ -159,7 +159,7 @@ async def update_comment(new_comment: str,
                          dream_id: int,
                          user_id: int | str):
     
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     await conn.execute(
         "UPDATE dreams SET comment = $1 WHERE id = $2 AND user_id = $3",
         new_comment, dream_id, user_id
@@ -172,7 +172,7 @@ async def update_cover(new_cover: str,
                        dream_id: int,
                        user_id: int | str):
     
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     await conn.execute(
         "UPDATE dreams SET cover = $1 WHERE id = $2 AND user_id = $3",
         new_cover, dream_id, user_id
@@ -185,7 +185,7 @@ async def update_emoji(new_emoji: str,
                        dream_id: int,
                        user_id: int | str):
     
-    conn: Connection = await get_conn()
+    conn = await get_conn()
     await conn.execute(
         "UPDATE dreams SET emoji = $1 WHERE id = $2 AND user_id = $3",
         new_emoji, dream_id, user_id
@@ -242,9 +242,12 @@ async def get_last_10_dreams(user_id: int):
     """
     Возвращает последние 10 записей снов пользователя.
     """
-    async with await get_conn() as conn:
+    conn = await get_conn()  # Получаем соединение
+    try:
         dreams = await conn.fetch(
             "SELECT content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT 10",
             user_id
         )
-    return [dream["content"] for dream in dreams]
+        return [dream["content"] for dream in dreams]
+    finally:
+        await conn.close()  # Закрываем соединение вручную

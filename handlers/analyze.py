@@ -33,7 +33,7 @@ async def analyze_menu(callback: CallbackQuery,
     if not dreams or len(dreams) == 0:
         try:
             await callback.message.edit_text(i18n.nodreams(), 
-                                             kb.main_menu(i18n))
+                                             reply_markup=kb.main_menu(i18n))
         except TelegramBadRequest:
             await callback.answer()
         return
@@ -65,4 +65,5 @@ async def analyze_menu(callback: CallbackQuery,
         analysis_result = analysis_result[MAX_MESSAGE_LENGTH:]
 
     # Отправляем оставшийся результат
-    await callback.message.answer(analysis_result, reply_markup=kb.back_to_menu(i18n))
+    await callback.message.answer(analysis_result, 
+                                  reply_markup=kb.back_to_menu(i18n))

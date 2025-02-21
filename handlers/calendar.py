@@ -34,7 +34,8 @@ async def calendar_inline(callback: CallbackQuery,
         await db.load_month(user_id, int(year), int(month))
     except Exception as e:
         logger.error(f"Error loading data for user {user_id}, year {year}, month {month}: {e}")
-        await callback.message.edit_text(i18n.error.loading_data(), reply_markup=kb.back_to_menu())
+        await callback.message.edit_text(i18n.error.loading_data(), 
+                                         reply_markup=kb.back_to_menu(i18n))
         return
     
     # Обновляем сообщение с календарем

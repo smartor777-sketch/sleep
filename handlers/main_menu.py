@@ -35,7 +35,7 @@ async def any_text(callback: CallbackQuery,
         await callback.answer()
 
 
-@main_router.message(MainSG.ready_for_dream)
+@main_router.message(MainSG.ready_for_dream, F.content_type == ContentType.TEXT)
 async def any_text(message: Message,
                    i18n: TranslatorRunner):
                    

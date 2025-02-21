@@ -6,7 +6,7 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from fluentogram import TranslatorHub
 
-from utils import TranslatorHub, create_translator_hub, TranslatorRunnerMiddleware
+from utils import TranslatorHub, create_translator_hub, TranslatorRunnerMiddleware, db_start
 from handlers import (account_router, analyze_router, calendar_router, main_router, start_router, 
                       search_router)
 from config import get_config, BotConfig
@@ -24,6 +24,7 @@ async def main():
 
     # Init Bot in Dispatcher
     bot_config = get_config(BotConfig, "bot")
+    await db_start()
     
     if not bot_config.token:
         logger.error("Bot token is missing in the configuration.")

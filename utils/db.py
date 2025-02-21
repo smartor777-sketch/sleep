@@ -27,7 +27,7 @@ async def get_conn() -> Connection:
 
 
 # Функция для создания необходимых таблиц в базе данных, если они еще не существуют
-async def start():
+async def db_start():
 
     conn: Connection = await get_conn()
     await conn.execute(

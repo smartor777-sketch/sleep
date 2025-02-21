@@ -98,10 +98,10 @@ async def create_dream(user_id: str | int,
 
 
 # Получения словаря Снов за месяц и сохранение его в кэш
-async def load_month(user_id: int, 
-                     year: int, 
-                     month: int):
-
+async def load_month(user_id: int, year: int, month: int):
+    """
+    Загружает сны за указанный месяц и кэширует их по дням как список кортежей.
+    """
     conn = await get_conn()
     try:
         # Выполняем запрос и получаем все строки
@@ -112,16 +112,22 @@ async def load_month(user_id: int,
         )
         from utils import cache_object
 
+        # Очищаем кэш для данного пользователя (если нужно)
+        if user_id not in cache_object:
+            cache_object[user_id] = {}
+
         # Группируем записи по дням
         for dream in dreams:
-            dream_id, title, content, emoji, comment, cover, create_time = dream
+            # Преобразуем Record в кортеж значений
+            dream_tuple = tuple(dream)
+            dream_id, title, content, emoji, comment, cover, create_time = dream_tuple
             day = str(create_time.day)
 
-            logger.info(f"Getting dream from DB: {dream}, day: {day}. Cache Object: {cache_object}")
-            
+            logger.info(f"Getting dream from DB: {dream_tuple}, day: {day}. Cache Object: {cache_object}")
+
             if day not in cache_object[user_id]:
                 cache_object[user_id][day] = []
-            cache_object[user_id][day].append(dream)
+            cache_object[user_id][day].append(dream_tuple)
     finally:
         # Закрываем соединение
         await conn.close()

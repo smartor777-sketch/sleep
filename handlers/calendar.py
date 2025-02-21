@@ -41,7 +41,7 @@ async def calendar_inline(callback: CallbackQuery,
     await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
 
 
-@calendar_router.callback_query(F.data[:8] == 'calendar')
+@calendar_router.callback_query(F.data.startswith('calendar_'))
 async def calendar_inline(callback: CallbackQuery,
                           i18n: TranslatorRunner):
      
@@ -62,7 +62,7 @@ async def calendar_inline(callback: CallbackQuery,
     await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
 
 
-@calendar_router.callback_query(F.data[:5] == 'day_')
+@calendar_router.callback_query(F.data.startswith('day_'))
 async def day_inline(callback: CallbackQuery,
                      i18n: TranslatorRunner):
     
@@ -89,7 +89,7 @@ async def day_inline(callback: CallbackQuery,
     await callback.message.edit_text(i18n.dreams.day(selected_date), reply_markup=keyboard)
 
 
-@calendar_router.callback_query(F.data[:5] == 'dream_')
+@calendar_router.callback_query(F.data.startswith('dream_'))
 async def dream_inline(callback: CallbackQuery, 
                        i18n: TranslatorRunner):
 
@@ -120,7 +120,7 @@ async def dream_inline(callback: CallbackQuery,
         await callback.message.answer(message_text, reply_markup=kb.dream_edit(i18n, dream_id))
 
 
-@calendar_router.callback_query(F.data[:5] == 'edit_')
+@calendar_router.callback_query(F.data.startswith('edit_'))
 async def edit_dream_menu(callback: CallbackQuery,
                           state: FSMContext,
                           i18n: TranslatorRunner):

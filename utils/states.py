@@ -1,5 +1,8 @@
 from aiogram.fsm.state import State, StatesGroup
 
+class MainSG(StatesGroup):
+    ready_for_dream = State()
+
 class SubCheckSG(StatesGroup):
     sub_check = State()
 

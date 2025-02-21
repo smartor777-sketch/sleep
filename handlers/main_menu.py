@@ -1,6 +1,5 @@
 import logging
 import tempfile
-import os
 import asyncio
 
 from aiogram import Router, F
@@ -9,7 +8,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramAPIError
 from fluentogram import TranslatorRunner
 
-from utils import db, voice_to_text, clear_cache
+from utils import db, voice_to_text, clear_cache, MainSG, remove_file
 from keyboards import keyboards as kb
 
 main_router = Router()
@@ -21,7 +20,7 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@main_router.callback_query(F.data == "main_menu")
+@main_router.callback_query(MainSG.ready_for_dream, F.data == "main_menu")
 async def any_text(callback: CallbackQuery,
                    state: FSMContext,
                    i18n: TranslatorRunner):
@@ -29,11 +28,11 @@ async def any_text(callback: CallbackQuery,
     user_id = callback.from_user.id
     clear_cache(user_id)
 
-    await state.finish()
+    await state.set_state(MainSG.ready_for_dream)
     await callback.message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
 
 
-@main_router.message()
+@main_router.message(MainSG.ready_for_dream)
 async def any_text(message: Message,
                    i18n: TranslatorRunner):
                    
@@ -49,7 +48,7 @@ async def any_text(message: Message,
     await message.answer(i18n.dream.writed(), reply_markup=kb.edit_dream())
 
 
-@main_router.message(F.content_type == ContentType.VOICE)
+@main_router.message(MainSG.ready_for_dream, F.content_type == ContentType.VOICE)
 async def any_voice(message: Message,
                     i18n: TranslatorRunner):
     
@@ -74,14 +73,3 @@ async def any_voice(message: Message,
 
     await db.create_dream(user_id, text)
     await message.answer(i18n.dream.writed(), reply_markup=kb.edit_dream())
-
-async def remove_file(file_path: str):
-    try:
-        os.remove(file_path)
-    except Exception as e:
-        logger.error(f"Error removing temp file {file_path}: {e}")
-
-
-def user_has_new_dream(user_id):
-    # Проверка, если пользователь действительно добавил новый сон
-    return True  # Заглушка, заменить на реальную логику

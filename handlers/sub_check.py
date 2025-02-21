@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from fluentogram import TranslatorRunner
 
 from keyboards import keyboards as kb
-from utils import db, SubCheckSG
+from utils import db, SubCheckSG, MainSG
 from config import get_config, Channel
 
 start_router = Router()
@@ -44,6 +44,7 @@ async def command_start_getter(message: Message,
     if user is None:
         await message.answer(i18n.channel.subscription(), reply_markup=kb.subscribe(i18n, payload))
     else:
+        await state.set_state(MainSG.ready_for_dream)
         await message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
 
 
@@ -67,6 +68,7 @@ async def check_subscribe(callback: CallbackQuery,
         username = callback.from_user.username
         first_name = callback.from_user.first_name
         
+        await state.set_state(MainSG.ready_for_dream)
         await db.add_user(payload, user_id, username, first_name)
         await callback.answer(i18n.main.menu(), reply_markup=kb.main_menu())
     else:

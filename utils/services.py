@@ -16,6 +16,13 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
+async def remove_file(file_path: str):
+    try:
+        os.remove(file_path)
+    except Exception as e:
+        logger.error(f"Error removing temp file {file_path}: {e}")
+
+
 def is_emoji(text: str) -> bool:
     return text in emoji.EMOJI_DATA
 

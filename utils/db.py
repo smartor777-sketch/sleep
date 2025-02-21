@@ -4,7 +4,6 @@ import logging
 from datetime import datetime
 from asyncpg import Connection
 
-from utils import cache_object
 from config import get_config, DbConfig
 
 database = get_config(DbConfig, 'database')
@@ -111,7 +110,8 @@ async def load_month(user_id: int,
             "WHERE user_id = $1 AND DATE_PART('year', create_time) = $2 AND DATE_PART('month', create_time) = $3",
             user_id, year, month
         )
-        
+        from utils import cache_object
+
         # Группируем записи по дням
         for dream in dreams:
             dream_id, title, content, emoji, comment, cover, create_time = dream

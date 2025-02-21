@@ -82,7 +82,7 @@ def dreams_list(i18n: TranslatorRunner, dreams: list) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for dream in dreams:
         dream_id, title, emoji, create_time = dream[0], dream[1], dream[3], dream[4]
-        button_text = f"{emoji}{create_time.strftime('%H:%M')} - {title}"
+        button_text = f"{emoji}{create_time} - {title}"
         builder.row(InlineKeyboardButton(text=button_text, callback_data=f"dream_{dream_id}"))
     
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="calendar"))

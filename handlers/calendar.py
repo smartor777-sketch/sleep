@@ -116,7 +116,7 @@ async def dream_inline(callback: CallbackQuery,
                        i18n: TranslatorRunner):
 
     user_id = callback.from_user.id
-    dream_id = callback.data[5:]
+    dream_id = callback.data[6:]
     user_cache = get_cache(user_id)
 
     logger.info(f"User {user_id} select dream {dream_id}")
@@ -125,7 +125,7 @@ async def dream_inline(callback: CallbackQuery,
         dreams_dict = {dream[0]: dream for day, dreams in user_cache.items() for dream in dreams}
     except KeyError:
         await callback.message.edit_text(i18n.dream.notfound(), 
-                                         reply_markup=kb.back_to_dream(i18n, dream_id))
+                                         reply_markup=kb.back_to_calendar(i18n))
         return
 
     found_dream = dreams_dict.get(dream_id)

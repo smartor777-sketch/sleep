@@ -257,7 +257,7 @@ async def edit_content(message: Message,
     data = await state.get_data()
     dream_id = data.get("dream_id")
 
-    await db.update_content(new_content, dream_id, user_id)
+    await db.update_content(new_content, int(dream_id), user_id)
     await state.clear()
     await message.answer(i18n.content.updated(), 
                          reply_markup=kb.back_to_dream(i18n, dream_id))
@@ -280,7 +280,7 @@ async def edit_title(message: Message,
     data = await state.get_data()
     dream_id = data.get("dream_id")
 
-    await db.update_title(new_title, dream_id, user_id)
+    await db.update_title(new_title, int(dream_id), user_id)
     await state.clear()
     await message.answer(i18n.title.updated(), 
                          reply_markup=kb.back_to_dream(i18n, dream_id))
@@ -303,7 +303,7 @@ async def edit_comment(message: Message,
     data = await state.get_data()
     dream_id = data.get("dream_id")
 
-    await db.update_comment(new_comment, dream_id, user_id)
+    await db.update_comment(new_comment, int(dream_id), user_id)
     await state.clear()
     await message.answer(i18n.comment.updated(), 
                          reply_markup=kb.back_to_dream(i18n, dream_id))
@@ -327,7 +327,7 @@ async def edit_image(message: Message,
     dream_id = data.get("dream_id")
 
     # Обновляем запись в базе данных
-    await db.update_cover(image_url, dream_id, user_id)
+    await db.update_cover(image_url, int(dream_id), user_id)
     await state.clear()
     await message.answer(i18n.cover.updated(), 
                          reply_markup=kb.back_to_dream(i18n, dream_id))
@@ -355,7 +355,7 @@ async def edit_emoji(message: Message,
     data = await state.get_data()
     dream_id = data.get("dream_id")
 
-    await db.update_emoji(new_emoji, dream_id, user_id)
+    await db.update_emoji(new_emoji, int(dream_id), user_id)
     await state.clear()
     await message.answer(i18n.emoji.updated(), 
                          reply_markup=kb.back_to_dream(i18n, dream_id))

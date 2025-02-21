@@ -29,7 +29,7 @@ async def any_text(callback: CallbackQuery,
     clear_cache(user_id)
 
     await state.set_state(MainSG.ready_for_dream)
-    await callback.message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+    await callback.message.edit_text(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
 
 
 @main_router.message(MainSG.ready_for_dream)

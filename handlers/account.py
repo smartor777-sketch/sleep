@@ -25,12 +25,12 @@ async def account_menu(callback: CallbackQuery,
         stats = await db.get_user_stats(user_id)
     except Exception as e:
         logger.error(f"Error getting stats for user {user_id}: {e}")
-        await callback.message.answer(i18n.error.db_error())
+        await callback.message.edit_text(i18n.error.db_error(), reply_markup=kb.back_to_menu())
         return
 
     if not stats:
         logger.error(f"User {user_id} has no stats in database.")
-        await callback.message.answer(i18n.account.no_stats())
+        await callback.message.edit_text(i18n.account.no_stats(), reply_markup=kb.back_to_menu())
         return
 
     message_text = i18n.account.title() + "\n\n"
@@ -51,4 +51,4 @@ async def account_menu(callback: CallbackQuery,
         message_text += getattr(i18n.account, key)(**{key: value}) + "\n"
 
     # Отправляем сообщение
-    await callback.message.answer(message_text, reply_markup=kb.account_menu(i18n))
+    await callback.message.edit_text(message_text, reply_markup=kb.account_menu(i18n))

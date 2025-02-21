@@ -28,48 +28,54 @@ def main_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
 
 def calendar(year: int, 
              month: int, 
-             i18n: TranslatorRunner,
+             i18n: TranslatorRunner, 
              user_id: int) -> InlineKeyboardMarkup:
     """
     Генерирует клавиатуру календаря с эмодзи для дней, если они есть.
     """
     builder = InlineKeyboardBuilder()
-    
+
     # Кнопки для переключения месяцев
     prev_month = (datetime(year, month, 1) - timedelta(days=1)).replace(day=1)
     next_month = (datetime(year, month, 28) + timedelta(days=4)).replace(day=1)
-    
     builder.row(
         InlineKeyboardButton(text="◀️", callback_data=f"calendar_{prev_month.year}_{prev_month.month}"),
+        InlineKeyboardButton(text=f"{year}-{month:02d}", callback_data="ignore"),  # Заголовок месяца
         InlineKeyboardButton(text="▶️", callback_data=f"calendar_{next_month.year}_{next_month.month}")
     )
-    
+
     # Получаем первый и последний день месяца
     first_day_of_month = datetime(year, month, 1)
     last_day_of_month = (first_day_of_month.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
-    
+
+    # Собираем все кнопки в список
+    buttons = []
+
     # Пустые кнопки для дней предыдущего месяца
     for _ in range(first_day_of_month.weekday()):
-        builder.row(InlineKeyboardButton(text=" ", callback_data="ignore"))
-    
+        buttons.append(InlineKeyboardButton(text=" ", callback_data="ignore"))
+
     # Кнопки для дней текущего месяца
     for day in range(1, last_day_of_month.day + 1):
-        emoji = day_emoji(user_id, day)  # Получаем эмодзи для дня
-        button_text = f"{day} {emoji}" if emoji else str(day)  # Добавляем эмодзи к тексту кнопки
-        builder.row(InlineKeyboardButton(text=button_text, callback_data=f"day_{year}_{month}_{day}"))
-    
-    # Пустые кнопки для дней следующего месяца
-    while len(builder.inline_keyboard[-1]) < 7:
-        builder.row(InlineKeyboardButton(text=" ", callback_data="ignore"))
-    
-    # Кнопка "Назад"
+        emoji = day_emoji(user_id, day)  # Предполагается, что функция day_emoji определена
+        button_text = f"{day} {emoji}" if emoji else str(day)
+        buttons.append(InlineKeyboardButton(text=button_text, callback_data=f"day_{year}_{month}_{day}"))
+
+    # Пустые кнопки для дней следующего месяца (дополняем до полной недели)
+    while len(buttons) % 7 != 0:
+        buttons.append(InlineKeyboardButton(text=" ", callback_data="ignore"))
+
+    # Добавляем кнопки в builder с разбивкой по 7 (недели)
+    for i in range(0, len(buttons), 7):
+        builder.row(*buttons[i:i + 7])
+
+    # Кнопка "Поиск" и "Назад"
     builder.row(
         InlineKeyboardButton(text=i18n.search.button(), callback_data="search"),
         InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu")
     )
-    
-    return builder.as_markup()
 
+    return builder.as_markup()
 
 
 def dreams_list(i18n: TranslatorRunner, dreams: list) -> InlineKeyboardMarkup:

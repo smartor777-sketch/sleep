@@ -63,6 +63,7 @@ comment-updated = ✅ Comment updated
 cover-updated = ✅ Cover updated
 emoji-updated = ✅ Emoji updated
 main-menu = 📝 Enter text or record a voice message to create a dream entry
+calendar = 📅 Calendar 📅
 dream-writed = 🎉 Dream recorded!
 search-menu = 🔎 Enter a word or phrase to search
 search-empty_query = ⚠️ This is an empty query!

@@ -41,8 +41,6 @@ async def db_start():
         "sub_type VARCHAR(16) DEFAULT 'none')"  # Тип подписки - месяц, 3, полгода
     )
 
-    logger.info("TABLE 'users' created")
-
     await conn.execute(
         "CREATE TABLE IF NOT EXISTS dreams("
         "id SERIAL PRIMARY KEY,"  # Уникальный идентификатор записи
@@ -55,8 +53,6 @@ async def db_start():
         "create_time TIMESTAMP DEFAULT NOW())"  # Время создания записи 
     )
 
-    logger.info("TABLE 'dreams' created")
-
     await conn.execute(
         "CREATE TABLE IF NOT EXISTS orders("
         "id SERIAL PRIMARY KEY,"  # Уникальный идентификатор заказа
@@ -65,8 +61,6 @@ async def db_start():
         "create_time TIMESTAMP DEFAULT NOW(),"  # Время создания заказа
         "pay_time TIMESTAMP)"  # Время оплаты заказа
     )
-
-    logger.info("TABLE 'orders' created")
 
 
 # Получение user по user_id
@@ -206,7 +200,8 @@ async def get_user_stats(user_id: int):
     - Количество снов.
     - Количество оплат и их сумма.
     """
-    async with await get_conn() as conn:
+    conn = await get_conn()  # Получаем соединение
+    try:
         # Получаем данные из таблицы users
         user_data = await conn.fetchrow(
             "SELECT first_name, reg_time, inviter, sub_time, sub_type FROM users WHERE user_id = $1",
@@ -226,6 +221,9 @@ async def get_user_stats(user_id: int):
         )
         orders_count, orders_total = orders_data if orders_data else (0, 0)
 
+    finally:
+        await conn.close()  # Закрываем соединение вручную
+
     # Форматируем данные
     stats = {
         "first_name": user_data["first_name"] if user_data else "Неизвестно",
@@ -235,11 +233,10 @@ async def get_user_stats(user_id: int):
         "sub_type": user_data["sub_type"] if user_data and user_data["sub_type"] else "Нет",
         "dreams_count": dreams_count,
         "orders_count": orders_count,
-        "orders_total": orders_total
+        "orders_total": orders_total if orders_total != None else 0
     }
 
     return stats
-
 
 async def get_last_10_dreams(user_id: int):
     """

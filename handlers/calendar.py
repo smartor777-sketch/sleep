@@ -4,6 +4,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from fluentogram import TranslatorRunner
+from datetime import datetime
 
 from keyboards import keyboards as kb
 from utils import CalendarSG, db, cache, get_cache, is_emoji
@@ -21,6 +22,28 @@ logging.basicConfig(
 @calendar_router.callback_query(F.data == 'calendar')
 async def calendar_inline(callback: CallbackQuery,
                           i18n: TranslatorRunner):
+    
+    now = datetime.now()
+    year, month = now.year, now.month  # Текущий год и месяц
+    user_id = callback.from_user.id
+
+    logger.info(f"Current month: {year}-{month}")
+
+    try:
+        await db.load_month(user_id, int(year), int(month))
+    except Exception as e:
+        logger.error(f"Error loading data for user {user_id}, year {year}, month {month}: {e}")
+        await callback.message.edit_text(i18n.error.loading_data(), reply_markup=kb.back_to_menu())
+        return
+    
+    # Обновляем сообщение с календарем
+    keyboard = kb.calendar(int(year), int(month), i18n, user_id)
+    await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
+
+
+@calendar_router.callback_query(F.data[:8] == 'calendar')
+async def calendar_inline(callback: CallbackQuery,
+                          i18n: TranslatorRunner):
      
     _, year, month = callback.data.split('_')
     user_id = callback.from_user.id
@@ -36,12 +59,14 @@ async def calendar_inline(callback: CallbackQuery,
     
     # Обновляем сообщение с календарем
     keyboard = kb.calendar(int(year), int(month), i18n, user_id)
-    await callback.message.edit_reply_markup(reply_markup=keyboard)
+    await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
 
 
 @calendar_router.callback_query(F.data[:5] == 'day_')
 async def day_inline(callback: CallbackQuery,
                      i18n: TranslatorRunner):
+    
+    logger.info(callback.data)
 
     _, year, month, day = callback.data.split('_')
     selected_date = f"{year}-{month}-{day}"
@@ -54,18 +79,20 @@ async def day_inline(callback: CallbackQuery,
     logger.info(f"Dreams of user {user_id}: {dreams}")
 
     if not dreams:
-        await callback.message.answer(i18n.no.dreams(selected_date))
+        await callback.message.edit_text(i18n.no.dreams(selected_date), reply_markup=kb.back_to_menu())
         return
 
     # Создаем клавиатуру с записями
     keyboard = kb.dreams_list(i18n, dreams)
     
     # Отправляем сообщение с клавиатурой
-    await callback.message.answer(i18n.dreams.day(selected_date), reply_markup=keyboard)
+    await callback.message.edit_text(i18n.dreams.day(selected_date), reply_markup=keyboard)
 
 
 @calendar_router.callback_query(F.data[:5] == 'dream_')
-async def dream_inline(callback: CallbackQuery, i18n: TranslatorRunner):
+async def dream_inline(callback: CallbackQuery, 
+                       i18n: TranslatorRunner):
+
     user_id = callback.from_user.id
     dream_id = callback.data[5:]
     logger.info(f"User {user_id} select dream {dream_id}")
@@ -76,7 +103,7 @@ async def dream_inline(callback: CallbackQuery, i18n: TranslatorRunner):
     found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:
-        await callback.message.answer(i18n.dream.notfound())
+        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(dream_id))
         return
 
     dream_id, title, content, emoji, comment, cover, create_time = found_dream
@@ -118,7 +145,7 @@ async def edit_dream_menu(callback: CallbackQuery,
             break
 
     if not found_dream:
-        await callback.message.answer(i18n.dream.notfound())
+        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(dream_id))
         return
 
     # Формируем сообщение с деталями записи

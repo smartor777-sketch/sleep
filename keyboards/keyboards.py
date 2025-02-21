@@ -1,5 +1,5 @@
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, \
-    ReplyKeyboardRemove
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime, timedelta
 from fluentogram import TranslatorRunner
 
@@ -10,22 +10,20 @@ channel_url = get_config(Channel, "channel")
 
 
 # Клавиатура для совершения подписки и передачи payload, если он есть
-def subscribe(i18n: TranslatorRunner, 
-              payload='none') -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(row_width=1).add(
-        InlineKeyboardButton(i18n.sub.offer.button(), url=str(channel_url.url)),
-        InlineKeyboardButton(i18n.sub.check.button(), callback_data=f"check_subscribe_{payload}")
-    )
+def subscribe(i18n: TranslatorRunner, payload='none') -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.sub.offer.button(), url=str(channel_url.url)))
+    builder.row(InlineKeyboardButton(text=i18n.sub.check.button(), callback_data=f"check_subscribe_{payload}"))
+    return builder.as_markup()
 
 
 # Клавиатура главного меню
 def main_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
-
-    return InlineKeyboardMarkup(row_width=1).add(
-        InlineKeyboardButton(i18n.calendar.button(), callback_data="calendar"),
-        InlineKeyboardButton(i18n.analyze.button(), callback_data='analyze'),
-        InlineKeyboardButton(i18n.account.button(), callback_data='account')
-    )
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.calendar.button(), callback_data="calendar"))
+    builder.row(InlineKeyboardButton(text=i18n.analyze.button(), callback_data="analyze"))
+    builder.row(InlineKeyboardButton(text=i18n.account.button(), callback_data="account"))
+    return builder.as_markup()
 
 
 def calendar(year: int, 
@@ -35,13 +33,13 @@ def calendar(year: int,
     """
     Генерирует клавиатуру календаря с эмодзи для дней, если они есть.
     """
-    keyboard = InlineKeyboardMarkup(row_width=7)
+    builder = InlineKeyboardBuilder()
     
     # Кнопки для переключения месяцев
     prev_month = (datetime(year, month, 1) - timedelta(days=1)).replace(day=1)
     next_month = (datetime(year, month, 28) + timedelta(days=4)).replace(day=1)
     
-    keyboard.row(
+    builder.row(
         InlineKeyboardButton(text="◀️", callback_data=f"calendar_{prev_month.year}_{prev_month.month}"),
         InlineKeyboardButton(text="▶️", callback_data=f"calendar_{next_month.year}_{next_month.month}")
     )
@@ -52,86 +50,73 @@ def calendar(year: int,
     
     # Пустые кнопки для дней предыдущего месяца
     for _ in range(first_day_of_month.weekday()):
-        keyboard.insert(InlineKeyboardButton(text=" ", callback_data="ignore"))
+        builder.row(InlineKeyboardButton(text=" ", callback_data="ignore"))
     
     # Кнопки для дней текущего месяца
     for day in range(1, last_day_of_month.day + 1):
         emoji = day_emoji(user_id, day)  # Получаем эмодзи для дня
         button_text = f"{day} {emoji}" if emoji else str(day)  # Добавляем эмодзи к тексту кнопки
-        keyboard.insert(InlineKeyboardButton(text=button_text, callback_data=f"day_{year}_{month}_{day}"))
+        builder.row(InlineKeyboardButton(text=button_text, callback_data=f"day_{year}_{month}_{day}"))
     
     # Пустые кнопки для дней следующего месяца
-    while len(keyboard.inline_keyboard[-1]) < 7:
-        keyboard.insert(InlineKeyboardButton(text=" ", callback_data="ignore"))
-
-    # Кнопка "Назад"
-    keyboard.add(
-        InlineKeyboardButton(i18n.search.button(), callback_data="search"),
-        InlineKeyboardButton(i18n.back.button(), callback_data="main_menu")
-        )
+    while len(builder.inline_keyboard[-1]) < 7:
+        builder.row(InlineKeyboardButton(text=" ", callback_data="ignore"))
     
-    return keyboard
+    # Кнопка "Назад"
+    builder.row(
+        InlineKeyboardButton(text=i18n.search.button(), callback_data="search"),
+        InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu")
+    )
+    
+    return builder.as_markup()
 
 
-def dreams_list(i18n: TranslatorRunner, 
-                dreams: list) -> InlineKeyboardMarkup:
 
-    keyboard = InlineKeyboardMarkup(row_width=1)
+def dreams_list(i18n: TranslatorRunner, dreams: list) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
     for dream in dreams:
         dream_id, title, emoji, create_time = dream[0], dream[1], dream[3], dream[4]
         button_text = f"{emoji}{create_time.strftime('%H:%M')} - {title}"
-        keyboard.add(InlineKeyboardButton(button_text, callback_data=f"dream_{dream_id}"))
+        builder.row(InlineKeyboardButton(text=button_text, callback_data=f"dream_{dream_id}"))
     
-    # Добавляем кнопку "Назад"
-    keyboard.add(InlineKeyboardButton(i18n.back.button(), callback_data="calendar"))
-    return keyboard
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="calendar"))
+    return builder.as_markup()
 
 
-def dream_edit(i18n: TranslatorRunner,
-               dream_id: int) -> InlineKeyboardMarkup:
-
-    keyboard = InlineKeyboardMarkup(row_width=2).add(
-        InlineKeyboardButton(i18n.edit.title.button(), callback_data=f"edit_tit_{dream_id}"),
-        InlineKeyboardButton(i18n.edit.comment.button(), callback_data=f"edit_com_{dream_id}"),
-    )
-
-    keyboard.add(
-        InlineKeyboardButton(i18n.edit.content.button(), callback_data=f'edit_con_{dream_id}')
-    )
-
-    keyboard.add(
-        InlineKeyboardButton(i18n.edit.cover.button(), callback_data=f'edit_cov_{dream_id}'),
-        InlineKeyboardButton(i18n.edit.emoji.button(), callback_data=f'edit_emo_{dream_id}'),
-    )
-
-    keyboard.add(InlineKeyboardButton(i18n.back.button(), callback_data="calendar"))
-    return keyboard
+def dream_edit(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.edit.title.button(), callback_data=f"edit_tit_{dream_id}"),
+                InlineKeyboardButton(text=i18n.edit.comment.button(), callback_data=f"edit_com_{dream_id}"))
+    builder.row(InlineKeyboardButton(text=i18n.edit.content.button(), callback_data=f"edit_con_{dream_id}"))
+    builder.row(InlineKeyboardButton(text=i18n.edit.cover.button(), callback_data=f"edit_cov_{dream_id}"),
+                InlineKeyboardButton(text=i18n.edit.emoji.button(), callback_data=f"edit_emo_{dream_id}"))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="calendar"))
+    return builder.as_markup()
 
 
-def back_to_dream(i18n: TranslatorRunner,
-                  dream_id: int) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(row_width=1).add(
-        InlineKeyboardButton(i18n.back.button(), callback_data=f"dream_{dream_id}")
-    )
+def back_to_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"dream_{dream_id}"))
+    return builder.as_markup()
 
 
 def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(row_width=1).add(
-        InlineKeyboardButton(i18n.sub.button(), callback_data=f"subscription"),
-        InlineKeyboardButton(i18n.back.button(), callback_data=f"main_menu")
-    )
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
+    return builder.as_markup()
 
 
 def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(row_width=1).add(
-        InlineKeyboardButton(i18n.month1.sub.button(), callback_data='sub_1'),
-        InlineKeyboardButton(i18n.month3.sub.button(), callback_data='sub_3'),
-        InlineKeyboardButton(i18n.month6.sub.button(), callback_data='sub_6'),
-        InlineKeyboardButton(i18n.back.button(), callback_data='account')
-    )
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.month1.sub.button(), callback_data="sub_1"))
+    builder.row(InlineKeyboardButton(text=i18n.month3.sub.button(), callback_data="sub_3"))
+    builder.row(InlineKeyboardButton(text=i18n.month6.sub.button(), callback_data="sub_6"))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="account"))
+    return builder.as_markup()
 
 
 def back_to_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(row_width=1).add(
-        InlineKeyboardButton(i18n.back.button(), callback_data=f"main_menu")
-    )
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
+    return builder.as_markup()

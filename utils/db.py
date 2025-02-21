@@ -117,7 +117,7 @@ async def load_month(user_id: int,
             dream_id, title, content, emoji, comment, cover, create_time = dream
             day = str(create_time.day)
 
-            logger.info(f"Getting dream from DB: {dream}, day: {day}")
+            logger.info(f"Getting dream from DB: {dream}, day: {day}. Cache Object: {cache_object}")
             
             if day not in cache_object[user_id]:
                 cache_object[user_id][day] = []

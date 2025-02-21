@@ -152,6 +152,7 @@ async def dream_inline(callback: CallbackQuery,
     else:
         await callback.message.answer(message_text, 
                                       reply_markup=kb.dream_edit(i18n, dream_id))
+    await callback.answer()
 
 
 @calendar_router.callback_query(F.data.startswith('edit_'))
@@ -162,7 +163,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     user_id = callback.from_user.id
     action = callback.data[:8]
     dream_id = callback.data[9:]
-    await state.update_data(dream_id=dream_id)
+    await state.update_data(dream_id=str(dream_id))
     await state.update_data(edit_action=action)
 
     # Получаем кэш для пользователя
@@ -172,7 +173,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     found_dream = None
     for day, dreams in user_cache.items():
         for dream in dreams:
-            if dream[0] == dream_id:  # dream[0] — это id записи
+            if str(dream[0]) == str(dream_id):  # dream[0] — это id записи
                 found_dream = dream
                 break
         if found_dream:

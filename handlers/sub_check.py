@@ -61,7 +61,7 @@ async def check_subscribe(callback: CallbackQuery,
         user_channel_status = await bot.get_chat_member(chat_id=str(channel_id.id), user_id=user_id)
     except Exception as e:
         logger.error(f"Error checking subscription for user {user_id}: {e}")
-        await callback.answer(text=i18n.error.generic())
+        await callback.message.answer(text=i18n.error.generic())
         return
 
     if user_channel_status.status != 'left':
@@ -70,6 +70,6 @@ async def check_subscribe(callback: CallbackQuery,
         
         await state.set_state(MainSG.ready_for_dream)
         await db.add_user(payload, user_id, username, first_name)
-        await callback.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+        await callback.message.edit_text(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
     else:
-        await callback.answer(text=i18n.need.subscribe())
+        await callback.message.answer(text=i18n.need.subscribe())

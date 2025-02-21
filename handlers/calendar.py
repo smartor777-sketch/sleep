@@ -74,7 +74,11 @@ async def day_inline(callback: CallbackQuery,
     
     logger.info(f"Selected day: {selected_date}")
 
-    dreams = get_cache(user_id)[day]
+    try:
+        dreams = get_cache(user_id)[day]
+    except KeyError:
+        await callback.message.edit_text(i18n.no.dreams(selected_date), reply_markup=kb.back_to_menu())
+        return
 
     logger.info(f"Dreams of user {user_id}: {dreams}")
 
@@ -98,8 +102,13 @@ async def dream_inline(callback: CallbackQuery,
     logger.info(f"User {user_id} select dream {dream_id}")
 
     user_cache = get_cache(user_id)
-    dreams_dict = {dream[0]: dream for day, dreams in user_cache.items() for dream in dreams}
     
+    try:
+        dreams_dict = {dream[0]: dream for day, dreams in user_cache.items() for dream in dreams}
+    except KeyError:
+        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(dream_id))
+        return
+
     found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:

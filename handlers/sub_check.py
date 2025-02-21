@@ -4,6 +4,7 @@ from aiogram import Router, Bot, F
 from aiogram.utils.deep_linking import decode_payload
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import CallbackQuery, Message
 from fluentogram import TranslatorRunner
 
@@ -70,6 +71,10 @@ async def check_subscribe(callback: CallbackQuery,
         
         await state.set_state(MainSG.ready_for_dream)
         await db.add_user(payload, user_id, username, first_name)
-        await callback.message.edit_text(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+        try:
+            await callback.message.edit_text(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+        except TelegramBadRequest:
+            await callback.answer()
+    
     else:
         await callback.message.answer(text=i18n.need.subscribe())

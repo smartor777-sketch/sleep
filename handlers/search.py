@@ -3,6 +3,7 @@ import logging
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest
 from fluentogram import TranslatorRunner
 
 from keyboards import keyboards as kb
@@ -24,7 +25,10 @@ async def search_menu(callback: CallbackQuery,
                       state: FSMContext,
                       i18n: TranslatorRunner):
     await state.set_state(SearchSG.search)
-    await callback.message.answer(i18n.search.menu(), reply_markup=kb.back_to_menu())
+    try:
+        await callback.message.answer(i18n.search.menu(), reply_markup=kb.back_to_menu(i18n))
+    except TelegramBadRequest:
+        await callback.answer()
 
 
 @search_router.message(SearchSG.search)
@@ -37,22 +41,22 @@ async def process_search(message: Message,
 
     # Если запрос пустой, завершаем выполнение
     if not query:
-        await message.answer(i18n.search.empty_query())
-        await state.finish()
+        await message.answer(i18n.search.empty_query(), 
+                             reply_markup=kb.back_to_menu(i18n))
         return
 
     try:
         cache = get_cache(user_id)
     except Exception as e:
         logger.error(f"Error retrieving cache for user {user_id}: {e}")
-        await message.answer(i18n.search.cache_error())
-        await state.finish()
+        await message.answer(i18n.search.cache_error(), 
+                             reply_markup=kb.back_to_menu(i18n))
         return
 
     # Если нет данных в кэше
     if not cache:
-        await message.answer(i18n.search.no_data())
-        await state.finish()
+        await message.answer(i18n.search.no_data(), 
+                             reply_markup=kb.back_to_menu(i18n))
         return
 
     # Ищем совпадения в записях
@@ -75,8 +79,8 @@ async def process_search(message: Message,
 
     # Проверяем, есть ли результаты
     if not results:
-        await message.answer(i18n.search.noresults())
-        await state.finish()
+        await message.answer(i18n.search.noresults(), 
+                             reply_markup=kb.back_to_menu(i18n))
         return
 
     # Ограничиваем количество результатов

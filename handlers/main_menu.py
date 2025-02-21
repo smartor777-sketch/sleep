@@ -5,7 +5,7 @@ import asyncio
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, ContentType
 from aiogram.fsm.context import FSMContext
-from aiogram.exceptions import TelegramAPIError
+from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from fluentogram import TranslatorRunner
 
 from utils import db, voice_to_text, clear_cache, MainSG, remove_file
@@ -29,7 +29,10 @@ async def any_text(callback: CallbackQuery,
     clear_cache(user_id)
 
     await state.set_state(MainSG.ready_for_dream)
-    await callback.message.edit_text(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+    try:
+        await callback.message.edit_text(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+    except TelegramBadRequest:
+        await callback.answer()
 
 
 @main_router.message(MainSG.ready_for_dream)

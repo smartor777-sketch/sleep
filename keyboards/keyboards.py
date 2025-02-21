@@ -124,7 +124,13 @@ def back_to_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup
 
 def back_to_calendar(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=i18n.calendar.button(), callback_data=f"calendar"))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"calendar"))
+    return builder.as_markup()
+
+
+def back_to_search(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"search"))
     return builder.as_markup()
 
 

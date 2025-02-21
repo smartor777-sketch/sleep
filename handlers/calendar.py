@@ -3,6 +3,7 @@ import logging
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest
 from fluentogram import TranslatorRunner
 from datetime import datetime
 
@@ -38,7 +39,10 @@ async def calendar_inline(callback: CallbackQuery,
     
     # Обновляем сообщение с календарем
     keyboard = kb.calendar(int(year), int(month), i18n, user_id)
-    await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
+    try:
+        await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
+    except TelegramBadRequest:
+        await callback.answer()
 
 
 @calendar_router.callback_query(F.data.startswith('calendar_'))
@@ -59,7 +63,11 @@ async def calendar_inline(callback: CallbackQuery,
     
     # Обновляем сообщение с календарем
     keyboard = kb.calendar(int(year), int(month), i18n, user_id)
-    await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
+
+    try:
+        await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
+    except TelegramBadRequest:
+        await callback.answer()
 
 
 @calendar_router.callback_query(F.data.startswith('day_'))
@@ -77,20 +85,28 @@ async def day_inline(callback: CallbackQuery,
     try:
         dreams = get_cache(user_id)[day]
     except KeyError:
-        await callback.message.edit_text(i18n.no.dreams(selected_date=selected_date), reply_markup=kb.back_to_menu(i18n))
+        await callback.message.edit_text(i18n.no.dreams(selected_date=selected_date), 
+                                         reply_markup=kb.back_to_calendar(i18n))
         return
 
     logger.info(f"Dreams of user {user_id}: {dreams}")
 
     if not dreams:
-        await callback.message.edit_text(i18n.no.dreams(selected_date=selected_date), reply_markup=kb.back_to_menu(i18n))
+        try:
+            await callback.message.edit_text(i18n.no.dreams(selected_date=selected_date), 
+                                             reply_markup=kb.back_to_calendar(i18n))
+        except TelegramBadRequest:
+            await callback.answer()
         return
 
     # Создаем клавиатуру с записями
     keyboard = kb.dreams_list(i18n, dreams)
     
     # Отправляем сообщение с клавиатурой
-    await callback.message.edit_text(i18n.dreams.day(selected_date=selected_date), reply_markup=keyboard)
+    try:
+        await callback.message.edit_text(i18n.dreams.day(selected_date=selected_date), reply_markup=keyboard)
+    except TelegramBadRequest:
+        await callback.answer()
 
 
 @calendar_router.callback_query(F.data.startswith('dream_'))
@@ -112,7 +128,10 @@ async def dream_inline(callback: CallbackQuery,
     found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:
-        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        try:
+            await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        except TelegramBadRequest:
+            await callback.answer()
         return
 
     dream_id, title, content, emoji, comment, cover, create_time = found_dream
@@ -154,7 +173,10 @@ async def edit_dream_menu(callback: CallbackQuery,
             break
 
     if not found_dream:
-        await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        try:
+            await callback.message.edit_text(i18n.dream.notfound(), reply_markup=kb.back_to_dream(i18n, dream_id))
+        except TelegramBadRequest:
+            await callback.answer()
         return
 
     # Формируем сообщение с деталями записи
@@ -219,7 +241,7 @@ async def edit_content(message: Message,
     dream_id = data.get("dream_id")
 
     await db.update_content(new_content, dream_id, user_id)
-    await state.finish()
+    await state.clear()
     await message.answer(i18n.content.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
@@ -241,7 +263,7 @@ async def edit_title(message: Message,
     dream_id = data.get("dream_id")
 
     await db.update_title(new_title, dream_id, user_id)
-    await state.finish()
+    await state.clear()
     await message.answer(i18n.title.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
@@ -263,7 +285,7 @@ async def edit_comment(message: Message,
     dream_id = data.get("dream_id")
 
     await db.update_comment(new_comment, dream_id, user_id)
-    await state.finish()
+    await state.clear()
     await message.answer(i18n.comment.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
@@ -286,7 +308,7 @@ async def edit_image(message: Message,
 
     # Обновляем запись в базе данных
     await db.update_cover(image_url, dream_id, user_id)
-    await state.finish()
+    await state.clear()
     await message.answer(i18n.cover.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
@@ -313,5 +335,5 @@ async def edit_emoji(message: Message,
     dream_id = data.get("dream_id")
 
     await db.update_emoji(new_emoji, dream_id, user_id)
-    await state.finish()
+    await state.clear()
     await message.answer(i18n.emoji.updated(), reply_markup=kb.back_to_dream(i18n, dream_id))

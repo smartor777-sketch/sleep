@@ -2,6 +2,7 @@ import logging
 
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
+from aiogram.exceptions import TelegramBadRequest
 from fluentogram import TranslatorRunner
 
 from keyboards import keyboards as kb
@@ -30,7 +31,11 @@ async def analyze_menu(callback: CallbackQuery,
     # Получаем последние 10 записей снов
     dreams = await db.get_last_10_dreams(user_id)
     if not dreams or len(dreams) == 0:
-        await callback.message.edit_text(i18n.nodreams(), kb.back_to_menu(i18n))
+        try:
+            await callback.message.edit_text(i18n.nodreams(), 
+                                             kb.main_menu(i18n))
+        except TelegramBadRequest:
+            await callback.answer()
         return
 
     # Объединяем записи в один текст
@@ -50,7 +55,8 @@ async def analyze_menu(callback: CallbackQuery,
             raise ValueError("Empty analysis result from YandexGPT")
     except (TelegramAPIError, ValueError) as e:
         logger.error(f"Error during dream analysis for user {user_id}: {e}")
-        await callback.message.edit_text(i18n.error.analysis_failed(), reply_markup=kb.back_to_menu(i18n))
+        await callback.message.edit_text(i18n.error.analysis_failed(), 
+                                         reply_markup=kb.back_to_menu(i18n))
         return
 
     # Если результат слишком длинный, отправляем несколькими сообщениями

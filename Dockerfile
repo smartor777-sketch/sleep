@@ -20,4 +20,4 @@ ENV CONFIG_PATH="/app/config.yaml"
 EXPOSE 8080
 
 # Запускаем бота через точку входа __main__.py
-CMD ["python", "main.py"]
+CMD  ["python", "__main__.py"]

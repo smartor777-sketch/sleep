@@ -67,7 +67,6 @@ async def check_subscribe(callback: CallbackQuery,
         username = callback.from_user.username
         first_name = callback.from_user.first_name
         
-        await state.set_state(MainSG.main_menu)
         await db.add_user(payload, user_id, username, first_name)
         await callback.answer(i18n.main.menu(), reply_markup=kb.main_menu())
     else:

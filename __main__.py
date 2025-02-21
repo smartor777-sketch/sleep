@@ -31,15 +31,10 @@ async def main():
     
     bot = Bot(token=bot_config.token.get_secret_value(),
               default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    dp = Dispatcher(bot)
+    dp = Dispatcher()
 
     # i18n init
     translator_hub: TranslatorHub = create_translator_hub()
-    if not translator_hub.is_initialized():
-        logger.error("TranslatorHub initialization failed.")
-        return
-    else:
-        logger.info("TranslatorHub successfully initialized.")
 
     # Routers, dialogs, middlewares
     dp.include_routers(account_router, analyze_router, calendar_router, main_router, start_router, search_router)

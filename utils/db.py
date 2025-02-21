@@ -38,7 +38,7 @@ async def db_start():
         "reg_time INT,"  # Время регистрации в формате timestamp
         "inviter VARCHAR(32),"  # ID пригласившего пользователя
         "sub_time TIMESTAMP DEFAULT NOW(),"  # Время начала подписки
-        "sub_type VARCHAR(16) DEFAULT 'none'"  # Тип подписки - месяц, 3, полгода
+        "sub_type VARCHAR(16) DEFAULT 'none')"  # Тип подписки - месяц, 3, полгода
     )
 
     logger.info("TABLE 'users' created")
@@ -52,7 +52,7 @@ async def db_start():
         "emoji VARCHAR(4) DEFAULT '',"  # Эмодзи записи
         "comment VARCHAR(128) DEFAULT '',"  # Комментарий к записи
         "cover VARCHAR(128) DEFAULT '',"  # Обложка
-        "create_time TIMESTAMP DEFAULT NOW()"  # Время создания записи 
+        "create_time TIMESTAMP DEFAULT NOW())"  # Время создания записи 
     )
 
     logger.info("TABLE 'dreams' created")

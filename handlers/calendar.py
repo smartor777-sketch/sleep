@@ -128,12 +128,13 @@ async def dream_inline(callback: CallbackQuery,
                                          reply_markup=kb.back_to_calendar(i18n))
         return
 
+    logger.info(dreams_dict)
     found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:
         try:
             await callback.message.edit_text(i18n.dream.notfound(), 
-                                             reply_markup=kb.back_to_dream(i18n, dream_id))
+                                             reply_markup=kb.back_to_calendar(i18n))
         except TelegramBadRequest:
             await callback.answer()
         return

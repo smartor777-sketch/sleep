@@ -33,7 +33,9 @@ def day_emoji(user_id: int, day: int) -> str:
     Если записей нет или у них нет эмодзи, возвращает пустую строку.
     """
     from utils import get_cache
+    logger.info(f'GETTING CAHCHE USER: {user_id}, DAY: {day}')
     cache = get_cache(user_id)
+    logger.info(f'CACHE: {cache}')
     if day in cache:
         logger.info(f'SEARCH FOR EMOJI: {day}')
         emojis = [dream[3] for dream in cache[day] if dream[3]]  # Собираем все непустые эмодзи

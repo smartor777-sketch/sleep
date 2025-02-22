@@ -219,11 +219,12 @@ async def edit_dream_menu(callback: CallbackQuery,
                                       reply_markup=kb.back_to_dream(i18n, dream_id))
 
     elif action == "edit_cov":
+        logger.info(f'EDIT_COVER ACTION')
         await state.set_state(CalendarSG.edit_cov)
         if comment == "" or comment is None:
             await callback.message.answer(i18n.nocover())
         else:
-            await callback.message.answer(cover)
+            await callback.message.answer_photo(cover)
         await callback.message.answer(i18n.newcover(), 
                                       reply_markup=kb.back_to_dream(i18n, dream_id))
 
@@ -312,6 +313,8 @@ async def edit_comment(message: Message,
 async def edit_image(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
+
+    logger.info(f'EDIT COVER ROUTER')
 
     user_id = message.from_user.id
     image_url = message.text

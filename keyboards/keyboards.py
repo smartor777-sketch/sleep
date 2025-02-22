@@ -97,9 +97,15 @@ def dream_edit(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text=i18n.edit.content.button(), callback_data=f"edit_con_{dream_id}"))
     builder.row(InlineKeyboardButton(text=i18n.edit.cover.button(), callback_data=f"edit_cov_{dream_id}"),
                 InlineKeyboardButton(text=i18n.edit.emoji.button(), callback_data=f"edit_emo_{dream_id}"))
-    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="calendar"))
+    builder.row(InlineKeyboardButton(text=i18n.delete.button(), callback_data=f'delete_{dream_id}'),
+                InlineKeyboardButton(text=i18n.back.button(), callback_data="calendar"))
     return builder.as_markup()
 
+def delete_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.confirm.button(), callback_data=f'confirm_{dream_id}'))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"dream_{dream_id}"))
+    return builder.as_markup()
 
 def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()

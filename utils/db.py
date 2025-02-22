@@ -97,6 +97,18 @@ async def create_dream(user_id: str | int,
     )
     await conn.close()
 
+# Удаление Ана
+async def delete_dream(dream_id: int):
+    
+    conn = await get_conn()
+    try:
+        await conn.execute(
+            "DELETE FROM dreams WHERE id = $1",
+            dream_id
+        )
+    finally:
+        await conn.close()
+
 
 # Получения словаря Снов за месяц и сохранение его в кэш
 async def load_month(user_id: int, year: int, month: int):

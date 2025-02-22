@@ -371,6 +371,46 @@ async def edit_emoji(message: Message,
                          reply_markup=kb.back_to_dream(i18n, dream_id))
     
 
+@calendar_router.callback_query(F.data.startswith('delete_'))
+async def delete_handler(callback: CallbackQuery,
+                         i18n: FSMContext):
+    
+    _, dream_id = callback.data.split('_')
+    await callback.message.answer(i18n.confirm.delete(), 
+                                  reply_markup=kb.delete_dream(dream_id))
+
+
+@calendar_router.callback_query(F.data.startswith('confirm_'))
+async def delete_confirm_handler(callback: CallbackQuery,
+                                 i18n: TranslatorRunner):
+    try:
+        _, dream_id = callback.data.split('_')
+        dream_id = int(dream_id)
+
+        # Удаляем запись
+        await db.delete_dream(dream_id)
+        await callback.message.edit_text(
+            i18n.complete.delete(),
+            reply_markup=kb.back_to_calendar(i18n)
+        )
+
+    except ValueError:
+        await callback.message.edit_text(
+            i18n.dream.notfound() or "Сон не найден!",
+            reply_markup=kb.back_to_calendar(i18n)
+        )
+    except Exception as e:
+        await callback.message.edit_text(
+            i18n.dream.notfound() or "Сон не найден!",
+            reply_markup=kb.back_to_calendar(i18n)
+        )
+    except TelegramBadRequest:
+        await callback.answer("Не удалось обновить сообщение.")
+
+    finally:
+        await callback.answer()
+    
+
 @calendar_router.callback_query(F.data == 'ignore')
 async def ignore_handler(callback: CallbackQuery):
     await callback.answer()

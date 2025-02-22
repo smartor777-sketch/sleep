@@ -35,9 +35,12 @@ def day_emoji(user_id: int, day: int) -> str:
     from utils import get_cache
     cache = get_cache(user_id)
     if day in cache:
+        logger.info(f'SEARCH FOR EMOJI: {day}')
         emojis = [dream[3] for dream in cache[day] if dream[3]]  # Собираем все непустые эмодзи
+        logger.info(f'EMOJIS: {emojis}')
         if emojis:
             most_common_emoji = Counter(emojis).most_common(1)[0][0]  # Самый частый эмодзи
+            logger.info(f'MOST COMMON EMOJI: {most_common_emoji}')
             return most_common_emoji
     return ""
 

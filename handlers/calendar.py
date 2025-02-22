@@ -358,3 +358,8 @@ async def edit_emoji(message: Message,
     await state.clear()
     await message.answer(i18n.emoji.updated(), 
                          reply_markup=kb.back_to_dream(i18n, dream_id))
+    
+
+@calendar_router.callback_query(F.data == 'ignore')
+async def ignore_handler(callback: CallbackQuery):
+    await callback.answer()

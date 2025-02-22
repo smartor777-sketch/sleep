@@ -46,7 +46,7 @@ async def db_start():
         "id SERIAL PRIMARY KEY,"  # Уникальный идентификатор записи
         "user_id BIGINT,"  # Идентификатор пользователя
         "title VARCHAR(64),"  # Заголовок
-        "content VARCHAR(1024),"  # Основное содержание записи
+        "content VARCHAR(4096),"  # Основное содержание записи
         "emoji VARCHAR(4) DEFAULT '',"  # Эмодзи записи
         "comment VARCHAR(128) DEFAULT '',"  # Комментарий к записи
         "cover VARCHAR(128) DEFAULT '',"  # Обложка

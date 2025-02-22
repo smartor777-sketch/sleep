@@ -41,10 +41,7 @@ async def any_text(message: Message,
                    
     user_id = message.from_user.id
     dream_text = message.text
-    
-    # Если текст слишком короткий
-    if len(dream_text) > 32:
-        dream_text = dream_text[32:]
+
     logger.info(f"New Dream by user {user_id}: {dream_text}...")
 
     await db.create_dream(user_id, dream_text)

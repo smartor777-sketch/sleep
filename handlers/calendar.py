@@ -257,7 +257,7 @@ async def edit_content(message: Message,
     new_content = message.text
 
     # Проверяем длину содержания
-    if len(new_content) > 1024:
+    if len(new_content) > 4096:
         await message.answer(i18n.toolong.content())
         return
 

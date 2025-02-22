@@ -27,7 +27,7 @@ def is_emoji(text: str) -> bool:
     return text in emoji.EMOJI_DATA
 
 
-def day_emoji(user_id: int, day: int, cache: dict) -> str:
+def day_emoji(user_id: int, day: str, cache: dict) -> str:
     """
     Возвращает самый частый эмодзи для указанного дня.
     Если записей нет или у них нет эмодзи, возвращает пустую строку.

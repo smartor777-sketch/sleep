@@ -58,7 +58,7 @@ def calendar(year: int,
     # Кнопки для дней текущего месяца
     for day in range(1, last_day_of_month.day + 1):
         cache_object = get_cache(user_id)
-        emoji = day_emoji(user_id, day, cache_object)  # Предполагается, что функция day_emoji определена
+        emoji = day_emoji(user_id, str(day), cache_object)  # Предполагается, что функция day_emoji определена
         button_text = f"{day} {emoji}" if emoji else str(day)
         buttons.append(InlineKeyboardButton(text=button_text, callback_data=f"day_{year}_{month}_{day}"))
 

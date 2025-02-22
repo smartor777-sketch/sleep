@@ -21,7 +21,7 @@ def subscribe(i18n: TranslatorRunner, payload='none') -> InlineKeyboardMarkup:
 def main_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.calendar.button(), callback_data="calendar"))
-    builder.row(InlineKeyboardButton(text=i18n.analyze.button(), callback_data="analyze"))
+    # builder.row(InlineKeyboardButton(text=i18n.analyze.button(), callback_data="analyze"))
     builder.row(InlineKeyboardButton(text=i18n.account.button(), callback_data="account"))
     return builder.as_markup()
 
@@ -59,7 +59,7 @@ def calendar(year: int,
     for day in range(1, last_day_of_month.day + 1):
         cache_object = get_cache(user_id)
         emoji = day_emoji(user_id, str(day), cache_object)  # Предполагается, что функция day_emoji определена
-        button_text = f"{day} {emoji}" if emoji else str(day)
+        button_text = f"{day}{emoji}" if emoji else str(day)
         buttons.append(InlineKeyboardButton(text=button_text, callback_data=f"day_{year}_{month}_{day}"))
 
     # Пустые кнопки для дней следующего месяца (дополняем до полной недели)
@@ -103,7 +103,7 @@ def dream_edit(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
 
 def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
+    # builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
     return builder.as_markup()
 

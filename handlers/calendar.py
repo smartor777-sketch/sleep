@@ -22,8 +22,10 @@ logging.basicConfig(
 
 @calendar_router.callback_query(F.data == 'calendar')
 async def calendar_inline(callback: CallbackQuery,
+                          state: FSMContext,
                           i18n: TranslatorRunner):
     
+    await state.clear()
     now = datetime.now()
     year, month = now.year, now.month  # Текущий год и месяц
     user_id = callback.from_user.id
@@ -48,8 +50,10 @@ async def calendar_inline(callback: CallbackQuery,
 
 @calendar_router.callback_query(F.data.startswith('calendar_'))
 async def calendar_inline(callback: CallbackQuery,
+                          state: FSMContext,
                           i18n: TranslatorRunner):
-     
+    
+    await state.clear()
     _, year, month = callback.data.split('_')
     user_id = callback.from_user.id
 
@@ -73,10 +77,10 @@ async def calendar_inline(callback: CallbackQuery,
 
 @calendar_router.callback_query(F.data.startswith('day_'))
 async def day_inline(callback: CallbackQuery,
+                     state: FSMContext,
                      i18n: TranslatorRunner):
     
-    logger.info(callback.data)
-
+    await state.clear()
     _, year, month, day = callback.data.split('_')
     selected_date = f"{year}-{month}-{day}"
     user_id = callback.from_user.id 
@@ -113,8 +117,10 @@ async def day_inline(callback: CallbackQuery,
 
 @calendar_router.callback_query(F.data.startswith('dream_'))
 async def dream_inline(callback: CallbackQuery, 
+                       state: FSMContext,
                        i18n: TranslatorRunner):
-
+    
+    await state.clear()
     user_id = callback.from_user.id
     dream_id = callback.data[6:]
     user_cache = get_cache(user_id)

@@ -200,8 +200,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     elif action == "edit_tit":
         await state.set_state(CalendarSG.edit_tit)
         if title == "" or title is None:
-            await callback.message.answer(i18n.notitle(), 
-                                          reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.notitle())
         else:
             await callback.message.answer(title)
         await callback.message.answer(i18n.newtitle(), 
@@ -210,8 +209,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     elif action == "edit_com":
         await state.set_state(CalendarSG.edit_com)
         if comment == "" or comment is None:
-            await callback.message.answer(i18n.nocomment(), 
-                                          reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.nocomment())
         else:
             await callback.message.answer(comment)
         await callback.message.answer(i18n.newcomment(), 
@@ -220,8 +218,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     elif action == "edit_cov":
         await state.set_state(CalendarSG.edit_cov)
         if comment == "" or comment is None:
-            await callback.message.answer(i18n.nocover(), 
-                                          reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.nocover())
         else:
             await callback.message.answer(cover)
         await callback.message.answer(i18n.newcover(), 
@@ -230,8 +227,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     elif action == "edit_emo":
         await state.set_state(CalendarSG.edit_emo)
         if emoji == "" or emoji is None:
-            await callback.message.answer(i18n.noemoji(), 
-                                          reply_markup=kb.back_to_dream(i18n, dream_id))
+            await callback.message.answer(i18n.noemoji())
         else:
             await callback.message.answer(emoji)
         await callback.message.answer(i18n.newemoji(), 

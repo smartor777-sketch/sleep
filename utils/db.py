@@ -110,11 +110,10 @@ async def load_month(user_id: int, year: int, month: int):
             "WHERE user_id = $1 AND DATE_PART('year', create_time) = $2 AND DATE_PART('month', create_time) = $3",
             user_id, year, month
         )
-        from utils import cache_object
+        from utils import cache_object, clear_cache
 
-        # Очищаем кэш для данного пользователя (если нужно)
-        if user_id not in cache_object:
-            cache_object[user_id] = {}
+        # Очищаем кэш
+        clear_cache(user_id)
 
         # Группируем записи по дням
         for dream in dreams:

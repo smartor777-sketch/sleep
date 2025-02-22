@@ -28,6 +28,7 @@ error-analysis_failed = 🤖 Ошибка анализа
 error-loading_data = 🔄 Ошибка загрузки данных
 error-voice_download = 🎤 Ошибка загрузки записи голоса
 error-generic = ⚠️ Ошибка проверки подписки
+error-timedelta = ⌛ Анализ можно проводить не чаще чем раз в 24 часа!
 account-no_stats = 📊 Нет статистики
 account-title = 🧑‍💻 Мой аккаунт
 account-name = 👤 Имя: { $name }

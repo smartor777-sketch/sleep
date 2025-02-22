@@ -28,6 +28,7 @@ error-analysis_failed = 🤖 Analysis failed
 error-loading_data = 🔄 Data loading error
 error-voice_download = 🎤 Voice recording download error
 error-generic = ⚠️ Subscription verification error
+error-timedelta = ⌛ Analysis can be performed no more than once every 24 hours!
 account-no_stats = 📊 No stats
 account-title = 🧑‍💻 My Account
 account-name = 👤 Name: { $name }

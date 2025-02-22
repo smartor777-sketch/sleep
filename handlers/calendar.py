@@ -45,7 +45,7 @@ async def calendar_inline(callback: CallbackQuery,
     try:
         await callback.message.edit_text(i18n.calendar(), reply_markup=keyboard)
     except TelegramBadRequest:
-        await callback.answer()
+        await callback.message.answer(i18n.calendar(), reply_markup=keyboard)
 
 
 @calendar_router.callback_query(F.data.startswith('calendar_'))
@@ -154,7 +154,9 @@ async def dream_inline(callback: CallbackQuery,
     )
 
     if cover:
-        await callback.message.answer_photo(cover, caption=message_text, reply_markup=kb.dream_edit(i18n, dream_id))
+        await callback.message.answer_photo(cover, 
+                                            caption=message_text, 
+                                            reply_markup=kb.dream_edit(i18n, dream_id))
     else:
         await callback.message.answer(message_text, 
                                       reply_markup=kb.dream_edit(i18n, dream_id))

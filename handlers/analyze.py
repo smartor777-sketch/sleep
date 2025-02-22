@@ -4,6 +4,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.exceptions import TelegramBadRequest
 from fluentogram import TranslatorRunner
+from datetime import datetime, timedelta, timezone
 
 from keyboards import keyboards as kb
 from utils import db, analyze_dreams
@@ -27,6 +28,15 @@ async def analyze_menu(callback: CallbackQuery,
                        i18n: TranslatorRunner):
     
     user_id = callback.from_user.id
+    user_data = await db.get_user(user_id)
+    last_use = user_data['last_analyze']
+    current_time = datetime.now(timezone.utc)
+    time_difference = current_time - last_use
+    
+    if time_difference < timedelta(hours=24):
+        await callback.message.edit_text(i18n.error.timedelta(),
+                                         reply_markup=kb.main_menu(i18n))
+        return
 
     # Получаем последние 10 записей снов
     dreams = await db.get_last_10_dreams(user_id)

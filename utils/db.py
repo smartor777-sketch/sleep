@@ -37,7 +37,8 @@ async def db_start():
         "reg_time INT,"  # Время регистрации в формате timestamp
         "inviter VARCHAR(32),"  # ID пригласившего пользователя
         "sub_time TIMESTAMP DEFAULT NOW(),"  # Время начала подписки
-        "sub_type VARCHAR(16) DEFAULT 'none')"  # Тип подписки - месяц, 3, полгода
+        "sub_type VARCHAR(16) DEFAULT 'none',"  # Тип подписки - месяц, 3, полгода
+        "last_analyze TIMESTAMP DEFAULT NOW())"  # Последнее использование анализа
     )
 
     await conn.execute(

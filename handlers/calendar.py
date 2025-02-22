@@ -377,7 +377,7 @@ async def delete_handler(callback: CallbackQuery,
     
     _, dream_id = callback.data.split('_')
     await callback.message.answer(i18n.confirm.delete(), 
-                                  reply_markup=kb.delete_dream(dream_id))
+                                  reply_markup=kb.delete_dream(i18n, dream_id))
 
 
 @calendar_router.callback_query(F.data.startswith('confirm_'))

@@ -93,7 +93,7 @@ async def process_search(message: Message,
 
     # Отправляем результаты пользователю
     response = i18n.search.results_header() + "\n\n" + "\n\n".join(results)
-    await message.answer(response, reply_markup=kb.dreams_list(dreams_list))
+    await message.answer(response, reply_markup=kb.dreams_list(i18n, dreams_list))
 
     # Завершаем состояние поиска
     await state.clear()

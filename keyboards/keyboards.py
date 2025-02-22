@@ -3,7 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime, timedelta
 from fluentogram import TranslatorRunner
 
-from utils import day_emoji
+from utils import day_emoji, get_cache
 from config import get_config, Channel
 
 channel_url = get_config(Channel, "channel")
@@ -57,7 +57,8 @@ def calendar(year: int,
 
     # Кнопки для дней текущего месяца
     for day in range(1, last_day_of_month.day + 1):
-        emoji = day_emoji(user_id, day)  # Предполагается, что функция day_emoji определена
+        cache_object = get_cache(user_id)
+        emoji = day_emoji(user_id, day, cache_object)  # Предполагается, что функция day_emoji определена
         button_text = f"{day} {emoji}" if emoji else str(day)
         buttons.append(InlineKeyboardButton(text=button_text, callback_data=f"day_{year}_{month}_{day}"))
 

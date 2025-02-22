@@ -221,7 +221,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     elif action == "edit_cov":
         logger.info(f'EDIT_COVER ACTION')
         await state.set_state(CalendarSG.edit_cov)
-        if comment == "" or comment is None:
+        if cover == "" or cover is None:
             await callback.message.answer(i18n.nocover())
         else:
             await callback.message.answer_photo(cover)

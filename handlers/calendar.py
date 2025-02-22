@@ -163,6 +163,9 @@ async def edit_dream_menu(callback: CallbackQuery,
     user_id = callback.from_user.id
     action = callback.data[:8]
     dream_id = callback.data[9:]
+
+    logger.info(f'EDIT_ button. callback: {callback.data}; action: {action}')
+
     await state.update_data(dream_id=str(dream_id))
     await state.update_data(edit_action=action)
 

@@ -42,6 +42,9 @@ async def any_text(message: Message,
     user_id = message.from_user.id
     dream_text = message.text
 
+    if dream_text == '/start' or dream_text == '/stats':
+        return
+
     logger.info(f"New Dream by user {user_id}: {dream_text}...")
 
     await db.create_dream(user_id, dream_text)

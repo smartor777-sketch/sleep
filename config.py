@@ -23,6 +23,9 @@ class Yandex(BaseModel):
     folder_id: str
     api_key: SecretStr
 
+class Admin(BaseModel):
+    id: str
+
 @lru_cache(maxsize=1)
 def parse_config_file() -> dict:
     try:

@@ -3,6 +3,7 @@ import logging
 
 from datetime import datetime
 from asyncpg import Connection
+from pytz import timezone
 
 from config import get_config, DbConfig
 
@@ -91,11 +92,18 @@ async def create_dream(user_id: str | int,
                        content: str):
     
     conn = await get_conn()
-    await conn.execute(
-        "INSERT INTO dreams(user_id, title, content) VALUES ($1, $2, $3)",
-        user_id, str(content[:16] + '...'), content
-    )
-    await conn.close()
+    try:
+        moscow_tz = timezone('Europe/Moscow')
+        create_time = datetime.now(moscow_tz)
+        
+        # Записываем сон в базу
+        await conn.execute(
+            "INSERT INTO dreams(user_id, title, content, create_time) VALUES ($1, $2, $3, $4)",
+            user_id, str(content[:16] + '...'), content, create_time
+        )
+    finally:
+        await conn.close()
+
 
 # Удаление Ана
 async def delete_dream(dream_id: int):
@@ -135,7 +143,7 @@ async def load_month(user_id: int, year: int, month: int):
             dream_id, title, content, emoji, comment, cover, create_time = dream_tuple
             day = str(create_time.day)
 
-            logger.info(f"Getting dream from DB: {dream_tuple}, day: {day}. Cache Object: {cache_object}")
+            logger.info(f"Getting dream from DB: {dream_tuple[1]}")
 
             if day not in cache_object[user_id]:
                 cache_object[user_id][day] = []
@@ -269,3 +277,41 @@ async def get_last_10_dreams(user_id: int):
         return [dream["content"] for dream in dreams]
     finally:
         await conn.close()  # Закрываем соединение вручную
+
+
+async def get_service_stats() -> dict:
+    """
+    Возвращает общую статистику по сервису.
+    
+    Returns:
+        dict: Словарь с количеством пользователей, снов, оплаченных заказов и суммой оплат.
+    """
+    conn = await get_conn()
+    try:
+        # Количество пользователей
+        users_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM users"
+        )
+
+        # Количество снов
+        dreams_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM dreams"
+        )
+
+        # Количество оплаченных заказов и их сумма
+        orders_stats = await conn.fetchrow(
+            "SELECT COUNT(*), SUM(amount) FROM orders WHERE pay_time IS NOT NULL"
+        )
+        orders_count = orders_stats['count'] if orders_stats else 0
+        total_amount = orders_stats['sum'] if orders_stats and orders_stats['sum'] is not None else 0
+
+        # Формируем результат
+        stats = {
+            "users_count": users_count or 0,
+            "dreams_count": dreams_count or 0,
+            "orders_count": orders_count,
+            "total_amount": total_amount
+        }
+        return stats
+    finally:
+        await conn.close()

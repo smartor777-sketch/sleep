@@ -282,30 +282,17 @@ async def get_last_10_dreams(user_id: int):
 async def get_service_stats() -> dict:
     """
     Возвращает общую статистику по сервису.
-    
-    Returns:
-        dict: Словарь с количеством пользователей, снов, оплаченных заказов и суммой оплат.
     """
     conn = await get_conn()
     try:
-        # Количество пользователей
-        users_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM users"
-        )
-
-        # Количество снов
-        dreams_count = await conn.fetchval(
-            "SELECT COUNT(*) FROM dreams"
-        )
-
-        # Количество оплаченных заказов и их сумма
+        users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+        dreams_count = await conn.fetchval("SELECT COUNT(*) FROM dreams")
         orders_stats = await conn.fetchrow(
             "SELECT COUNT(*), SUM(amount) FROM orders WHERE pay_time IS NOT NULL"
         )
         orders_count = orders_stats['count'] if orders_stats else 0
         total_amount = orders_stats['sum'] if orders_stats and orders_stats['sum'] is not None else 0
 
-        # Формируем результат
         stats = {
             "users_count": users_count or 0,
             "dreams_count": dreams_count or 0,

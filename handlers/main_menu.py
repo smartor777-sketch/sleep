@@ -10,6 +10,10 @@ from fluentogram import TranslatorRunner
 
 from utils import db, voice_to_text, clear_cache, MainSG, remove_file
 from keyboards import keyboards as kb
+from config import get_config, Admin
+
+admin = get_config(Admin, 'admin')
+admin_id = admin.id
 
 main_router = Router()
 logger = logging.getLogger(__name__)
@@ -42,7 +46,25 @@ async def any_text(message: Message,
     user_id = message.from_user.id
     dream_text = message.text
 
-    if dream_text == '/start' or dream_text == '/stats':
+    if dream_text == '/start':
+        await message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
+        return
+    
+    elif dream_text == '/stats':
+            # Проверка, является ли пользователь администратором
+        if str(user_id) != str(admin_id):
+            return
+
+        # Если пользователь — админ, показываем статистику
+        stats = await db.get_service_stats()
+        response = (
+            f"📊 Статистика сервиса:\n\n"
+            f"👥 Пользователей: {stats['users_count']}\n"
+            f"💤 Снов: {stats['dreams_count']}\n"
+            f"💳 Оплаченных заказов: {stats['orders_count']}\n"
+            f"💰 Сумма оплат: {stats['total_amount']}"
+        )
+        await message.answer(response)
         return
 
     logger.info(f"New Dream by user {user_id}: {dream_text}...")

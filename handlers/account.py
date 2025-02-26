@@ -42,7 +42,7 @@ async def account_menu(callback: CallbackQuery,
     stat_fields = {
         'name': stats['first_name'],
         'reg_time': stats['reg_time'],
-        'inviter': stats['inviter'],
+        'inviter': '🤷‍♂️' if stats['inviter'] == 'none' else stats['inviter'],
         'sub_type': '🤷‍♂️' if stats['sub_type'] == 'none' else stats['sub_type'],
         'sub_time': '🤷‍♂️' if stats['sub_time'] is None else stats['sub_time'],
         'dreams_count': stats['dreams_count'],

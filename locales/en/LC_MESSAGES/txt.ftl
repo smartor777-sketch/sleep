@@ -16,9 +16,9 @@ edit-emoji-button = 😊 Emoji
 delete-button = ❌ Delete
 confirm-button = ✅ Confirm
 sub-button = 📥 Subscribe
-month1-sub-button = 1 Month
-month3-sub-button = 3 Months
-month6-sub-button = 6 Months
+month1-sub-button = 1 Month - 499rub.
+month3-sub-button = 3 Months - 1 199rub (-20%)
+month6-sub-button = 6 Months - 2 299rub (-30%
 back-button = ⬅️ Back
 
 # ######## #
@@ -82,3 +82,9 @@ search-too_many_results = 🚨 Too many results
 search-results_header = 🔎 Here’s what I found
 channel-subscription = 📢 You need to subscribe to the channel to continue
 need-subscribe = 🔔 You need to subscribe to the channel to continue!
+subscription-types = ✨ *Want more features with the bot?* Get a subscription and unlock:
+
+                     1. Dream analysis with YandexGPT — discover what’s behind your dreams with smart analysis!
+                     2. More dreams per day — with a subscription, you can record up to 7 dreams daily (without it — only 3).
+
+                     Choose a subscription below and explore new horizons! 👇

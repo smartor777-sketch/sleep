@@ -43,8 +43,8 @@ async def account_menu(callback: CallbackQuery,
         'name': stats['first_name'],
         'reg_time': stats['reg_time'],
         'inviter': stats['inviter'],
-        'sub_type': stats['sub_type'],
-        'sub_time': stats['sub_time'],
+        'sub_type': '🤷‍♂️' if stats['sub_type'] == 'none' else stats['sub_type'],
+        'sub_time': '🤷‍♂️' if stats['sub_time'] is None else stats['sub_time'],
         'dreams_count': stats['dreams_count'],
         'orders_count': stats['orders_count'],
         'orders_total': stats['orders_total'],
@@ -58,3 +58,19 @@ async def account_menu(callback: CallbackQuery,
         await callback.message.edit_text(message_text, reply_markup=kb.account_menu(i18n))
     except TelegramBadRequest:
         await callback.answer()
+
+    
+@account_router.callback_query(F.data == 'subscription')
+async def subscription_handler(callback: CallbackQuery,
+                               i18n: TranslatorRunner):
+
+    try:
+        await callback.message.edit_text(i18n.subscription.types(), reply_markup=kb.subscription_menu(i18n))
+    except TelegramBadRequest:
+        await callback.answer()
+
+
+@account_router.callback_query(F.data.startswith('sub_'))
+async def process_sub_button(callback: CallbackQuery,
+                             i18n: TranslatorRunner):
+    await callback.answer()

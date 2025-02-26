@@ -109,7 +109,7 @@ def delete_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
 
 def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    # builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
+    builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
     return builder.as_markup()
 

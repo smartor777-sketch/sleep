@@ -37,7 +37,7 @@ async def db_start():
         "first_name VARCHAR(64),"  # Имя пользователя
         "reg_time INT,"  # Время регистрации в формате timestamp
         "inviter VARCHAR(32),"  # ID пригласившего пользователя
-        "sub_time TIMESTAMP DEFAULT NOW(),"  # Время начала подписки
+        "sub_time DEFAULT NOW(),"  # Время начала подписки
         "sub_type VARCHAR(16) DEFAULT 'none',"  # Тип подписки - месяц, 3, полгода
         "last_analyze TIMESTAMP DEFAULT NOW())"  # Последнее использование анализа
     )
@@ -51,7 +51,7 @@ async def db_start():
         "emoji VARCHAR(4) DEFAULT '',"  # Эмодзи записи
         "comment VARCHAR(128) DEFAULT '',"  # Комментарий к записи
         "cover VARCHAR(128) DEFAULT '',"  # Обложка
-        "create_time TIMESTAMP DEFAULT NOW())"  # Время создания записи 
+        "create_time TIMESTAMP WITH TIME ZONE DEFAULT NOW())"  # Время создания записи 
     )
 
     await conn.execute(
@@ -142,8 +142,6 @@ async def load_month(user_id: int, year: int, month: int):
             dream_tuple = tuple(dream)
             dream_id, title, content, emoji, comment, cover, create_time = dream_tuple
             day = str(create_time.day)
-
-            logger.info(f"Getting dream from DB: {dream_tuple[1]}")
 
             if day not in cache_object[user_id]:
                 cache_object[user_id][day] = []

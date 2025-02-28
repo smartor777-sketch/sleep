@@ -39,7 +39,8 @@ async def db_start():
         "inviter VARCHAR(32),"  # ID пригласившего пользователя
         "sub_time TIMESTAMP DEFAULT NULL,"  # Время начала подписки
         "sub_type VARCHAR(16) DEFAULT 'none',"  # Тип подписки - месяц, 3, полгода
-        "last_analyze TIMESTAMP DEFAULT NOW())"  # Последнее использование анализа
+        "last_analyze TIMESTAMP DEFAULT NOW(),"  # Последнее использование анализа
+        "self_description VARCHAR(4096) DEFAULT 'none')"  # Общие пояснения ко Снам 
     )
 
     await conn.execute(
@@ -207,12 +208,24 @@ async def update_cover(new_cover: str,
 # Редактирование эмодзи Сна
 async def update_emoji(new_emoji: str,
                        dream_id: int,
-                       user_id: int | str):
+                       user_id: int):
     
     conn = await get_conn()
     await conn.execute(
         "UPDATE dreams SET emoji = $1 WHERE id = $2 AND user_id = $3",
         new_emoji, dream_id, user_id
+    )
+    await conn.close()
+
+
+# Редактирование описания себя
+async def update_self_description(new_description: str,
+                                  user_id: int):
+    
+    conn = await get_conn()
+    await conn.execute(
+        "UPDATE users SET self_description = $1 WHERE user_id = $2",
+        new_description, user_id
     )
     await conn.close()
 

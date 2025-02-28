@@ -16,5 +16,8 @@ class CalendarSG(StatesGroup):
 class SearchSG(StatesGroup):
     search = State()
 
+class AnalyzeSG(StatesGroup):
+    edit_des = State()
+
 class AccountSG(StatesGroup):
     buy_sub = State()

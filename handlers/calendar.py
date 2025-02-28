@@ -133,8 +133,7 @@ async def dream_inline(callback: CallbackQuery,
         await callback.message.edit_text(i18n.dream.notfound(), 
                                          reply_markup=kb.back_to_calendar(i18n))
         return
-
-    logger.info(dreams_dict)
+    
     found_dream = dreams_dict.get(dream_id)
 
     if not found_dream:

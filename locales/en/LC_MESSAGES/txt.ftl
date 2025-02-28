@@ -16,9 +16,11 @@ edit-emoji-button = 😊 Emoji
 delete-button = ❌ Delete
 confirm-button = ✅ Confirm
 sub-button = 📥 Subscribe
-month1-sub-button = 1 Month - 499rub.
-month3-sub-button = 3 Months - 1 199rub (-20%)
-month6-sub-button = 6 Months - 2 299rub (-30%
+analyze-process-button = 🧠 Run Analysis
+edit-self-description-button = 🙋‍♂️ SelfDescription
+month1-sub-button = 1 Month - 499 rub.
+month3-sub-button = 3 Months - 1 199 rub (-20%)
+month6-sub-button = 6 Months - 2 299 rub (-30%)
 back-button = ⬅️ Back
 
 # ######## #
@@ -56,9 +58,9 @@ notitle = ❌ No title
 nocomment = ❌ No comment
 nocover = ❌ No cover
 noemoji = ❌ No emoji
-toolong-content = 🚨 Content is too long, enter no more than 1024 characters
-toolong-title = 🚨 Title is too long - enter no more than 64 characters
-toolong-comment = 🚨 Comment is too long - enter no more than 128 characters
+toolong-content = 🚨 Content is too long, enter no more than 1000 characters
+toolong-title = 🚨 Title is too long - enter no more than 60 characters
+toolong-comment = 🚨 Comment is too long - enter no more than 120 characters
 incorrect-url = ⚠️ Incorrect image URL, it should start with http:// or https://
 toolong-emoji = 🚫 Too many emojis
 notemoji = ❌ This is not an emoji!
@@ -88,3 +90,13 @@ subscription-types = ✨ *Want more features with the bot?* Get a subscription a
                      2. More dreams per day — with a subscription, you can record up to 7 dreams daily (without it — only 3).
 
                      Choose a subscription below and explore new horizons! 👇
+analyze-menu = 📊 Ask the neural network to analyze your dreams!
+
+                If you are doing this for the first time, I advise you to fill in 🙋‍♂️ Description of Yourself.
+                The neural network does not know the context of 🌟 Dreams - therefore - it needs help!
+                Tell us about the characters 🧸 in your dreams, places, events,
+                so that it is clear to it - who is who.
+nodescription = ❌ No description!
+newdescription = 🙋‍♂️ Enter a new description of Yourself! You can do it in detail.
+toolong-description = 🚨 The description is too long - enter no more than 4000 characters.
+description-updated = ✅ Description updated

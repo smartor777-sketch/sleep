@@ -1,13 +1,14 @@
 import logging
 
 from aiogram import Router, F
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, Message
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.fsm.context import FSMContext
 from fluentogram import TranslatorRunner
 from datetime import datetime, timedelta, timezone
 
 from keyboards import keyboards as kb
-from utils import db, analyze_dreams
+from utils import db, analyze_dreams, AnalyzeSG
 from aiogram.exceptions import TelegramAPIError
 from config import get_config, Yandex
 
@@ -23,9 +24,64 @@ logging.basicConfig(
 
 MAX_MESSAGE_LENGTH = 4096  # Максимальная длина сообщения для Telegram
 
+
 @analyze_router.callback_query(F.data == 'analyze')
 async def analyze_menu(callback: CallbackQuery,
+                       state: FSMContext,
                        i18n: TranslatorRunner):
+    
+    await state.clear()
+    
+    try:
+        await callback.message.edit_text(i18n.analyze.menu(), 
+                                         reply_markup=kb.analyze_menu(i18n))
+    except TelegramBadRequest:
+        await callback.answer()
+    
+
+@analyze_router.callback_query(F.data == 'edit_self_description')
+async def self_description_process(callback: CallbackQuery,
+                                   state: FSMContext,
+                                   i18n: TranslatorRunner):
+    
+    user_id = callback.from_user.id
+    try:
+        user_data = await db.get_user(user_id)
+    except Exception as e:
+        logger.error(f"Error getting stats for user {user_id}: {e}")
+        await callback.message.edit_text(i18n.error.db_error(), 
+                                         reply_markup=kb.back_to_menu(i18n))
+        return
+    
+    user_description = i18n.nodescription if user_data['self_description'] == 'none' else user_data['self_description']
+    
+    await state.set_state(AnalyzeSG.edit_des())
+    await callback.message.answer(user_description)
+    await callback.message.answer(i18n.newdescription,
+                                  reply_markup=kb.back_to_analyze(i18n))
+    
+
+@analyze_router.message(AnalyzeSG.edit_des())
+async def edit_description(message: Message,
+                           state: FSMContext,
+                           i18n: TranslatorRunner):
+    
+    user_id = message.from_user.id
+    new_description = message.text
+
+    if len(new_description) > 4096:
+        await message.answer(i18n.toolong.description())
+        return
+    
+    await db.update_self_description(new_description, user_id)
+    await state.clear()
+    await message.answer(i18n.description.updated(),
+                         reply_markup=kb.analyze_menu(i18n))
+
+
+@analyze_router.callback_query(F.data == 'analyze_process')
+async def analyze_process(callback: CallbackQuery,
+                          i18n: TranslatorRunner):
     
     user_id = callback.from_user.id
     user_data = await db.get_user(user_id)

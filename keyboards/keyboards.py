@@ -113,6 +113,12 @@ def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
     return builder.as_markup()
 
+def analyze_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.analyze.process.button(), callback_data="analyze_process"))
+    builder.row(InlineKeyboardButton(text=i18n.edit.self.description.button(), callback_data="edit_self_description"))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))            
+    return builder.as_markup()
 
 def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
@@ -122,24 +128,25 @@ def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="account"))
     return builder.as_markup()
 
-
 def back_to_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"dream_{dream_id}"))
     return builder.as_markup()
-
 
 def back_to_calendar(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"calendar"))
     return builder.as_markup()
 
-
 def back_to_search(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"search"))
     return builder.as_markup()
 
+def back_to_analyze(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="analyze"))
+    return builder.as_markup()
 
 def back_to_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()

@@ -141,6 +141,7 @@ async def analyze_process(callback: CallbackQuery,
 
     # Объединяем записи в один текст
     combined_text = "\n\n".join(dreams)
+    await callback.answer()
 
     # Анализируем текст с помощью YandexGPT
     yandex = get_config(Yandex, 'yandex')

@@ -141,7 +141,7 @@ async def analyze_process(callback: CallbackQuery,
 
     # Объединяем записи в один текст
     combined_text = "\n\n".join(dreams)
-    await callback.answer()
+    await callback.message.edit_text(i18n.wait.result())
 
     # Анализируем текст с помощью YandexGPT
     yandex = get_config(Yandex, 'yandex')
@@ -183,7 +183,6 @@ async def analyze_process(callback: CallbackQuery,
         return
 
     logger.info(analysis_result.text)
-    logger.info(analysis_result[1])
     result_text = analysis_result.text
 
     # Если результат слишком длинный, отправляем несколькими сообщениями

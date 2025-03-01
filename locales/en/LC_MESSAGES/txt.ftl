@@ -115,3 +115,4 @@ role-menu = 🔍 *Which dream analysis interests you?*
             2. <b>Esoteric</b> — dive into the magic of the soul and spiritual journey, inspired by the esoteric philosophy.
 
             Choose below how you’d like to explore your dreams! 👇
+wait-result = ⌛ Wait for result...

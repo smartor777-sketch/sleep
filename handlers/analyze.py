@@ -55,7 +55,7 @@ async def self_description_process(callback: CallbackQuery,
     
     user_description = i18n.nodescription if user_data['self_description'] == 'none' else user_data['self_description']
     
-    await state.set_state(AnalyzeSG.edit_des())
+    await state.set_state(AnalyzeSG.edit_des)
     await callback.message.answer(user_description)
     await callback.message.answer(i18n.newdescription,
                                   reply_markup=kb.back_to_analyze(i18n))

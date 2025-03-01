@@ -21,7 +21,7 @@ def subscribe(i18n: TranslatorRunner, payload='none') -> InlineKeyboardMarkup:
 def main_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.calendar.button(), callback_data="calendar"))
-    # builder.row(InlineKeyboardButton(text=i18n.analyze.button(), callback_data="analyze"))
+    builder.row(InlineKeyboardButton(text=i18n.analyze.button(), callback_data="analyze"))
     builder.row(InlineKeyboardButton(text=i18n.account.button(), callback_data="account"))
     return builder.as_markup()
 

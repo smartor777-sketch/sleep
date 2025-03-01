@@ -231,6 +231,18 @@ async def update_self_description(new_description: str,
     await conn.close()
 
 
+# Редактирование роли GPT
+async def update_role(new_role: str,
+                      user_id: int):
+    
+    conn = await get_conn()
+    await conn.execute(
+        "UPDATE users SET gpt_role = $1 WHERE user_id = $2",
+        new_role, user_id
+    )
+    await conn.close()
+
+
 async def get_user_stats(user_id: int):
     """
     Возвращает статистику пользователя:

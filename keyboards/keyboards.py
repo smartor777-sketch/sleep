@@ -116,8 +116,15 @@ def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
 def analyze_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     # builder.row(InlineKeyboardButton(text=i18n.analyze.process.button(), callback_data="analyze_process"))
-    builder.row(InlineKeyboardButton(text=i18n.edit.self.description.button(), callback_data="edit_self_description"))
+    builder.row(InlineKeyboardButton(text=i18n.edit.self.description.button(), callback_data="edit_self_description"),
+                InlineKeyboardButton(text=i18n.gpt.role.button(), callback_data="select_role"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))            
+    return builder.as_markup()
+
+def gpt_role(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.esoteric.button(), callback_data="role_esoteric"))
+    builder.row(InlineKeyboardButton(text=i18n.psychological.button(), callback_data="role_psychological"))
     return builder.as_markup()
 
 def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:

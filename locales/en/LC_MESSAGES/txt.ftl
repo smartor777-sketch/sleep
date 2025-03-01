@@ -18,6 +18,9 @@ confirm-button = ✅ Confirm
 sub-button = 📥 Subscribe
 analyze-process-button = 🧠 Run Analysis
 edit-self-description-button = 🙋‍♂️ SelfDescription
+gpt-role-button = 🎭 Role 
+esoteric-button = 🔮 Esoteric
+psychological-button = 🔬 Psychologic
 month1-sub-button = 1 Month - 499 rub.
 month3-sub-button = 3 Months - 1 199 rub (-20%)
 month6-sub-button = 6 Months - 2 299 rub (-30%)
@@ -92,11 +95,22 @@ subscription-types = ✨ *Want more features with the bot?* Get a subscription a
                      Choose a subscription below and explore new horizons! 👇
 analyze-menu = 📊 Ask the neural network to analyze your dreams!
 
-                If you are doing this for the first time, I advise you to fill in 🙋‍♂️ Description of Yourself.
-                The neural network does not know the context of 🌟 Dreams - therefore - it needs help!
-                Tell us about the characters 🧸 in your dreams, places, events,
-                so that it is clear to it - who is who.
+               It will use your last 10 dream entries for the analysis. 
+               If any of them contain sleepy mumblings from voice messages, I recommend editing them into a readable form 😊
+
+               If this is your first time doing this, I suggest filling out your 🙋‍♂️ Self-Description. 
+               The neural network doesn’t know the context of your 🌟 dreams — so it needs some help! 
+               Tell it about the active 🧸 characters in your dreams, places, and events, 
+               so it understands who’s who.
 nodescription = ❌ No description!
 newdescription = 🙋‍♂️ Enter a new description of Yourself! You can do it in detail.
 toolong-description = 🚨 The description is too long - enter no more than 500 characters.
 description-updated = ✅ Description updated
+role-updated = ✅ Role updated
+role-menu = 🔍 *Which dream analysis interests you?*
+            Current role - { $gpt_role }
+
+            1. <b>Psychological</b> — uncover emotions, fears, and desires hidden in your dreams through the lens of psychology.
+            2. <b>Esoteric</b> — dive into the magic of the soul and spiritual journey, inspired by the esoteric philosophy.
+
+            Choose below how you’d like to explore your dreams! 👇

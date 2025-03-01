@@ -39,6 +39,35 @@ async def analyze_menu(callback: CallbackQuery,
         await callback.answer()
     
 
+@analyze_router.callback_query(F.data == 'select_role')
+async def role_menu(callback: CallbackQuery,
+                    i18n: TranslatorRunner):
+    
+    user_id = callback.from_user.id
+    user_data = await db.get_user(user_id)
+    gpt_role = user_data['gpt_role']
+
+    try:
+        await callback.message.edit_text(i18n.role.menu(gpt_role=gpt_role),
+                                         reply_markup=kb.gpt_role(i18n))
+    except TelegramBadRequest:
+        await callback.answer()
+
+    
+@analyze_router.callback_query(F.data.startswith('role_'))
+async def select_role(callback: CallbackQuery,
+                      i18n: TranslatorRunner):
+    
+    user_id = callback.from_user.id
+    _, new_role = callback.data.split('_')
+    await db.update_role(new_role, user_id)
+    try:
+        await callback.message.edit_text(i18n.role.updated(),
+                                         reply_markup=kb.analyze_menu(i18n))
+    except TelegramBadRequest:
+        await callback.answer()   
+             
+
 @analyze_router.callback_query(F.data == 'edit_self_description')
 async def self_description_process(callback: CallbackQuery,
                                    state: FSMContext,
@@ -70,7 +99,7 @@ async def edit_description(message: Message,
     user_id = message.from_user.id
     new_description = message.text
 
-    if len(new_description) > 4096:
+    if len(new_description) > 512:
         await message.answer(i18n.toolong.description())
         return
     
@@ -126,10 +155,12 @@ async def analyze_process(callback: CallbackQuery,
     )
 
     esoteric_prompt = (
-        "Ты — опытный эзотерик и толкователь снов. Твоя задача — анализировать сны пользователя "
-        "через призму мистики, символов и духовных значений. Ищи в снах предзнаменования, скрытые "
-        "послания, связь с прошлыми жизнями или духовным миром. Дай подробное толкование, опираясь "
-        "на эзотерические традиции (например, сонники, астрология, таро). "
+        "Ты — проводник в мир эзотерической философии и духовного самосовершенствования. "
+        "Твоя задача — анализировать сны пользователя как проявления внутренней магии души "
+        "и её пути к осознанию. Опирайся на идеи Карлоса Кастанеды (сновидения как врата к силе), "
+        "Кибалиона (законы вселенной в отражении снов) и психоделический взгляд Теренса Маккенны "
+        "(сны как диалог с иным измерением). Ищи в снах символы духовного роста, скрытые энергии "
+        "и связь с магией реальности. Дай глубокий и вдохновляющий анализ."
         f"Описание пользователя: {user_description}. Вот список снов пользователя:\n"
     )
 

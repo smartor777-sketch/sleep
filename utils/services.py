@@ -92,5 +92,7 @@ async def analyze_dreams(dreams_text: str,
         sdk.models.completions("yandexgpt").configure(temperature=0.5).run(messages)
     )
 
+    logger.info(result)
+
     # Возвращаем первый вариант ответа
     return result[0] if result else "Анализ недоступен."

@@ -181,6 +181,8 @@ async def analyze_process(callback: CallbackQuery,
                                          reply_markup=kb.back_to_menu(i18n))
         return
 
+    logger.info(analysis_result)
+
     # Если результат слишком длинный, отправляем несколькими сообщениями
     while len(analysis_result) > MAX_MESSAGE_LENGTH:
         await callback.message.answer(analysis_result[:MAX_MESSAGE_LENGTH])

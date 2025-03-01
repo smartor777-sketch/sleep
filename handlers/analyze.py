@@ -57,7 +57,7 @@ async def self_description_process(callback: CallbackQuery,
     
     await state.set_state(AnalyzeSG.edit_des)
     await callback.message.answer(user_description)
-    await callback.message.answer(i18n.newdescription,
+    await callback.message.answer(i18n.newdescription(),
                                   reply_markup=kb.back_to_analyze(i18n))
     
 

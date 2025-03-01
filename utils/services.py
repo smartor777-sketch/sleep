@@ -65,7 +65,8 @@ def voice_to_text(file_path):
         return "Ошибка запроса к сервису распознавания"
     
 
-async def analyze_dreams(dreams_text: str, 
+async def analyze_dreams(dreams_text: str,
+                         intro_prompt: str, 
                          folder_id: str, 
                          api_key: str):
     """
@@ -74,7 +75,7 @@ async def analyze_dreams(dreams_text: str,
     messages = [
         {
             "role": "system",
-            "text": "Ты — психолог. Проанализируй сны пользователя и сделай выводы о его эмоциональном состоянии, страхах и желаниях. Будь краток и точен."
+            "text": intro_prompt
         },
         {
             "role": "user",

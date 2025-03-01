@@ -59,6 +59,7 @@ async def self_description_process(callback: CallbackQuery,
     await callback.message.answer(user_description)
     await callback.message.answer(i18n.newdescription(),
                                   reply_markup=kb.back_to_analyze(i18n))
+    await callback.answer()
     
 
 @analyze_router.message(AnalyzeSG.edit_des)
@@ -88,7 +89,10 @@ async def analyze_process(callback: CallbackQuery,
     last_use = user_data['last_analyze']
     current_time = datetime.now(timezone.utc)
     time_difference = current_time - last_use
-    
+
+    user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
+    gpt_role = user_data['gpt_role']
+
     if time_difference < timedelta(hours=24):
         await callback.message.edit_text(i18n.error.timedelta(),
                                          reply_markup=kb.main_menu(i18n))
@@ -112,11 +116,30 @@ async def analyze_process(callback: CallbackQuery,
     folder_id = yandex.folder_id
     api_key = yandex.api_key.get_secret_value()
 
+    psychological_prompt = (
+        "Ты — профессиональный психолог, специализирующийся на анализе снов. "
+        "Твоя задача — интерпретировать сны пользователя, опираясь на психологические теории "
+        "(например, Фрейд, Юнг). Ищи в снах отражение эмоций, скрытых желаний, страхов или "
+        "внутренних конфликтов. Дай развёрнутый анализ, объясняя, как сны могут быть связаны "
+        "с текущим состоянием пользователя или его жизненным опытом. "
+        f"Описание пользователя: {user_description}. Вот список снов пользователя:\n"
+    )
+
+    esoteric_prompt = (
+        "Ты — опытный эзотерик и толкователь снов. Твоя задача — анализировать сны пользователя "
+        "через призму мистики, символов и духовных значений. Ищи в снах предзнаменования, скрытые "
+        "послания, связь с прошлыми жизнями или духовным миром. Дай подробное толкование, опираясь "
+        "на эзотерические традиции (например, сонники, астрология, таро). "
+        f"Описание пользователя: {user_description}. Вот список снов пользователя:\n"
+    )
+
+    intro_prompt = psychological_prompt if gpt_role == 'psychological' else esoteric_prompt
+
     try:
         # Логируем анализ
         logger.info(f"Analyzing dreams for user {user_id}, combined text length: {len(combined_text)}")
         
-        analysis_result = await analyze_dreams(combined_text, folder_id, api_key)
+        analysis_result = await analyze_dreams(combined_text, intro_prompt, folder_id, api_key)
         if not analysis_result:
             raise ValueError("Empty analysis result from YandexGPT")
     except (TelegramAPIError, ValueError) as e:

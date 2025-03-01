@@ -98,5 +98,5 @@ analyze-menu = 📊 Ask the neural network to analyze your dreams!
                 so that it is clear to it - who is who.
 nodescription = ❌ No description!
 newdescription = 🙋‍♂️ Enter a new description of Yourself! You can do it in detail.
-toolong-description = 🚨 The description is too long - enter no more than 4000 characters.
+toolong-description = 🚨 The description is too long - enter no more than 500 characters.
 description-updated = ✅ Description updated

@@ -46,6 +46,7 @@ account-sub_time = ⏳ Subscription time: { $sub_time }
 account-dreams_count = 🌙 Number of dreams: { $dreams_count }
 account-orders_count = 📦 Number of orders: { $orders_count }
 account-orders_total = 💸 Total order amount: { $orders_total }
+account-gpt_role = 🎭 Analyze role: { $gpt_role }
 confirm-delete = 👆 Delete Dream? 👆
 complete-delete = 😊 Dream deleted! 😊
 nodreams = 😴 No dreams!

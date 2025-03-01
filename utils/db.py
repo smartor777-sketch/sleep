@@ -254,7 +254,7 @@ async def get_user_stats(user_id: int):
     try:
         # Получаем данные из таблицы users
         user_data = await conn.fetchrow(
-            "SELECT first_name, reg_time, inviter, sub_time, sub_type FROM users WHERE user_id = $1",
+            "SELECT first_name, reg_time, inviter, sub_time, sub_type, gpt_role FROM users WHERE user_id = $1",
             user_id
         )
 
@@ -281,6 +281,7 @@ async def get_user_stats(user_id: int):
         "inviter": user_data["inviter"] if user_data and user_data["inviter"] else "Нет",
         "sub_time": user_data["sub_time"].strftime("%Y-%m-%d %H:%M") if user_data and user_data["sub_time"] else "Нет",
         "sub_type": user_data["sub_type"] if user_data and user_data["sub_type"] else "Нет",
+        "gpt_role": user_data["gpt_role"],
         "dreams_count": dreams_count,
         "orders_count": orders_count,
         "orders_total": orders_total if orders_total != None else 0

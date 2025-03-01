@@ -43,6 +43,7 @@ account-reg_time = 📅 Дата регистрации: { $reg_time }
 account-inviter = 🙋‍♂️ Пригласивший: { $inviter }
 account-sub_type = 🔑 Тип подписки: { $sub_type }
 account-sub_time = ⏳ Время подписки: { $sub_time }
+account-gpt_role = 🎭 Роль для Анализа: { $gpt_role }
 account-dreams_count = 🌙 Количество снов: { $dreams_count }
 account-orders_count = 📦 Количество заказов: { $orders_count }
 account-orders_total = 💸 Общая сумма заказов: { $orders_total }

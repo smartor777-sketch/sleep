@@ -116,6 +116,8 @@ async def analyze_process(callback: CallbackQuery,
     user_id = callback.from_user.id
     user_data = await db.get_user(user_id)
     last_use = user_data['last_analyze']
+    if last_use is not None:  # Проверяем, что значение не NULL
+        last_use = last_use.replace(tzinfo=timezone.utc)  # Добавляем UTC
     current_time = datetime.now(timezone.utc)
     time_difference = current_time - last_use
 

@@ -24,6 +24,7 @@ async def account_menu(callback: CallbackQuery,
     user_id = callback.from_user.id
     try:
         stats = await db.get_user_stats(user_id)
+
     except Exception as e:
         logger.error(f"Error getting stats for user {user_id}: {e}")
         await callback.message.edit_text(i18n.error.db_error(), 
@@ -39,6 +40,7 @@ async def account_menu(callback: CallbackQuery,
     message_text = i18n.account.title() + "\n\n"
 
     # Составляем сообщение динамически
+    '''
     stat_fields = {
         'name': stats['first_name'],
         'reg_time': stats['reg_time'],
@@ -48,6 +50,19 @@ async def account_menu(callback: CallbackQuery,
         'dreams_count': stats['dreams_count'],
         'orders_count': stats['orders_count'],
         'orders_total': stats['orders_total'],
+    }
+    '''
+
+    stat_fields = {
+        'name': stats['first_name'],
+        'reg_time': stats['reg_time'],
+        # 'inviter': '🤷‍♂️' if stats['inviter'] == 'none' else stats['inviter'],
+        # 'sub_type': '🤷‍♂️' if stats['sub_type'] == 'none' else stats['sub_type'],
+        # 'sub_time': '🤷‍♂️' if stats['sub_time'] is None else stats['sub_time'],
+        'dreams_count': stats['dreams_count'],
+        'gpt_role': stats['gpt_role']
+        # 'orders_count': stats['orders_count'],
+        # 'orders_total': stats['orders_total'],
     }
 
     for key, value in stat_fields.items():

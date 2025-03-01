@@ -61,7 +61,7 @@ async def self_description_process(callback: CallbackQuery,
                                   reply_markup=kb.back_to_analyze(i18n))
     
 
-@analyze_router.message(AnalyzeSG.edit_des())
+@analyze_router.message(AnalyzeSG.edit_des)
 async def edit_description(message: Message,
                            state: FSMContext,
                            i18n: TranslatorRunner):

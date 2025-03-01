@@ -89,7 +89,7 @@ async def analyze_dreams(dreams_text: str,
     )
 
     result = (
-        sdk.models.completions("yandexgpt").configure(temperature=0.5).run(messages)
+        sdk.models.completions("yandexgpt").configure(temperature=0.7).run(messages)
     )
 
     logger.info(result)

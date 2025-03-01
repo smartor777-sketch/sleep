@@ -304,6 +304,25 @@ async def get_last_10_dreams(user_id: int):
         await conn.close()  # Закрываем соединение вручную
 
 
+async def update_last_analyze(user_id: int):
+    """
+    Обновляет колонку last_analyze в таблице users на текущее время (UTC).
+    
+    Args:
+        user_id (int): ID пользователя, для которого обновляется время последнего анализа.
+    """
+    conn = await get_conn()
+    try:
+        current_time = datetime.now(timezone.utc)  # Текущее время в UTC
+        await conn.execute(
+            "UPDATE users SET last_analyze = $1 WHERE user_id = $2",
+            current_time, user_id
+        )
+    finally:
+        await conn.close()
+
+
+
 async def get_service_stats() -> dict:
     """
     Возвращает общую статистику по сервису.

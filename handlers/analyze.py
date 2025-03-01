@@ -184,14 +184,67 @@ async def analyze_process(callback: CallbackQuery,
                                          reply_markup=kb.back_to_menu(i18n))
         return
 
-    logger.info(analysis_result.text)
-    result_text = analysis_result.text
+    try:
+        # Проверяем, что analysis_result и text доступны
+        if not hasattr(analysis_result, 'text') or not analysis_result.text:
+            logger.error(f"Invalid analysis_result for user {user_id}: {analysis_result}")
+            await callback.message.answer(
+                i18n.error.analysis_failed(),
+                reply_markup=kb.back_to_menu(i18n)
+            )
+            return
 
-    # Если результат слишком длинный, отправляем несколькими сообщениями
-    while len(result_text) > MAX_MESSAGE_LENGTH:
-        await callback.message.answer(result_text[:MAX_MESSAGE_LENGTH])
-        result_text = result_text[MAX_MESSAGE_LENGTH:]
+        # Логируем и извлекаем текст
+        logger.info(f"Analysis result for user {user_id}: {analysis_result.text}")
+        result_text = analysis_result.text
 
-    # Отправляем оставшийся результат
-    await callback.message.answer(result_text, 
-                                  reply_markup=kb.back_to_menu(i18n))
+        # Обновляем last_analyze в базе
+        try:
+            await db.update_last_analyze(user_id)
+        except Exception as db_error:
+            logger.error(f"Failed to update last_analyze for user {user_id}: {db_error}")
+            await callback.message.answer(
+                i18n.error.db_update(),
+                reply_markup=kb.back_to_menu(i18n)
+            )
+
+        # Если результат слишком длинный, отправляем несколькими сообщениями
+        while len(result_text) > MAX_MESSAGE_LENGTH:
+            try:
+                await callback.message.answer(result_text[:MAX_MESSAGE_LENGTH])
+                result_text = result_text[MAX_MESSAGE_LENGTH:]
+            except TelegramBadRequest as telegram_error:
+                logger.error(f"Failed to send partial message for user {user_id}: {telegram_error}")
+                await callback.message.answer(
+                    i18n.error.message_send(),
+                    reply_markup=kb.back_to_menu(i18n)
+                )
+                return
+
+        # Отправляем оставшийся результат
+        try:
+            await callback.message.answer(
+                result_text,
+                reply_markup=kb.back_to_menu(i18n)
+            )
+        except TelegramBadRequest as telegram_error:
+            logger.error(f"Failed to send final message for user {user_id}: {telegram_error}")
+            await callback.message.answer(
+                i18n.error.message_send(),
+                reply_markup=kb.back_to_menu(i18n)
+            )
+
+    except Exception as e:
+        # Общая обработка непредвиденных ошибок
+        logger.error(f"Unexpected error in analysis for user {user_id}: {e}")
+        await callback.message.answer(
+            i18n.error.unexpected(),
+            reply_markup=kb.back_to_menu(i18n)
+        )
+
+    finally:
+        # Подтверждаем callback, чтобы убрать "часики"
+        try:
+            await callback.answer()
+        except TelegramBadRequest:
+            logger.warning(f"Failed to answer callback for user {user_id}")

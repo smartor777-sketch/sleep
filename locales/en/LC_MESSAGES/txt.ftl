@@ -31,11 +31,15 @@ back-button = ⬅️ Back
 # ######## #
 
 error-db_error = 😞 Database error
+error-db_update = 😞 Error saving the data. The analysis is still below:
 error-analysis_failed = 🤖 Analysis failed
 error-loading_data = 🔄 Data loading error
 error-voice_download = 🎤 Voice recording download error
 error-generic = ⚠️ Subscription verification error
 error-timedelta = ⌛ Analysis can be performed no more than once every 24 hours!
+error-analysis_failed = ⌛ Failed to retrieve the analysis. Please try again later!
+error-message_send = ⚠️ Error sending the analysis.
+error-unexpected = 😔 Something went wrong. Please try again later!
 account-no_stats = 📊 No stats
 account-title = 🧑‍💻 My Account
 account-name = 👤 Name: { $name }

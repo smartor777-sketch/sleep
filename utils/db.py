@@ -330,10 +330,16 @@ async def get_last_10_dreams(user_id: int):
 
 
 async def update_last_analyze(user_id: int):
-    from datetime import datetime, timezone  # Импорт внутри функции
+    """
+    Обновляет колонку last_analyze в таблице users на текущее время (без часового пояса).
+    
+    Args:
+        user_id (int): ID пользователя, для которого обновляется время последнего анализа.
+    """
     conn = await get_conn()
     try:
-        current_time = datetime.now(timezone.utc)  # Текущее время в UTC
+        current_time_with_tz = datetime.now(timezone.utc)  # offset-aware
+        current_time = current_time_with_tz.replace(tzinfo=None)  # убираем часовой пояс
         await conn.execute(
             "UPDATE users SET last_analyze = $1 WHERE user_id = $2",
             current_time, user_id

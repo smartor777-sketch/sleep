@@ -102,6 +102,7 @@ async def ticket_menu(callback: CallbackQuery,
     user_data = await db.get_user(user_id)
     ticket = user_data['ticket']
     ticket = '🤷‍♂️' if ticket is None else str(ticket)
+    logger.info(ticket)
     await callback.message.edit_text(i18n.ticket.menu(ticket), reply_markup=kb.back_to_account(i18n))
 
 

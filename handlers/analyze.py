@@ -179,7 +179,7 @@ async def analyze_process(callback: CallbackQuery,
         temperature = 0.5
     elif gpt_role == 'psychonaut':
         intro_prompt = psychonaut_prompt
-        temperature = 0.7
+        temperature = 0.5
 
     try:
         # Логируем анализ

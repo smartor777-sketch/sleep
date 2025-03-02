@@ -176,10 +176,10 @@ async def analyze_process(callback: CallbackQuery,
         intro_prompt = psychological_prompt 
         temperature = 0.3
     elif gpt_role == 'esoteric':
-        intro_prompt == esoteric_prompt
+        intro_prompt = esoteric_prompt
         temperature = 0.5
     elif gpt_role == 'psychonaut':
-        intro_prompt == psychonaut_prompt
+        intro_prompt = psychonaut_prompt
         temperature = 0.7
 
     try:

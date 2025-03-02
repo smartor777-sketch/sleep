@@ -150,9 +150,12 @@ async def ticket_handler(message: Message,
 
 # Хэндлер для кнопки "Ответить"
 @account_router.callback_query(F.data.startswith("reply_ticket_"))
-async def reply_ticket_start(callback: CallbackQuery, state: FSMContext):
-    if callback.from_user.id != admin_id:
-        await callback.answer("Только админ может ответить!", show_alert=True)
+async def reply_ticket_start(callback: CallbackQuery, 
+                             i18n: TranslatorRunner,
+                             state: FSMContext):
+
+    if str(callback.from_user.id) != str(admin_id):
+        await callback.answer(i18n.error.only_admin(), show_alert=True)
         return
     
     # Извлекаем user_id из callback_data
@@ -171,7 +174,7 @@ async def process_ticket_reply(message: Message,
                                state: FSMContext, 
                                i18n: TranslatorRunner):
     
-    if message.from_user.id != admin_id:
+    if str(message.from_user.id) != str(admin_id):
         await message.answer(i18n.error.only_admin())
         return
     

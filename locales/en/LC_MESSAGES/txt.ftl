@@ -46,6 +46,7 @@ error-unexpected = 😔 Something went wrong. Please try again later!
 error-ticket_send = ⚠️ Error sending the request. Try again later!
 error-only_admin = ⚠️ Only an admin can reply!
 error-bot_blocked = ❌ The bot is blocked by the user
+error-dream_save = ⌛ Dream save error. Please try again later!
 ticket-answer = ✅ Reply to your request:
 
                { $reply_text }
@@ -137,3 +138,4 @@ ticket-menu = ⚠️ Enter the text of the request - describe in detail the erro
               { $ticket }
 ticket-sended = ✅ Request sended
 no-ticket = ✅ No ticket
+dream-limit_exceeded = You have reached your limit of { $limit } dreams per day. Try it tomorrow!

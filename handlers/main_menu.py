@@ -67,10 +67,29 @@ async def any_text(message: Message,
         await message.answer(response)
         return
 
-    logger.info(f"New Dream by user {user_id}: {dream_text}...")
+    # Проверяем количество снов за день
+    DREAM_LIMIT_PER_DAY = 5
+    dreams_today = await db.count_dreams_today(user_id)
+    
+    if dreams_today >= DREAM_LIMIT_PER_DAY:
+        await message.answer(
+            i18n.dream.limit_exceeded(limit=DREAM_LIMIT_PER_DAY),
+            reply_markup=kb.main_menu(i18n)
+        )
+        return
 
-    await db.create_dream(user_id, dream_text)
-    await message.answer(i18n.dream.writed(), reply_markup=kb.main_menu(i18n))
+    try:
+        await db.create_dream(user_id, dream_text)
+        await message.answer(
+            i18n.dream.writed(),
+            reply_markup=kb.main_menu(i18n)
+        )
+    except Exception as e:
+        logger.error(f"Failed to create dream for user {user_id}: {e}")
+        await message.answer(
+            i18n.error.dream_save(),
+            reply_markup=kb.main_menu(i18n)
+        )
 
 
 @main_router.message(MainSG.ready_for_dream, F.content_type == ContentType.VOICE)
@@ -91,10 +110,31 @@ async def any_voice(message: Message,
         temp_ogg_file.write(file.getbuffer())
         temp_ogg_path = temp_ogg_file.name
     
-    text = voice_to_text(temp_ogg_path)
+    dream_text = voice_to_text(temp_ogg_path)
     
     # Асинхронно удаляем файл
     asyncio.create_task(remove_file(temp_ogg_path))
 
-    await db.create_dream(user_id, text)
-    await message.answer(i18n.dream.writed(), reply_markup=kb.main_menu(i18n))
+        # Проверяем количество снов за день
+    DREAM_LIMIT_PER_DAY = 5
+    dreams_today = await db.count_dreams_today(user_id)
+    
+    if dreams_today >= DREAM_LIMIT_PER_DAY:
+        await message.answer(
+            i18n.dream.limit_exceeded(limit=DREAM_LIMIT_PER_DAY),
+            reply_markup=kb.main_menu(i18n)
+        )
+        return
+
+    try:
+        await db.create_dream(user_id, dream_text)
+        await message.answer(
+            i18n.dream.writed(),
+            reply_markup=kb.main_menu(i18n)
+        )
+    except Exception as e:
+        logger.error(f"Failed to create dream for user {user_id}: {e}")
+        await message.answer(
+            i18n.error.dream_save(),
+            reply_markup=kb.main_menu(i18n)
+        )

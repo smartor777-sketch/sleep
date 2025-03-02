@@ -1,7 +1,7 @@
 import asyncpg
 import logging
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from asyncpg import Connection
 from pytz import timezone
 
@@ -327,6 +327,37 @@ async def get_last_10_dreams(user_id: int):
         return [dream["content"] for dream in dreams]
     finally:
         await conn.close()  # Закрываем соединение вручную
+
+
+async def count_dreams_today(user_id: int) -> int:
+    """
+    Подсчитывает количество снов, записанных пользователем за текущий день.
+    
+    Args:
+        user_id (int): ID пользователя.
+    
+    Returns:
+        int: Количество снов за день.
+    """
+    conn = await get_conn()
+    try:
+        # Определяем начало текущего дня (00:00 по UTC)
+        today = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Считаем сны за день
+        count = await conn.fetchval(
+            """
+            SELECT COUNT(*) 
+            FROM dreams 
+            WHERE user_id = $1 
+            AND create_time >= $2 
+            AND create_time < $3
+            """,
+            user_id, today, today + timedelta(days=1)
+        )
+        return count or 0
+    finally:
+        await conn.close()
 
 
 async def update_last_analyze(user_id: int):

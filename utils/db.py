@@ -336,14 +336,19 @@ async def update_last_analyze(user_id: int):
     Args:
         user_id (int): ID пользователя, для которого обновляется время последнего анализа.
     """
+    from datetime import datetime, timezone  # Импорт внутри функции для изоляции
     conn = await get_conn()
     try:
         current_time_with_tz = datetime.now(timezone.utc)  # offset-aware
         current_time = current_time_with_tz.replace(tzinfo=None)  # убираем часовой пояс
+        logger.info(f"Updating last_analyze for user {user_id} to {current_time}")
         await conn.execute(
             "UPDATE users SET last_analyze = $1 WHERE user_id = $2",
             current_time, user_id
         )
+    except Exception as e:
+        logger.error(f"Failed to update last_analyze for user {user_id}: {e}")
+        raise
     finally:
         await conn.close()
 

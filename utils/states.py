@@ -21,3 +21,7 @@ class AnalyzeSG(StatesGroup):
 
 class AccountSG(StatesGroup):
     buy_sub = State()
+    ticket = State()
+
+class AdminSG(StatesGroup):
+    reply_ticket = State()

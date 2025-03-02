@@ -66,7 +66,8 @@ def voice_to_text(file_path):
     
 
 async def analyze_dreams(dreams_text: str,
-                         intro_prompt: str, 
+                         intro_prompt: str,
+                         temperature: float,
                          folder_id: str, 
                          api_key: str):
     """
@@ -89,7 +90,7 @@ async def analyze_dreams(dreams_text: str,
     )
 
     result = (
-        sdk.models.completions("yandexgpt").configure(temperature=0.5).run(messages)
+        sdk.models.completions("yandexgpt").configure(temperature=temperature).run(messages)
     )
 
     logger.info(result)

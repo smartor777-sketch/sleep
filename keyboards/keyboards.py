@@ -111,6 +111,7 @@ def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     # builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
+    builder.row(InlineKeyboardButton(text=i18n.ticket.button(), callback_data="ticket"))
     return builder.as_markup()
 
 def analyze_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
@@ -123,8 +124,9 @@ def analyze_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
 
 def gpt_role(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=i18n.esoteric.button(), callback_data="role_esoteric"))
     builder.row(InlineKeyboardButton(text=i18n.psychological.button(), callback_data="role_psychological"))
+    builder.row(InlineKeyboardButton(text=i18n.esoteric.button(), callback_data="role_esoteric"))
+    builder.row(InlineKeyboardButton(text=i18n.psychonaut.button(), callback_data="role_psychonaut"))
     return builder.as_markup()
 
 def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
@@ -133,6 +135,11 @@ def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text=i18n.month3.sub.button(), callback_data="sub_3"))
     builder.row(InlineKeyboardButton(text=i18n.month6.sub.button(), callback_data="sub_6"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="account"))
+    return builder.as_markup()
+
+def reply_keyboard(user_id: int, i18n: TranslatorRunner):
+    builder = InlineKeyboardBuilder()
+    builder.button(text=i18n.answer.button(), callback_data=f"reply_ticket_{user_id}")
     return builder.as_markup()
 
 def back_to_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
@@ -153,6 +160,11 @@ def back_to_search(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
 def back_to_analyze(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="analyze"))
+    return builder.as_markup()
+
+def back_to_account(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="account"))
     return builder.as_markup()
 
 def back_to_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:

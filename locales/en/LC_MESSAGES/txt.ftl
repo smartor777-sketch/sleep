@@ -7,6 +7,7 @@ sub-check-button = 🔍 Check subscription
 calendar-button = 📅 Calendar
 analyze-button = 🧠 Analyze
 account-button = 👤 Account
+ticket-button = 🚨 Support
 search-button = 🔎 Search
 edit-title-button = ✏️ Title
 edit-comment-button = 📝 Comment
@@ -20,10 +21,12 @@ analyze-process-button = 🧠 Run Analysis
 edit-self-description-button = 🙋‍♂️ SelfDescription
 gpt-role-button = 🎭 Role 
 esoteric-button = 🔮 Esoteric
+psychonaut-button = 🏵 Psychonaut
 psychological-button = 🔬 Psychologic
 month1-sub-button = 1 Month - 499 rub.
 month3-sub-button = 3 Months - 1 199 rub (-20%)
 month6-sub-button = 6 Months - 2 299 rub (-30%)
+answer-button = Answer
 back-button = ⬅️ Back
 
 # ######## #
@@ -40,6 +43,13 @@ error-timedelta = ⌛ Analysis can be performed no more than once every 24 hours
 error-analysis_failed = ⌛ Failed to retrieve the analysis. Please try again later!
 error-message_send = ⚠️ Error sending the analysis.
 error-unexpected = 😔 Something went wrong. Please try again later!
+error-ticket_send = ⚠️ Error sending the request. Try again later!
+error-only_admin = ⚠️ Only an admin can reply!
+error-bot_blocked = ❌ The bot is blocked by the user
+ticket-answer = ✅ Reply to your request:
+
+               { $reply_text }
+admin-answer = ✅ Reply sent
 account-no_stats = 📊 No stats
 account-title = 🧑‍💻 My Account
 account-name = 👤 Name: { $name }
@@ -117,6 +127,13 @@ role-menu = 🔍 *Which dream analysis interests you?*
 
             1. <b>Psychological</b> — uncover emotions, fears, and desires hidden in your dreams through the lens of psychology.
             2. <b>Esoteric</b> — dive into the magic of the soul and spiritual journey, inspired by the esoteric philosophy.
+            3. <b>Psychonaut</b> - discover the reality of dreams, where the soul lives its full life in the multiverse.
 
             Choose below how you’d like to explore your dreams! 👇
 wait-result = ⌛ Wait for result...
+ticket-menu = ⚠️ Enter the text of the request - describe in detail the error you encountered and the time it occurred.
+
+              Current ticket (if exists):
+              
+              { $ticket }
+ticket-sended = ✅ Request sended

@@ -40,8 +40,9 @@ async def db_start():
         "sub_time TIMESTAMP DEFAULT NULL,"  # Время начала подписки
         "sub_type VARCHAR(16) DEFAULT 'none',"  # Тип подписки - месяц, 3, полгода
         "last_analyze TIMESTAMP DEFAULT NOW(),"  # Последнее использование анализа
-        "self_description VARCHAR(512) DEFAULT 'none',"
-        "gpt_role VARCHAR(16) DEFAULT 'psychological')"  # Общие пояснения ко Снам 
+        "self_description VARCHAR(512) DEFAULT 'none',"  # Общие пояснения ко Снам 
+        "gpt_role VARCHAR(16) DEFAULT 'psychological',"  # Роль нейросети
+        "ticket VARCHAR(4096))"
     )
 
     await conn.execute(
@@ -217,6 +218,30 @@ async def update_emoji(new_emoji: str,
         new_emoji, dream_id, user_id
     )
     await conn.close()
+
+
+# Редактирование обращения в тех.поддержку
+async def update_ticket(new_ticket: str,
+                        user_id: int):
+    
+    conn = await get_conn()
+    await conn.execute(
+        "UPDATE users SET ticket = $1 WHERE user_id = $2",
+        new_ticket, user_id
+    )
+    await conn.close()
+
+
+async def delete_ticket(user_id: int):
+    
+    conn = await get_conn()
+    try:
+        await conn.execute(
+            "UPDATE users SET ticket = NULL WHERE user_id = $1",
+            user_id
+        )
+    finally:
+        await conn.close()
 
 
 # Редактирование описания себя

@@ -204,8 +204,6 @@ async def analyze_process(callback: CallbackQuery,
             )
             return
 
-        # Логируем и извлекаем текст
-        logger.info(f"Analysis result for user {user_id}: {analysis_result.text}")
         result_text = analysis_result.text
 
         # Обновляем last_analyze в базе

@@ -126,7 +126,7 @@ def gpt_role(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.psychological.button(), callback_data="role_psychological"))
     builder.row(InlineKeyboardButton(text=i18n.esoteric.button(), callback_data="role_esoteric"))
-    builder.row(InlineKeyboardButton(text=i18n.psychonaut.button(), callback_data="role_psychonaut"))
+    # builder.row(InlineKeyboardButton(text=i18n.psychonaut.button(), callback_data="role_psychonaut"))
     return builder.as_markup()
 
 def subscription_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:

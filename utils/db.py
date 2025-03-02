@@ -233,7 +233,7 @@ async def update_ticket(new_ticket: str,
 
 
 async def delete_ticket(user_id: int):
-    
+
     conn = await get_conn()
     try:
         await conn.execute(
@@ -330,12 +330,7 @@ async def get_last_10_dreams(user_id: int):
 
 
 async def update_last_analyze(user_id: int):
-    """
-    Обновляет колонку last_analyze в таблице users на текущее время (UTC).
-    
-    Args:
-        user_id (int): ID пользователя, для которого обновляется время последнего анализа.
-    """
+    from datetime import datetime, timezone  # Импорт внутри функции
     conn = await get_conn()
     try:
         current_time = datetime.now(timezone.utc)  # Текущее время в UTC
@@ -345,7 +340,6 @@ async def update_last_analyze(user_id: int):
         )
     finally:
         await conn.close()
-
 
 
 async def get_service_stats() -> dict:

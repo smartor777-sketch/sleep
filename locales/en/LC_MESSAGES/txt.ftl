@@ -127,7 +127,6 @@ role-menu = 🔍 *Which dream analysis interests you?*
 
             1. <b>Psychological</b> — uncover emotions, fears, and desires hidden in your dreams through the lens of psychology.
             2. <b>Esoteric</b> — dive into the magic of the soul and spiritual journey, inspired by the esoteric philosophy.
-            3. <b>Psychonaut</b> - discover the reality of dreams, where the soul lives its full life in the multiverse.
 
             Choose below how you’d like to explore your dreams! 👇
 wait-result = ⌛ Wait for result...

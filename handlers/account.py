@@ -102,7 +102,7 @@ async def ticket_menu(callback: CallbackQuery,
     user_data = await db.get_user(user_id)
     ticket = user_data['ticket']
     ticket = i18n.no.ticket() if ticket is None else str(ticket)
-    await callback.message.edit_text(i18n.ticket.menu(ticket), reply_markup=kb.back_to_account(i18n))
+    await callback.message.edit_text(i18n.ticket.menu(ticket=ticket), reply_markup=kb.back_to_account(i18n))
 
 
 @account_router.message(AccountSG.ticket)
@@ -183,7 +183,7 @@ async def process_ticket_reply(message: Message,
         # Отправляем ответ пользователю
         await bot.send_message(
             user_id,
-            text=i18n.ticket.answer(reply_text)
+            text=i18n.ticket.answer(reply_text=reply_text)
         )
         
         # Удаляем тикет из базы

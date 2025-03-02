@@ -137,3 +137,4 @@ ticket-menu = ⚠️ Enter the text of the request - describe in detail the erro
               
               { $ticket }
 ticket-sended = ✅ Request sended
+no-ticket = ✅ No ticket

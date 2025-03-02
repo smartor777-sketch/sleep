@@ -339,6 +339,7 @@ async def count_dreams_today(user_id: int) -> int:
     Returns:
         int: Количество снов за день.
     """
+    from datetime import datetime, timezone  # Импорт внутри функции
     conn = await get_conn()
     try:
         # Определяем начало текущего дня (00:00 по UTC)

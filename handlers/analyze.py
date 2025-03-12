@@ -124,7 +124,7 @@ async def analyze_process(callback: CallbackQuery,
     user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
     gpt_role = user_data['gpt_role']
 
-    if time_difference < timedelta(hours=24):
+    if time_difference < timedelta(hours=12):
         await callback.message.edit_text(i18n.error.timedelta(),
                                          reply_markup=kb.main_menu(i18n))
         return
@@ -163,23 +163,12 @@ async def analyze_process(callback: CallbackQuery,
         f"Описание пользователя: {user_description}. Вот список снов:\n"
     )
 
-    psychonaut_prompt = (
-        "Ты — психонавт, знаток психоделической реальности снов. Считай сны живым миром, где душа действует за гранью яви. "
-        "Опирайся на их образы и события, чтобы раскрыть магию этого мира. Избегай клише вроде 'внутренний мир' или 'страхи' "
-        "и дай один чёткий, психоделический вывод о том, что сны показывают о жизни души в этой реальности. "
-        "Не разбирай сны по отдельности, а суммируй в единый взгляд."
-        f"Описание пользователя: {user_description}. Вот список снов:\n"
-    )
-
     if gpt_role == 'psychological':
         intro_prompt = psychological_prompt 
         temperature = 0.3
     elif gpt_role == 'esoteric':
         intro_prompt = esoteric_prompt
-        temperature = 0.5
-    elif gpt_role == 'psychonaut':
-        intro_prompt = psychonaut_prompt
-        temperature = 0.5
+        temperature = 0.7
 
     try:
         # Логируем анализ

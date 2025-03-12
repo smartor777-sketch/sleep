@@ -39,7 +39,7 @@ async def db_start():
         "inviter VARCHAR(32),"  # ID пригласившего пользователя
         "sub_time TIMESTAMP DEFAULT NULL,"  # Время начала подписки
         "sub_type VARCHAR(16) DEFAULT 'none',"  # Тип подписки - месяц, 3, полгода
-        "last_analyze TIMESTAMP DEFAULT NOW(),"  # Последнее использование анализа
+        "last_analyze TIMESTAMP DEFAULT NULL,"  # Последнее использование анализа
         "self_description VARCHAR(512) DEFAULT 'none',"  # Общие пояснения ко Снам 
         "gpt_role VARCHAR(16) DEFAULT 'psychological',"  # Роль нейросети
         "ticket VARCHAR(4096))"

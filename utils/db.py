@@ -176,7 +176,7 @@ async def update_last_analyze_data(new_analyze: str,
     conn = await get_conn()
 
     await conn.execute(
-        "UPDATE user SET last_analyze_data = $1 WHERE user_id = $2",
+        "UPDATE users SET last_analyze_data = $1 WHERE user_id = $2",
         new_analyze, user_id
     )
     await conn.close()
@@ -330,7 +330,7 @@ async def get_user_stats(user_id: int):
 
 async def get_last_dreams(user_id: int, dreams_count: int):
     """
-    Возвращает последние 10 записей снов пользователя.
+    Возвращает последние N записей снов пользователя.
     """
     conn = await get_conn()  # Получаем соединение
     try:

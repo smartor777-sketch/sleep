@@ -134,20 +134,21 @@ async def analyze_process(callback: CallbackQuery,
     user_data = await db.get_user(user_id)
     _, _, dreams_count = callback.data.split('_')
     last_use = user_data['last_analyze']
-    if last_use is not None:  # Проверяем, что значение не NULL
-        last_use = last_use.replace(tzinfo=timezone.utc)  # Добавляем UTC
+    if last_use is not None:
+        last_use = last_use.replace(tzinfo=timezone.utc)
     current_time = datetime.now(timezone.utc)
     time_difference = current_time - last_use
 
     user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
     gpt_role = user_data['gpt_role']
 
-    if time_difference < timedelta(hours=6):
+    if time_difference < timedelta(minutes=1):
         await callback.message.edit_text(i18n.error.timedelta(),
                                          reply_markup=kb.main_menu(i18n))
         return
 
-    # Получаем последние 10 записей снов
+    logger.info(dreams_count)
+
     dreams = await db.get_last_dreams(user_id, int(dreams_count))
     if not dreams or len(dreams) == 0:
         try:

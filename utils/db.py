@@ -42,7 +42,8 @@ async def db_start():
         "last_analyze TIMESTAMP DEFAULT NULL,"  # Последнее использование анализа
         "self_description VARCHAR(512) DEFAULT 'none',"  # Общие пояснения ко Снам 
         "gpt_role VARCHAR(16) DEFAULT 'psychological',"  # Роль нейросети
-        "ticket VARCHAR(4096))"
+        "ticket VARCHAR(4096),"  # Обращение в тех. поддержку
+        "last_analyze_data VARCHAR (4096))"  # Запись результата последнего анализа
     )
 
     await conn.execute(
@@ -164,6 +165,19 @@ async def update_content(new_content: str,
     await conn.execute(
         "UPDATE dreams SET content = $1 WHERE id = $2 AND user_id = $3",
         new_content, dream_id, user_id
+    )
+    await conn.close()
+
+
+# Редактирование содержания Сна
+async def update_last_analyze_data(new_analyze: str,
+                                   user_id: int | str):
+    
+    conn = await get_conn()
+
+    await conn.execute(
+        "UPDATE user SET last_analyze_data = $1 WHERE user_id = $2",
+        new_analyze, user_id
     )
     await conn.close()
 
@@ -314,15 +328,15 @@ async def get_user_stats(user_id: int):
 
     return stats
 
-async def get_last_10_dreams(user_id: int):
+async def get_last_dreams(user_id: int, dreams_count: int):
     """
     Возвращает последние 10 записей снов пользователя.
     """
     conn = await get_conn()  # Получаем соединение
     try:
         dreams = await conn.fetch(
-            "SELECT content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT 10",
-            user_id
+            "SELECT content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT $2",
+            user_id, dreams_count
         )
         return [dream["content"] for dream in dreams]
     finally:

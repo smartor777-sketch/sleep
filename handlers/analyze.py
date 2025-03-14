@@ -31,9 +31,19 @@ async def analyze_menu(callback: CallbackQuery,
                        i18n: TranslatorRunner):
     
     await state.clear()
+    user_id = callback.from_user.id
+
+    try:
+        user_data = await db.get_user(user_id)
+    except Exception as e:
+        logger.error(f"Error getting stats for user {user_id}: {e}")
+        await callback.message.edit_text(i18n.error.db_error(), 
+                                         reply_markup=kb.back_to_menu(i18n))
+        
+    last_analyze_data = user_data['last_analyze_data'] if user_data['last_analyze_data'] is not None else i18n.no.lastanalyze()
     
     try:
-        await callback.message.edit_text(i18n.analyze.menu(), 
+        await callback.message.edit_text(i18n.analyze.menu(last_analyze_data=last_analyze_data), 
                                          reply_markup=kb.analyze_menu(i18n))
     except TelegramBadRequest:
         await callback.answer()
@@ -44,7 +54,14 @@ async def role_menu(callback: CallbackQuery,
                     i18n: TranslatorRunner):
     
     user_id = callback.from_user.id
-    user_data = await db.get_user(user_id)
+    try:
+        user_data = await db.get_user(user_id)
+    except Exception as e:
+        logger.error(f"Error getting stats for user {user_id}: {e}")
+        await callback.message.edit_text(i18n.error.db_error(), 
+                                         reply_markup=kb.back_to_menu(i18n))
+        
+        return
     gpt_role = user_data['gpt_role']
 
     try:
@@ -109,12 +126,13 @@ async def edit_description(message: Message,
                          reply_markup=kb.analyze_menu(i18n))
 
 
-@analyze_router.callback_query(F.data == 'analyze_process')
+@analyze_router.callback_query(F.data.startswith('analyze_process_'))
 async def analyze_process(callback: CallbackQuery,
                           i18n: TranslatorRunner):
     
     user_id = callback.from_user.id
     user_data = await db.get_user(user_id)
+    _, _, dreams_count = callback.data.split('_')
     last_use = user_data['last_analyze']
     if last_use is not None:  # Проверяем, что значение не NULL
         last_use = last_use.replace(tzinfo=timezone.utc)  # Добавляем UTC
@@ -124,13 +142,13 @@ async def analyze_process(callback: CallbackQuery,
     user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
     gpt_role = user_data['gpt_role']
 
-    if time_difference < timedelta(hours=12):
+    if time_difference < timedelta(hours=6):
         await callback.message.edit_text(i18n.error.timedelta(),
                                          reply_markup=kb.main_menu(i18n))
         return
 
     # Получаем последние 10 записей снов
-    dreams = await db.get_last_10_dreams(user_id)
+    dreams = await db.get_last_dreams(user_id, int(dreams_count))
     if not dreams or len(dreams) == 0:
         try:
             await callback.message.edit_text(i18n.nodreams(), 
@@ -179,8 +197,8 @@ async def analyze_process(callback: CallbackQuery,
             raise ValueError("Empty analysis result from YandexGPT")
     except (TelegramAPIError, ValueError) as e:
         logger.error(f"Error during dream analysis for user {user_id}: {e}")
-        await callback.message.edit_text(i18n.error.analysis_failed(), 
-                                         reply_markup=kb.back_to_menu(i18n))
+        await callback.message.answer(i18n.error.analysis_failed(), 
+                                      reply_markup=kb.back_to_menu(i18n))
         return
 
     try:
@@ -197,6 +215,7 @@ async def analyze_process(callback: CallbackQuery,
 
         # Обновляем last_analyze в базе
         try:
+            await db.update_last_analyze_data(result_text, user_id)
             await db.update_last_analyze(user_id)
         except Exception as db_error:
             logger.error(f"Failed to update last_analyze for user {user_id}: {db_error}")

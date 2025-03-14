@@ -17,7 +17,8 @@ edit-emoji-button = 😊 Emoji
 delete-button = ❌ Delete
 confirm-button = ✅ Confirm
 sub-button = 📥 Subscribe
-analyze-process-button = 🧠 Run Analysis
+analyze-process7-button = 🧠 Analyze 7 Dreams
+analyze-process3-button = 🧠 Analyze 3 Dreams
 edit-self-description-button = 🙋‍♂️ SelfDescription
 gpt-role-button = 🎭 Role 
 esoteric-button = 🔮 Esoteric
@@ -39,7 +40,7 @@ error-analysis_failed = 🤖 Analysis failed
 error-loading_data = 🔄 Data loading error
 error-voice_download = 🎤 Voice recording download error
 error-generic = ⚠️ Subscription verification error
-error-timedelta = ⌛ Analysis can be performed no more than once every 12 hours!
+error-timedelta = ⌛ Analysis can be performed no more than once every 6 hours!
 error-analysis_failed = ⌛ Failed to retrieve the analysis. Please try again later!
 error-message_send = ⚠️ Error sending the analysis.
 error-unexpected = 😔 Something went wrong. Please try again later!
@@ -111,13 +112,18 @@ subscription-types = ✨ *Want more features with the bot?* Get a subscription a
                      Choose a subscription below and explore new horizons! 👇
 analyze-menu = 📊 Ask the neural network to analyze your dreams!
 
-               It will use your last 10 dream entries for the analysis. 
+               It will use your last 3 or 7 dream entries for the analysis. 
                If any of them contain sleepy mumblings from voice messages, I recommend editing them into a readable form 😊
 
                If this is your first time doing this, I suggest filling out your 🙋‍♂️ Self-Description. 
                The neural network doesn’t know the context of your 🌟 dreams — so it needs some help! 
                Tell it about the active 🧸 characters in your dreams, places, and events, 
                so it understands who’s who.
+
+               Last analyze:
+
+               { $last_analyze_data }
+no-lastanalyze = ⌛ No analyze! ⌛
 nodescription = ❌ No description!
 newdescription = 🙋‍♂️ Enter a new description of Yourself! You can do it in detail.
 toolong-description = 🚨 The description is too long - enter no more than 500 characters.
@@ -130,6 +136,7 @@ role-menu = 🔍 *Which dream analysis interests you?*
             2. <b>Esoteric</b> — dive into the magic of the soul and spiritual journey, inspired by the esoteric philosophy.
 
             Choose below how you’d like to explore your dreams! 👇
+
 wait-result = ⌛ Wait for result...
 ticket-menu = ⚠️ Enter the text of the request - describe in detail the error you encountered and the time it occurred.
 

@@ -18,8 +18,9 @@ edit-emoji-button = 😊 Emoji
 delete-button = ❌ Delete
 confirm-button = ✅ Confirm
 sub-button = 📥 Subscribe
-analyze-process7-button = 🧠 Analyze 7 Dreams
-analyze-process3-button = 🧠 Analyze 3 Dreams
+analyze-process7-button = 🧠 7 Dreams
+analyze-process3-button = 🧠 3 Dreams
+analyze-process1-button = 🧠 1 Dream
 edit-self-description-button = 🙋‍♂️ SelfDescription
 gpt-role-button = 🎭 Role 
 esoteric-button = 🔮 Esoteric
@@ -113,7 +114,7 @@ subscription-types = ✨ *Want more features with the bot?* Get a subscription a
                      Choose a subscription below and explore new horizons! 👇
 analyze-menu = 📊 Ask the neural network to analyze your dreams!
 
-               It will use your last 3 or 7 dream entries for the analysis. 
+               It will use your last 1, 3 or 7 dream entries for the analysis. 
                If any of them contain sleepy mumblings from voice messages, I recommend editing them into a readable form 😊
 
                If this is your first time doing this, I suggest filling out your 🙋‍♂️ Self-Description. 

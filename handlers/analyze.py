@@ -156,7 +156,7 @@ async def analyze_process(callback: CallbackQuery,
     user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
     gpt_role = user_data['gpt_role']
 
-    if time_difference < timedelta(minutes=1):
+    if time_difference < timedelta(hours=6):
         await callback.message.edit_text(i18n.error.timedelta(),
                                          reply_markup=kb.main_menu(i18n))
         return
@@ -242,7 +242,7 @@ async def analyze_process(callback: CallbackQuery,
         # Если результат слишком длинный, отправляем несколькими сообщениями
         while len(result_text) > MAX_MESSAGE_LENGTH:
             try:
-                await callback.message.answer(result_text[:MAX_MESSAGE_LENGTH])
+                await callback.message.answer(result_text[:MAX_MESSAGE_LENGTH], parse_mode="MarkdownV2")
                 result_text = result_text[MAX_MESSAGE_LENGTH:]
             except TelegramBadRequest as telegram_error:
                 logger.error(f"Failed to send partial message for user {user_id}: {telegram_error}")
@@ -256,7 +256,8 @@ async def analyze_process(callback: CallbackQuery,
         try:
             await callback.message.answer(
                 result_text,
-                reply_markup=kb.back_to_menu(i18n)
+                reply_markup=kb.back_to_menu(i18n),
+                parse_mode="MarkdownV2"
             )
         except TelegramBadRequest as telegram_error:
             logger.error(f"Failed to send final message for user {user_id}: {telegram_error}")

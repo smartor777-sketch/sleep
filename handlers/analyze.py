@@ -242,7 +242,7 @@ async def analyze_process(callback: CallbackQuery,
         # Если результат слишком длинный, отправляем несколькими сообщениями
         while len(result_text) > MAX_MESSAGE_LENGTH:
             try:
-                await callback.message.answer(result_text[:MAX_MESSAGE_LENGTH], parse_mode="MarkdownV2")
+                await callback.message.answer(result_text[:MAX_MESSAGE_LENGTH])
                 result_text = result_text[MAX_MESSAGE_LENGTH:]
             except TelegramBadRequest as telegram_error:
                 logger.error(f"Failed to send partial message for user {user_id}: {telegram_error}")
@@ -256,8 +256,7 @@ async def analyze_process(callback: CallbackQuery,
         try:
             await callback.message.answer(
                 result_text,
-                reply_markup=kb.back_to_menu(i18n),
-                parse_mode="MarkdownV2"
+                reply_markup=kb.back_to_menu(i18n)
             )
         except TelegramBadRequest as telegram_error:
             logger.error(f"Failed to send final message for user {user_id}: {telegram_error}")

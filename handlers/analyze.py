@@ -31,19 +31,9 @@ async def analyze_menu(callback: CallbackQuery,
                        i18n: TranslatorRunner):
     
     await state.clear()
-    user_id = callback.from_user.id
-
-    try:
-        user_data = await db.get_user(user_id)
-    except Exception as e:
-        logger.error(f"Error getting stats for user {user_id}: {e}")
-        await callback.message.edit_text(i18n.error.db_error(), 
-                                         reply_markup=kb.back_to_menu(i18n))
-        
-    last_analyze_data = user_data['last_analyze_data'] if user_data['last_analyze_data'] is not None else i18n.no.lastanalyze()
     
     try:
-        await callback.message.edit_text(i18n.analyze.menu(last_analyze_data=last_analyze_data), 
+        await callback.message.edit_text(i18n.analyze.menu(), 
                                          reply_markup=kb.analyze_menu(i18n))
     except TelegramBadRequest:
         await callback.answer()
@@ -124,6 +114,24 @@ async def edit_description(message: Message,
     await state.clear()
     await message.answer(i18n.description.updated(),
                          reply_markup=kb.analyze_menu(i18n))
+    
+
+@analyze_router.callback_query(F.data == 'get_last_analyze')
+async def get_last_analyze(callback: CallbackQuery,
+                           i18n: TranslatorRunner):
+    
+    user_id = callback.from_user.id
+
+    try:
+        user_data = await db.get_user(user_id)
+    except Exception as e:
+        logger.error(f"Error getting stats for user {user_id}: {e}")
+        await callback.message.edit_text(i18n.error.db_error(), 
+                                         reply_markup=kb.back_to_menu(i18n))
+        
+    last_analyze_data = user_data['last_analyze_data'] if user_data['last_analyze_data'] is not None else i18n.no.lastanalyze()
+
+    await callback.message.edit_text(last_analyze_data, reply_markup=kb.analyze_menu(i18n))
 
 
 @analyze_router.callback_query(F.data.startswith('analyze_process_'))
@@ -131,7 +139,13 @@ async def analyze_process(callback: CallbackQuery,
                           i18n: TranslatorRunner):
     
     user_id = callback.from_user.id
-    user_data = await db.get_user(user_id)
+    try:
+        user_data = await db.get_user(user_id)
+    except Exception as e:
+        logger.error(f"Error getting stats for user {user_id}: {e}")
+        await callback.message.edit_text(i18n.error.db_error(), 
+                                         reply_markup=kb.back_to_menu(i18n))
+        
     _, _, dreams_count = callback.data.split('_')
     last_use = user_data['last_analyze']
     if last_use is not None:

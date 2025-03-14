@@ -9,6 +9,7 @@ analyze-button = 🧠 Analyze
 account-button = 👤 Account
 ticket-button = 🚨 Support
 search-button = 🔎 Search
+get-last-analyze-button = 📃 Get last one 
 edit-title-button = ✏️ Title
 edit-comment-button = 📝 Comment
 edit-content-button = 📃 Content
@@ -120,9 +121,6 @@ analyze-menu = 📊 Ask the neural network to analyze your dreams!
                Tell it about the active 🧸 characters in your dreams, places, and events, 
                so it understands who’s who.
 
-               Last analyze:
-
-               { $last_analyze_data }
 no-lastanalyze = ⌛ No analyze! ⌛
 nodescription = ❌ No description!
 newdescription = 🙋‍♂️ Enter a new description of Yourself! You can do it in detail.

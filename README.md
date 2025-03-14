@@ -84,7 +84,7 @@ config.yaml: Contains bot token, channel info, database settings, YandexGPT cred
 We are open to contributions! Feel free to create an issue or submit a pull request. Share your feedback via Telegram: t.me/okolo_boga.
 
 ### License
-MIT License
+[MIT License](https://github.com/okoloboga/sna_net/blob/main/LICENSE.md)
 
 ### Authors
 [okoloboga](https://t.me/okolo_boga)

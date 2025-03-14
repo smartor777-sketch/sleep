@@ -9,6 +9,7 @@ analyze-button = 🧠 Анализ
 account-button = 👤 Аккаунт
 ticket-button = 🚨 Поддержка
 search-button = 🔎 Поиск
+get-last-analyze-button = 📃 Последний анализ
 edit-title-button = ✏️ Заголовок
 edit-comment-button = 📝 Комментарий
 edit-content-button = 📃 Содержание
@@ -126,9 +127,6 @@ analyze-menu = 📊 Обратись к нейросети за анализом
                Расскажи о действующих 🧸 лицах в твоих снах, местах, событиях,
                что бы ей было ясно - кто есть кто.
 
-               Последний анализ:
-
-               { $last_analyze_data }
 no-lastanalyze = ⌛ Не было анализа! ⌛
 nodescription = ❌ Нет описания!
 newdescription = 🙋‍♂️ Введи новое описание Себя! Можешь сделать это подробно.

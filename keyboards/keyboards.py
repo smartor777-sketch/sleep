@@ -118,6 +118,7 @@ def analyze_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.analyze.process7.button(), callback_data="analyze_process_7"),
                 InlineKeyboardButton(text=i18n.analyze.process3.button(), callback_data="analyze_process_3"))
+    builder.row(InlineKeyboardButton(text=i18n.get.last.analyze.button(), callback_data="get_last_analyze"))
     builder.row(InlineKeyboardButton(text=i18n.edit.self.description.button(), callback_data="edit_self_description"),
                 InlineKeyboardButton(text=i18n.gpt.role.button(), callback_data="select_role"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))            

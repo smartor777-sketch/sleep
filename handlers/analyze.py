@@ -145,13 +145,15 @@ async def analyze_process(callback: CallbackQuery,
         logger.error(f"Error getting stats for user {user_id}: {e}")
         await callback.message.edit_text(i18n.error.db_error(), 
                                          reply_markup=kb.back_to_menu(i18n))
-        
     _, _, dreams_count = callback.data.split('_')
+    current_time = datetime.now(timezone.utc)
     last_use = user_data['last_analyze']
     if last_use is not None:
         last_use = last_use.replace(tzinfo=timezone.utc)
-    current_time = datetime.now(timezone.utc)
-    time_difference = current_time - last_use
+        time_difference = current_time - last_use
+    else:
+        # Если last_use равно None, считаем, что ограничение не применяется
+        time_difference = timedelta(days=999)
 
     user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
     gpt_role = user_data['gpt_role']

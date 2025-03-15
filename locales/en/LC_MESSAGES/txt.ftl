@@ -94,6 +94,7 @@ emoji-updated = ✅ Emoji updated
 main-menu = 📝 Write down what dream you had?
 
             You can record a voice message to avoid straining your eyes at night.
+            The longer your voice message, the more time the bot will need to save it. Please be patient!
             📢 Speak clearly!
 calendar = 📅 Calendar 📅
 dream-writed = 🎉 Dream recorded!

@@ -26,6 +26,17 @@ def main_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def first_analyze(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.analyze.button(), callback_data="first_analyze"))
+    return builder.as_markup()
+
+def start_use(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.start.use.button(), callback_data="main_menu"))
+    return builder.as_markup()
+
+
 def calendar(year: int, 
              month: int, 
              i18n: TranslatorRunner, 

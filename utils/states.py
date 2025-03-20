@@ -3,8 +3,11 @@ from aiogram.fsm.state import State, StatesGroup
 class MainSG(StatesGroup):
     ready_for_dream = State()
 
-class SubCheckSG(StatesGroup):
+class StartSG(StatesGroup):
     sub_check = State()
+    edit_des = State()
+    first_dream = State()
+    first_analyze = State()
 
 class CalendarSG(StatesGroup):
     edit_con = State()

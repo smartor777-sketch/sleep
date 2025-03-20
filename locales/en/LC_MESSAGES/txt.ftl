@@ -4,6 +4,7 @@
 
 sub-offer-button = 🎉 Subscribe to the channel
 sub-check-button = 🔍 Check subscription
+start-use-button = ✅ Continue using!
 calendar-button = 📅 Calendar
 analyze-button = 🧠 Analyze
 account-button = 👤 Account
@@ -115,19 +116,27 @@ subscription-types = ✨ *Want more features with the bot?* Get a subscription a
                      2. More dreams per day — with a subscription, you can record up to 7 dreams daily (without it — only 3).
 
                      Choose a subscription below and explore new horizons! 👇
-analyze-menu = 📊 Ask the neural network to analyze your dreams!
-
-               It will use your last 1, 3 or 7 dream entries for the analysis. 
-               If any of them contain sleepy mumblings from voice messages, I recommend editing them into a readable form 😊
-
-               If this is your first time doing this, I suggest filling out your 🙋‍♂️ Self-Description. 
-               The neural network doesn’t know the context of your 🌟 dreams — so it needs some help! 
-               Tell it about the active 🧸 characters in your dreams, places, and events, 
-               so it understands who’s who.
+analyze-menu = 📊 Contact me for Dream Analysis!
+               For the analysis, I will retrieve the last 1, 3, or 7 entries.
+               If there are sleepy mumblings from voice messages among them, I recommend editing them into a readable format 😊
+               
+               If this is your first time doing this, I suggest filling out the 🙋‍♂️ About Yourself section.
+               I don’t know the context of your 🌟 Dreams, so I need your help!
+               Tell me about the 🧸 characters in your dreams, places, events,
+               so I can understand who is who.
 
 no-lastanalyze = ⌛ No analyze! ⌛
 nodescription = ❌ No description!
 newdescription = 🙋‍♂️ Enter a new description of Yourself! You can do it in detail.
+first-newdescription = 🙋‍♂️ Tell me about yourself!
+                      I can analyze your dreams,
+                      but I don’t know the context of your 🌟 Dreams, so I need your help!
+                      Tell me about the 🧸 characters in your dreams, places, events,
+                      so I can understand who is who.
+first-dream = 🌟 Great!
+              Now record a Dream — any dream!
+              And I’ll analyze it 😊
+first-analyze = Now press the button below 👇
 toolong-description = 🚨 The description is too long - enter no more than 500 characters.
 description-updated = ✅ Description updated
 role-updated = ✅ Role updated

@@ -206,9 +206,6 @@ async def analyze_process(callback: CallbackQuery,
         temperature = 0.7
 
     try:
-        # Логируем анализ
-        logger.info(f"Analyzing dreams for user {user_id}, combined text length: {len(combined_text)}")
-        
         analysis_result = await analyze_dreams(combined_text, intro_prompt, temperature, folder_id, api_key)
         if not analysis_result:
             raise ValueError("Empty analysis result from YandexGPT")

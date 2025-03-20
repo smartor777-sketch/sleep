@@ -135,7 +135,6 @@ async def first_analyze(callback: CallbackQuery,
                                          reply_markup=kb.back_to_menu(i18n))
     
     user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
-    gpt_role = user_data['gpt_role']
 
     dreams = await db.get_last_dreams(user_id, 1)
     if not dreams or len(dreams) == 0:
@@ -160,23 +159,8 @@ async def first_analyze(callback: CallbackQuery,
         f"Описание пользователя: {user_description}. Вот список снов:\n"
     )
 
-
-    esoteric_prompt = (
-        "Ты — эзотерик, знаток мистических традиций. Анализируй сны пользователя через символы и знаки, опираясь на сонники, "
-        "астрологию и таро. Избегай общих фраз и дай один ясный вывод о том, что эти сны предвещают или раскрывают. "
-        "Не разбирай каждый сон отдельно, а объедини их в единое толкование." 
-        f"Описание пользователя: {user_description}. Вот список снов:\n"
-    )
-
-    if gpt_role == 'psychological':
-        intro_prompt = psychological_prompt 
-        temperature = 0.3
-    elif gpt_role == 'esoteric':
-        intro_prompt = esoteric_prompt
-        temperature = 0.7
-
     try:
-        analysis_result = await analyze_dreams(dreams, intro_prompt, temperature, folder_id, api_key)
+        analysis_result = await analyze_dreams(dreams, psychological_prompt, 0.4, folder_id, api_key)
         if not analysis_result:
             raise ValueError("Empty analysis result from YandexGPT")
     except (TelegramAPIError, ValueError) as e:

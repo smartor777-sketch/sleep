@@ -84,6 +84,8 @@ async def analyze_dreams(dreams_text: str,
         }
     ]
 
+    logger.info(intro_prompt)
+
     sdk = YCloudML(
         folder_id=folder_id,
         auth=api_key,
@@ -92,8 +94,6 @@ async def analyze_dreams(dreams_text: str,
     result = (
         sdk.models.completions("yandexgpt").configure(temperature=temperature).run(messages)
     )
-
-    logger.info(result)
 
     # Возвращаем первый вариант ответа
     return result[0] if result else "Анализ недоступен."

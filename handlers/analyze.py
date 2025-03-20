@@ -230,7 +230,7 @@ async def analyze_process(callback: CallbackQuery,
         
         # elif analysis_result.status != 'AlternativeStatus.FINAL'
         logger.info(analysis_result.status)
-        logger.info(analysis_result.status.AlternativeStatus)
+        logger.info(type(analysis_result.status))
 
         result_text = analysis_result.text
 

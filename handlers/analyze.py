@@ -228,8 +228,13 @@ async def analyze_process(callback: CallbackQuery,
             )
             return
         
-        # elif analysis_result.status != 'AlternativeStatus.FINAL'
-        logger.info(analysis_result.status.name)
+        if analysis_result.status.name == 'CONTENT_FILTER':
+            logger.error(f"CONTENT_FILTER error for user {user_id}: {analysis_result.status}")
+            await callback.message.answer(
+                i18n.error.content_filter(),
+                reply_markup=kb.back_to_menu(i18n)
+            )
+            return
 
         result_text = analysis_result.text
 

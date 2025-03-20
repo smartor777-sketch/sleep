@@ -50,6 +50,8 @@ error-ticket_send = ⚠️ Error sending the request. Try again later!
 error-only_admin = ⚠️ Only an admin can reply!
 error-bot_blocked = ❌ The bot is blocked by the user
 error-dream_save = ⌛ Dream save error. Please try again later!
+error-content_filter = ❌ Content issue - check your dream for errors, remove emojis from the text.
+                       It might be due to the presence of confidential data or ethically inappropriate topics.
 ticket-answer = ✅ Reply to your request:
 
                { $reply_text }

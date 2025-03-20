@@ -159,6 +159,8 @@ async def first_analyze(callback: CallbackQuery,
         f"Описание пользователя: {user_description}. Вот список снов:\n"
     )
 
+    logger.info(dreams)
+
     try:
         analysis_result = await analyze_dreams(dreams, psychological_prompt, 0.4, folder_id, api_key)
         if not analysis_result:

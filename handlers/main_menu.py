@@ -50,31 +50,7 @@ async def any_text(message: Message,
         await message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
         return
     
-    elif dream_text == '/stats':
-            # Проверка, является ли пользователь администратором
-        if str(user_id) != str(admin_id):
-            return
-
-        # Если пользователь — админ, показываем статистику
-        stats = await db.get_service_stats()
-        response = (
-            f"📊 Статистика сервиса:\n\n"
-            f"👥 Пользователей: {stats['users_count']}\n"
-            f"💤 Снов: {stats['dreams_count']}\n"
-            f"💳 Оплаченных заказов: {stats['orders_count']}\n"
-            f"💰 Сумма оплат: {stats['total_amount']}"
-        )
-        await message.answer(response)
-        return
-    
-    elif dream_text[:15] == '/analyze_reset_':
-
-        if str(user_id) != str(admin_id):
-            return
-        
-        _, _, user_id = message.text.split('_')
-        await db.reset_last_analyze_date(int(user_id))
-        await message.answer(f"Последняя дата анализа пользователя {user_id} - сброшена")
+    elif dream_text == '/stats' or dream_text[:15] == '/analyze_reset_':
         return
 
     # Проверяем количество снов за день

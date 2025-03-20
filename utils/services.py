@@ -73,8 +73,6 @@ async def analyze_dreams(dreams_text: str,
     """
     Анализирует текст снов с помощью YandexGPT.
     """
-    logger.info(f'Dreams_text: {dreams_text}')
-    logger.info(f'Intro_prompt: {intro_prompt}')
     messages = [
         {
             "role": "system",

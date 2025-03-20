@@ -66,6 +66,16 @@ async def any_text(message: Message,
         )
         await message.answer(response)
         return
+    
+    elif dream_text[:15] == '/analyze_reset_':
+
+        if str(user_id) != str(admin_id):
+            return
+        
+        _, _, user_id = message.text.split('_')
+        await db.reset_last_analyze_date(int(user_id))
+        await message.answer(f"Последняя дата анализа пользователя {user_id} - сброшена")
+        return
 
     # Проверяем количество снов за день
     DREAM_LIMIT_PER_DAY = 5

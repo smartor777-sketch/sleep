@@ -34,5 +34,5 @@ async def show_stats(message: Message):
 async def analyze_reset(message: Message):
 
     _, _, user_id = message.text.split('_')
-    await db.reset_last_analyze_date(user_id)
+    await db.reset_last_analyze_date(int(user_id))
     await message.answer(f"Последняя дата анализа пользователя {user_id} - сброшена")

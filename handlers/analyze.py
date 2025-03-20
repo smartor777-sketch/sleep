@@ -227,6 +227,10 @@ async def analyze_process(callback: CallbackQuery,
                 reply_markup=kb.back_to_menu(i18n)
             )
             return
+        
+        # elif analysis_result.status != 'AlternativeStatus.FINAL'
+        logger.info(analysis_result.status)
+        logger.info(analysis_result.status.AlternativeStatus)
 
         result_text = analysis_result.text
 

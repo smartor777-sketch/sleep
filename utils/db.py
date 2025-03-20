@@ -399,6 +399,18 @@ async def update_last_analyze(user_id: int):
         await conn.close()
 
 
+# Сброс даты последнего анализа конкретного пользователя
+async def reset_last_analyze_date(user_id: int | str):
+
+    conn = await get_conn()
+
+    await conn.execute(
+        "UPDATE users SET last_analyze = NULL WHERE user_id = $1",
+        user_id
+    )
+    await conn.close()
+
+
 async def get_service_stats() -> dict:
     """
     Возвращает общую статистику по сервису.

@@ -84,7 +84,7 @@ async def user_id_handler(message: Message,
             return
 
         # Сброс даты анализа в базе данных
-        await db.reset_last_analyze_date(str(user_id))
+        await db.reset_last_analyze_date(int(user_id))
         await state.clear()
         await message.answer(i18n.analyze.reset.complete(user_id=user_id))
     except Exception as e:

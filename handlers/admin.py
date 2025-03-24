@@ -77,7 +77,7 @@ async def user_id_handler(message: Message,
     try:
         # Парсинг user_id из текста
         try:
-            _, _, user_id = message.text.split('_')
+            user_id = message.text
             user_id = int(user_id)  # Проверяем, что user_id — число
         except (ValueError, IndexError):
             await message.answer(i18n.error.invalid.userid())

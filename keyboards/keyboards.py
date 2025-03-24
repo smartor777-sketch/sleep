@@ -8,6 +8,17 @@ from config import get_config, Channel
 
 channel_url = get_config(Channel, "channel")
 
+def account_menu(i18n: TranslatorRunner, is_admin: bool = False) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    # builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
+    builder.row(InlineKeyboardButton(text=i18n.ticket.button(), callback_data="ticket"))
+
+    if is_admin:
+        builder.row(InlineKeyboardButton(text=i18n.stats.button(), callback_data="stats"))
+        builder.row(InlineKeyboardButton(text=i18n.analyze.reset.button(), callback_data='analyze_reset'))
+        
+    return builder.as_markup()
 
 # Клавиатура для совершения подписки и передачи payload, если он есть
 def subscribe(i18n: TranslatorRunner, payload='none') -> InlineKeyboardMarkup:
@@ -116,13 +127,6 @@ def delete_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.confirm.button(), callback_data=f'confirm_{dream_id}'))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data=f"dream_{dream_id}"))
-    return builder.as_markup()
-
-def account_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    # builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
-    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
-    builder.row(InlineKeyboardButton(text=i18n.ticket.button(), callback_data="ticket"))
     return builder.as_markup()
 
 def analyze_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:

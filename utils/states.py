@@ -28,3 +28,4 @@ class AccountSG(StatesGroup):
 
 class AdminSG(StatesGroup):
     reply_ticket = State()
+    enter_user_id = State()

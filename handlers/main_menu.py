@@ -46,11 +46,7 @@ async def any_text(message: Message,
     user_id = message.from_user.id
     dream_text = message.text
 
-    if dream_text == '/start':
-        await message.answer(i18n.main.menu(), reply_markup=kb.main_menu(i18n))
-        return
-    
-    elif dream_text == '/stats' or dream_text[:15] == '/analyze_reset_':
+    if dream_text[0] == '/':
         return
 
     # Проверяем количество снов за день

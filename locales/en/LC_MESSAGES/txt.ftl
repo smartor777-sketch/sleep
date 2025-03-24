@@ -32,6 +32,8 @@ month3-sub-button = 3 Months - 1 199 rub (-20%)
 month6-sub-button = 6 Months - 2 299 rub (-30%)
 answer-button = Answer
 back-button = ⬅️ Back
+stats-button = 📈 Statistics
+analyze-reset-button = ✏️ Analyze reset
 
 # ######## #
 # Messages #
@@ -53,6 +55,7 @@ error-bot_blocked = ❌ The bot is blocked by the user
 error-dream_save = ⌛ Dream save error. Please try again later!
 error-content_filter = ❌ Content issue - check your dream for errors, remove emojis from the text.
                        It might be due to the presence of confidential data or ethically inappropriate topics.
+error-stats-failed = Getting stats error
 ticket-answer = ✅ Reply to your request:
 
                { $reply_text }
@@ -157,3 +160,5 @@ ticket-menu = ⚠️ Enter the text of the request - describe in detail the erro
 ticket-sended = ✅ Request sended
 no-ticket = ✅ No ticket
 dream-limit_exceeded = You have reached your limit of { $limit } dreams per day. Try it tomorrow!
+enter-userid = Enter users ID for analyze reset
+analyze-reset-complete = Last analyze date reseted for user { $user_id }

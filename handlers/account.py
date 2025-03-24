@@ -77,7 +77,6 @@ async def account_menu(callback: CallbackQuery,
     # Отправляем сообщение
     try:
         is_admin = (int(admin_id) == int(user_id))
-        logger.info(is_admin)
         await callback.message.edit_text(message_text, reply_markup=kb.account_menu(i18n, admin_id))
     except TelegramBadRequest:
         await callback.answer()

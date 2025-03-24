@@ -400,7 +400,7 @@ async def update_last_analyze(user_id: int):
 
 
 # Сброс даты последнего анализа конкретного пользователя
-async def reset_last_analyze_date(user_id: int ):
+async def reset_last_analyze_date(user_id: str):
 
     conn = await get_conn()
 

@@ -8,7 +8,7 @@ from config import get_config, Channel
 
 channel_url = get_config(Channel, "channel")
 
-def account_menu(i18n: TranslatorRunner, is_admin: bool = False) -> InlineKeyboardMarkup:
+def account_menu(i18n: TranslatorRunner, is_admin: bool) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     # builder.row(InlineKeyboardButton(text=i18n.sub.button(), callback_data="subscription"))
     builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))

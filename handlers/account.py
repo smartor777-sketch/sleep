@@ -11,6 +11,7 @@ from utils import db, AccountSG, AdminSG
 from config import get_config, Admin
 
 admin = get_config(Admin, 'admin')
+admin_id = admin.id
 account_router = Router()
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,8 @@ async def account_menu(callback: CallbackQuery,
 
     # Отправляем сообщение
     try:
-        admin_id: bool = admin.id == user_id
+        is_admin = (int(admin_id) == int(user_id))
+        logger.info(is_admin)
         await callback.message.edit_text(message_text, reply_markup=kb.account_menu(i18n, admin_id))
     except TelegramBadRequest:
         await callback.answer()

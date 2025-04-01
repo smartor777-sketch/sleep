@@ -60,7 +60,7 @@ async def show_dreams(callback: CallbackQuery,
     
     except Exception as e:
         await callback.message.edit_text(i18n.error.generic())
-        print(f"Ошибка в show_dreams: {e}")
+        logger.error(f"Ошибка в show_dreams: {e}")
 
 
 # Обработчик переключения страниц
@@ -96,7 +96,7 @@ async def switch_dreams_page(callback: CallbackQuery,
     
     except Exception as e:
         await callback.message.edit_text(i18n.error.generic())
-        print(f"Ошибка в switch_dreams_page: {e}")
+        logger.error(f"Ошибка в switch_dreams_page: {e}")
 
 
 @dreams_router.callback_query(F.data == 'calendar')

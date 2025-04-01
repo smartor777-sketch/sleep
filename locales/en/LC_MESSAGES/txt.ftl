@@ -5,6 +5,8 @@
 sub-offer-button = 🎉 Subscribe to the channel
 sub-check-button = 🔍 Check subscription
 start-use-button = ✅ Continue using!
+dreams-pages-button = 📃 List
+dreams-button = 🌙 Dream Records
 calendar-button = 📅 Calendar
 analyze-button = 🧠 Analyze
 account-button = 👤 Account
@@ -73,6 +75,8 @@ account-orders_total = 💸 Total order amount: { $orders_total }
 account-gpt_role = 🎭 Analyze role: { $gpt_role }
 confirm-delete = 👆 Delete Dream? 👆
 complete-delete = 😊 Dream deleted! 😊
+dreams-menu = Show Dreams in a calendar or as a list?
+dreams-list = 🌟 Dream List 🌟
 nodreams = 😴 No dreams!
 no-dreams = 😔 No dreams for the selected date: { $selected_date }
 dreams-day = 🌟 Dreams of { $selected_date }

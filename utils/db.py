@@ -328,17 +328,21 @@ async def get_user_stats(user_id: int):
 
     return stats
 
-async def get_last_dreams(user_id: int, dreams_count: int):
+
+async def get_last_dreams(user_id: int, dreams_count: int, offset: int = 0):
     """
-    Возвращает последние N записей снов пользователя.
+    Возвращает последние N записей снов пользователя с заданным смещением.
     """
     conn = await get_conn()  # Получаем соединение
     try:
         dreams = await conn.fetch(
-            "SELECT content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT $2",
-            user_id, dreams_count
+            "SELECT content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT $2 OFFSET $3",
+            user_id, dreams_count, offset
         )
         return [dream["content"] for dream in dreams]
+    except Exception as e:
+        print(f"Ошибка в get_last_dreams: {e}")
+        return []  # Возвращаем пустой список в случае ошибки
     finally:
         await conn.close()  # Закрываем соединение вручную
 
@@ -371,6 +375,18 @@ async def count_dreams_today(user_id: int) -> int:
             user_id, today, today + timedelta(days=1)
         )
         return count or 0
+    finally:
+        await conn.close()
+
+
+async def count_total_dreams(user_id: int) -> int:
+
+    conn = await get_conn()
+    try:
+        total_dreams = await conn.fetchval(
+            "SELECT COUNT(*) FROM dreams WHERE user_id = $1", user_id
+        )
+        return total_dreams
     finally:
         await conn.close()
 

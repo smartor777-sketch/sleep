@@ -7,7 +7,7 @@ from aiogram.client.default import DefaultBotProperties
 from fluentogram import TranslatorHub
 
 from utils import TranslatorHub, create_translator_hub, TranslatorRunnerMiddleware, db_start
-from handlers import (account_router, analyze_router, calendar_router, main_router, start_router, 
+from handlers import (account_router, analyze_router, dreams_router, main_router, start_router, 
                       search_router, admin_router)
 from config import get_config, BotConfig
 
@@ -38,7 +38,7 @@ async def main():
     translator_hub: TranslatorHub = create_translator_hub()
 
     # Routers, dialogs, middlewares
-    dp.include_routers(account_router, analyze_router, calendar_router, main_router, start_router, search_router, admin_router)
+    dp.include_routers(account_router, analyze_router, dreams_router, main_router, start_router, search_router, admin_router)
     dp.update.middleware(TranslatorRunnerMiddleware())
  
     # Skipping old updates

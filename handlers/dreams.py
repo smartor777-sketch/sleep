@@ -11,7 +11,7 @@ from keyboards import keyboards as kb
 from utils import CalendarSG, db, cache_object, get_cache, is_emoji
 
 
-calendar_router = Router()
+dreams_router = Router()
 logger = logging.getLogger(__name__)
 
 logging.basicConfig(
@@ -20,7 +20,86 @@ logging.basicConfig(
            '[%(asctime)s] - %(name)s - %(message)s')
 
 
-@calendar_router.callback_query(F.data == 'calendar')
+@dreams_router.callback_query(F.data == 'dreams')
+async def dreams_menu(callback: CallbackQuery,
+                      state: FSMContext,
+                      i18n: TranslatorRunner):
+    
+    await state.clear()
+    try:
+        await callback.message.edit_text(i18n.dreams_menu(), reply_markup=kb.dreams_menu(i18n))
+    except TelegramBadRequest:
+        await callback.message.answer(i18n.dreams_menu(), reply_markup=kb.dreams_menu(i18n))
+
+
+@dreams_router.callback_query(F.data == "dreams_pages")
+async def show_dreams(callback: CallbackQuery, 
+                      i18n: TranslatorRunner, 
+                      state: FSMContext):
+    
+    user_id = callback.from_user.id
+    page = 0  # Начинаем с первой страницы
+    dreams_per_page = 10
+
+    try:
+        total_dreams = await db.count_total_dreams(user_id)
+
+        # Получаем первые 10 снов
+        dreams = await db.get_last_dreams(user_id, dreams_per_page, page * dreams_per_page)
+        
+        if not dreams:
+            await callback.message.edit_text(i18n.nodreams())
+            return
+        
+        # Сохраняем текущую страницу и общее количество в состоянии
+        await state.update_data(page=page, total_dreams=total_dreams)
+        
+        # Создаём и отправляем клавиатуру
+        keyboard = kb.create_dreams_keyboard(dreams, page, total_dreams, i18n)
+        await callback.message.edit_text(i18n.dreams.list(), reply_markup=keyboard)
+    
+    except Exception as e:
+        await callback.message.edit_text(i18n.error.generic())
+        print(f"Ошибка в show_dreams: {e}")
+
+
+# Обработчик переключения страниц
+@dreams_router.callback_query(F.data.startswith("dreams_page_"))
+async def switch_dreams_page(callback: CallbackQuery, 
+                             i18n: TranslatorRunner, 
+                             state: FSMContext):
+    
+    user_id = callback.from_user.id
+    dreams_per_page = 10
+    
+    # Получаем номер страницы из callback_data
+    page = int(callback.data.split("_")[-1])
+    
+    try:
+        # Получаем данные из состояния
+        data = await state.get_data()
+        total_dreams = data.get("total_dreams", 0)
+        
+        # Получаем сны для текущей страницы
+        dreams = await db.get_last_dreams(user_id, dreams_per_page, page * dreams_per_page)
+        
+        if not dreams:
+            await callback.message.edit_text(i18n.nodreams())
+            return
+        
+        # Обновляем страницу в состоянии
+        await state.update_data(page=page)
+        
+        # Создаём и отправляем клавиатуру
+        keyboard = kb.create_dreams_keyboard(dreams, page, total_dreams, i18n)
+        await callback.message.edit_text(i18n.dreams.list(), reply_markup=keyboard)
+    
+    except Exception as e:
+        await callback.message.edit_text(i18n.error.generic())
+        print(f"Ошибка в switch_dreams_page: {e}")
+
+
+@dreams_router.callback_query(F.data == 'calendar')
 async def calendar_inline(callback: CallbackQuery,
                           state: FSMContext,
                           i18n: TranslatorRunner):
@@ -48,7 +127,7 @@ async def calendar_inline(callback: CallbackQuery,
         await callback.message.answer(i18n.calendar(), reply_markup=keyboard)
 
 
-@calendar_router.callback_query(F.data.startswith('calendar_'))
+@dreams_router.callback_query(F.data.startswith('calendar_'))
 async def calendar_inline(callback: CallbackQuery,
                           state: FSMContext,
                           i18n: TranslatorRunner):
@@ -75,7 +154,7 @@ async def calendar_inline(callback: CallbackQuery,
         await callback.answer()
 
 
-@calendar_router.callback_query(F.data.startswith('day_'))
+@dreams_router.callback_query(F.data.startswith('day_'))
 async def day_inline(callback: CallbackQuery,
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -115,7 +194,7 @@ async def day_inline(callback: CallbackQuery,
         await callback.answer()
 
 
-@calendar_router.callback_query(F.data.startswith('dream_'))
+@dreams_router.callback_query(F.data.startswith('dream_'))
 async def dream_inline(callback: CallbackQuery, 
                        state: FSMContext,
                        i18n: TranslatorRunner):
@@ -162,7 +241,7 @@ async def dream_inline(callback: CallbackQuery,
     await callback.answer()
 
 
-@calendar_router.callback_query(F.data.startswith('edit_'))
+@dreams_router.callback_query(F.data.startswith('edit_'))
 async def edit_dream_menu(callback: CallbackQuery,
                           state: FSMContext,
                           i18n: TranslatorRunner):
@@ -247,7 +326,7 @@ async def edit_dream_menu(callback: CallbackQuery,
     await callback.answer()
 
 
-@calendar_router.message(CalendarSG.edit_con)
+@dreams_router.message(CalendarSG.edit_con)
 async def edit_content(message: Message, 
                        state: FSMContext,
                        i18n: TranslatorRunner):
@@ -270,7 +349,7 @@ async def edit_content(message: Message,
                          reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_tit)
+@dreams_router.message(CalendarSG.edit_tit)
 async def edit_title(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -293,7 +372,7 @@ async def edit_title(message: Message,
                          reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_com)
+@dreams_router.message(CalendarSG.edit_com)
 async def edit_comment(message: Message, 
                        state: FSMContext,
                        i18n: TranslatorRunner):
@@ -316,7 +395,7 @@ async def edit_comment(message: Message,
                          reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_cov)
+@dreams_router.message(CalendarSG.edit_cov)
 async def edit_image(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -342,7 +421,7 @@ async def edit_image(message: Message,
                          reply_markup=kb.back_to_dream(i18n, dream_id))
 
 
-@calendar_router.message(CalendarSG.edit_emo)
+@dreams_router.message(CalendarSG.edit_emo)
 async def edit_emoji(message: Message, 
                      state: FSMContext,
                      i18n: TranslatorRunner):
@@ -370,7 +449,7 @@ async def edit_emoji(message: Message,
                          reply_markup=kb.back_to_dream(i18n, dream_id))
     
 
-@calendar_router.callback_query(F.data.startswith('delete_'))
+@dreams_router.callback_query(F.data.startswith('delete_'))
 async def delete_handler(callback: CallbackQuery,
                          i18n: FSMContext):
     
@@ -380,7 +459,7 @@ async def delete_handler(callback: CallbackQuery,
     await callback.answer()
 
 
-@calendar_router.callback_query(F.data.startswith('confirm_'))
+@dreams_router.callback_query(F.data.startswith('confirm_'))
 async def delete_confirm_handler(callback: CallbackQuery,
                                  i18n: TranslatorRunner):
     try:
@@ -411,6 +490,6 @@ async def delete_confirm_handler(callback: CallbackQuery,
         await callback.answer()
     
 
-@calendar_router.callback_query(F.data == 'ignore')
+@dreams_router.callback_query(F.data == 'ignore')
 async def ignore_handler(callback: CallbackQuery):
     await callback.answer()

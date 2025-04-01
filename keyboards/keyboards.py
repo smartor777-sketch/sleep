@@ -31,11 +31,17 @@ def subscribe(i18n: TranslatorRunner, payload='none') -> InlineKeyboardMarkup:
 # Клавиатура главного меню
 def main_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=i18n.calendar.button(), callback_data="calendar"))
+    builder.row(InlineKeyboardButton(text=i18n.dreams.button(), callback_data="dreams"))
     builder.row(InlineKeyboardButton(text=i18n.analyze.button(), callback_data="analyze"))
     builder.row(InlineKeyboardButton(text=i18n.account.button(), callback_data="account"))
     return builder.as_markup()
 
+def dreams_menu(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=i18n.dreams.pages.button(), callback_data="dreams_pages"))
+    builder.row(InlineKeyboardButton(text=i18n.calendar.button(), callback_data="calendar"))
+    builder.row(InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu"))
+    return builder.as_markup()
 
 def first_analyze(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
@@ -45,6 +51,45 @@ def first_analyze(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
 def start_use(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.start.use.button(), callback_data="main_menu"))
+    return builder.as_markup()
+
+
+def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: TranslatorRunner):
+    """
+    Создаёт клавиатуру с 10 снами, кнопками "Назад" и "Вперёд", а также "Поиск" и "Назад в меню".
+    :param dreams: список снов на текущей странице
+    :param page: текущая страница (начиная с 0)
+    :param total_dreams: общее количество снов пользователя
+    :param i18n: объект для локализации
+    """
+    builder = InlineKeyboardBuilder()
+    
+    # Добавляем кнопки с номерами и содержимым снов
+    for idx, dream in enumerate(dreams, start=page * 10 + 1):
+        # Обрезаем длинные сны для отображения
+        short_dream = (dream[:30] + "...") if len(dream) > 30 else dream
+        builder.button(text=f"{idx}. {short_dream}", callback_data=f"dream_{idx}")
+    
+    # Кнопки навигации ("Назад" и "Вперёд")
+    dreams_per_page = 10
+    has_prev = page > 0
+    has_next = (page + 1) * dreams_per_page < total_dreams
+    
+    nav_row = []
+    if has_prev:
+        nav_row.append({"text": "◀️", "callback_data": f"dreams_page_{page - 1}"})
+    if has_next:
+        nav_row.append({"text": "▶️", "callback_data": f"dreams_page_{page + 1}"})
+    
+    if nav_row:
+        builder.row(*[dict(item) for item in nav_row])
+    
+    # Кнопка "Поиск" и "Назад в меню"
+    builder.row(
+        InlineKeyboardButton(text=i18n.search.button(), callback_data="search"),
+        InlineKeyboardButton(text=i18n.back.button(), callback_data="dreams")
+    )
+    
     return builder.as_markup()
 
 
@@ -95,7 +140,7 @@ def calendar(year: int,
     # Кнопка "Поиск" и "Назад"
     builder.row(
         InlineKeyboardButton(text=i18n.search.button(), callback_data="search"),
-        InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu")
+        InlineKeyboardButton(text=i18n.back.button(), callback_data="dreams")
     )
 
     return builder.as_markup()

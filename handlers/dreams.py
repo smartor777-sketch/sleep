@@ -27,9 +27,9 @@ async def dreams_menu(callback: CallbackQuery,
     
     await state.clear()
     try:
-        await callback.message.edit_text(i18n.dreams_menu(), reply_markup=kb.dreams_menu(i18n))
+        await callback.message.edit_text(i18n.dreams.menu(), reply_markup=kb.dreams_menu(i18n))
     except TelegramBadRequest:
-        await callback.message.answer(i18n.dreams_menu(), reply_markup=kb.dreams_menu(i18n))
+        await callback.message.answer(i18n.dreams.menu(), reply_markup=kb.dreams_menu(i18n))
 
 
 @dreams_router.callback_query(F.data == "dreams_pages")

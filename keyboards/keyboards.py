@@ -75,19 +75,19 @@ def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: Tra
     has_prev = page > 0
     has_next = (page + 1) * dreams_per_page < total_dreams
     
-    nav_row = []
+    nav_buttons = []
     if has_prev:
-        nav_row.append({"text": "◀️", "callback_data": f"dreams_page_{page - 1}"})
+        nav_buttons.append(InlineKeyboardButton(text=i18n.button.prev(), callback_data=f"dreams_page_{page - 1}"))
     if has_next:
-        nav_row.append({"text": "▶️", "callback_data": f"dreams_page_{page + 1}"})
+        nav_buttons.append(InlineKeyboardButton(text=i18n.button.next(), callback_data=f"dreams_page_{page + 1}"))
     
-    if nav_row:
-        builder.row(*[dict(item) for item in nav_row])
+    if nav_buttons:
+        builder.row(*nav_buttons)
     
     # Кнопка "Поиск" и "Назад в меню"
     builder.row(
         InlineKeyboardButton(text=i18n.search.button(), callback_data="search"),
-        InlineKeyboardButton(text=i18n.back.button(), callback_data="dreams")
+        InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu")
     )
     
     return builder.as_markup()

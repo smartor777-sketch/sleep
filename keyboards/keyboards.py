@@ -54,9 +54,12 @@ def start_use(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import InlineKeyboardButton
+
 def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: TranslatorRunner):
     """
-    Создаёт клавиатуру с 10 снами, кнопками "Назад" и "Вперёд", а также "Поиск" и "Назад в меню".
+    Создаёт клавиатуру с 10 снами в колонке, кнопками "Назад" и "Вперёд", а также "Поиск" и "Назад в меню".
     :param dreams: список снов на текущей странице
     :param page: текущая страница (начиная с 0)
     :param total_dreams: общее количество снов пользователя
@@ -64,11 +67,12 @@ def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: Tra
     """
     builder = InlineKeyboardBuilder()
     
-    # Добавляем кнопки с номерами и содержимым снов
+    # Добавляем кнопки с номерами и содержимым снов в колонке
     for idx, dream in enumerate(dreams, start=page * 10 + 1):
         # Обрезаем длинные сны для отображения
         short_dream = (dream[:30] + "...") if len(dream) > 30 else dream
-        builder.button(text=f"{idx}. {short_dream}", callback_data=f"dream_{idx}")
+        # Каждую кнопку добавляем в отдельной строке
+        builder.row(InlineKeyboardButton(text=f"{idx}. {short_dream}", callback_data=f"dream_{idx}"))
     
     # Кнопки навигации ("Назад" и "Вперёд")
     dreams_per_page = 10
@@ -77,9 +81,9 @@ def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: Tra
     
     nav_buttons = []
     if has_prev:
-        nav_buttons.append(InlineKeyboardButton(text="◀️", callback_data=f"dreams_page_{page - 1}"))
+        nav_buttons.append(InlineKeyboardButton(text=i18n.button.prev(), callback_data=f"dreams_page_{page - 1}"))
     if has_next:
-        nav_buttons.append(InlineKeyboardButton(text="▶️", callback_data=f"dreams_page_{page + 1}"))
+        nav_buttons.append(InlineKeyboardButton(text=i18n.button.next(), callback_data=f"dreams_page_{page + 1}"))
     
     if nav_buttons:
         builder.row(*nav_buttons)

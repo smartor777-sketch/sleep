@@ -202,7 +202,7 @@ async def dream_inline(callback: CallbackQuery,
                        i18n: TranslatorRunner):
     
     state_data = await state.get_data()
-    source = state_data['calendar']
+    source = state_data['source']
 
     await state.clear()
     user_id = callback.from_user.id

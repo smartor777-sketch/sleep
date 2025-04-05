@@ -54,25 +54,25 @@ def start_use(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.types import InlineKeyboardButton
-
 def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: TranslatorRunner):
     """
     Создаёт клавиатуру с 10 снами в колонке, кнопками "Назад" и "Вперёд", а также "Поиск" и "Назад в меню".
-    :param dreams: список снов на текущей странице
+    Использует реальные id снов.
+    :param dreams: список словарей снов с полями id и content
     :param page: текущая страница (начиная с 0)
     :param total_dreams: общее количество снов пользователя
     :param i18n: объект для локализации
     """
     builder = InlineKeyboardBuilder()
     
-    # Добавляем кнопки с номерами и содержимым снов в колонке
-    for idx, dream in enumerate(dreams, start=page * 10 + 1):
+    # Добавляем кнопки с реальными id и содержимым снов в колонке
+    for dream in dreams:
+        dream_id = dream["id"]
+        content = dream["content"]
         # Обрезаем длинные сны для отображения
-        short_dream = (dream[:30] + "...") if len(dream) > 30 else dream
-        # Каждую кнопку добавляем в отдельной строке
-        builder.row(InlineKeyboardButton(text=f"{idx}. {short_dream}", callback_data=f"dream_{idx}"))
+        short_content = (content[:30] + "...") if len(content) > 30 else content
+        # Используем реальный id в тексте и callback_data
+        builder.row(InlineKeyboardButton(text=f"{dream_id}. {short_content}", callback_data=f"dream_{dream_id}"))
     
     # Кнопки навигации ("Назад" и "Вперёд")
     dreams_per_page = 10

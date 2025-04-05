@@ -332,14 +332,15 @@ async def get_user_stats(user_id: int):
 async def get_last_dreams(user_id: int, dreams_count: int, offset: int = 0):
     """
     Возвращает последние N записей снов пользователя с заданным смещением.
+    Каждый элемент содержит id и content сна.
     """
     conn = await get_conn()  # Получаем соединение
     try:
         dreams = await conn.fetch(
-            "SELECT content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT $2 OFFSET $3",
+            "SELECT id, content FROM dreams WHERE user_id = $1 ORDER BY create_time DESC LIMIT $2 OFFSET $3",
             user_id, dreams_count, offset
         )
-        return [dream["content"] for dream in dreams]
+        return [{"id": dream["id"], "content": dream["content"]} for dream in dreams]
     except Exception as e:
         print(f"Ошибка в get_last_dreams: {e}")
         return []  # Возвращаем пустой список в случае ошибки

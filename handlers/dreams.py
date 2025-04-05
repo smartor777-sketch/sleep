@@ -44,11 +44,11 @@ async def show_dreams(callback: CallbackQuery,
     try:
         total_dreams = await db.count_total_dreams(user_id)
 
-        # Получаем первые 10 снов
+        # Получаем первые 10 снов с id и content
         dreams = await db.get_last_dreams(user_id, dreams_per_page, page * dreams_per_page)
         
         if not dreams:
-            await callback.message.edit_text(i18n.nodreams())
+            await callback.message.edit_text(i18n.dreams.empty())
             return
         
         # Сохраняем текущую страницу и общее количество в состоянии

@@ -136,7 +136,7 @@ async def first_analyze(callback: CallbackQuery,
     
     user_description = '' if user_data['self_description'] == 'none' else user_data['self_description']
 
-    dreams = await db.get_last_dreams(user_id, 1)
+    dreams = await db.get_last_dreams_analyze(user_id, 1)
     if not dreams or len(dreams) == 0:
         try:
             await callback.message.edit_text(i18n.nodreams(), 

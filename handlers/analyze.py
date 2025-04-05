@@ -165,7 +165,7 @@ async def analyze_process(callback: CallbackQuery,
 
     logger.info(dreams_count)
 
-    dreams = await db.get_last_dreams(user_id, int(dreams_count))
+    dreams = await db.get_last_dreams_analyze(user_id, int(dreams_count))
     if not dreams or len(dreams) == 0:
         try:
             await callback.message.edit_text(i18n.nodreams(), 

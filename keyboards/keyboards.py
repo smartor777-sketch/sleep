@@ -54,7 +54,10 @@ def start_use(i18n: TranslatorRunner) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: TranslatorRunner):
+def create_dreams_keyboard(dreams: list, 
+                           page: int, 
+                           total_dreams: int, 
+                           i18n: TranslatorRunner):
     """
     Создаёт клавиатуру с 10 снами в колонке, кнопками "Назад" и "Вперёд", а также "Поиск" и "Назад в меню".
     Использует реальные id снов.
@@ -91,7 +94,7 @@ def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: Tra
     # Кнопка "Поиск" и "Назад в меню"
     builder.row(
         InlineKeyboardButton(text=i18n.search.button(), callback_data="search"),
-        InlineKeyboardButton(text=i18n.back.button(), callback_data="main_menu")
+        InlineKeyboardButton(text=i18n.back.button(), callback_data="dreams")
     )
     
     return builder.as_markup()
@@ -161,7 +164,7 @@ def dreams_list(i18n: TranslatorRunner, dreams: list) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def dream_edit(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
+def dream_edit(i18n: TranslatorRunner, dream_id: int, source: str) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=i18n.edit.title.button(), callback_data=f"edit_tit_{dream_id}"),
                 InlineKeyboardButton(text=i18n.edit.comment.button(), callback_data=f"edit_com_{dream_id}"))
@@ -169,7 +172,7 @@ def dream_edit(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:
     builder.row(InlineKeyboardButton(text=i18n.edit.cover.button(), callback_data=f"edit_cov_{dream_id}"),
                 InlineKeyboardButton(text=i18n.edit.emoji.button(), callback_data=f"edit_emo_{dream_id}"))
     builder.row(InlineKeyboardButton(text=i18n.delete.button(), callback_data=f'delete_{dream_id}'),
-                InlineKeyboardButton(text=i18n.back.button(), callback_data="calendar"))
+                InlineKeyboardButton(text=i18n.back.button(), callback_data=source))
     return builder.as_markup()
 
 def delete_dream(i18n: TranslatorRunner, dream_id: int) -> InlineKeyboardMarkup:

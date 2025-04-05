@@ -37,6 +37,7 @@ async def show_dreams(callback: CallbackQuery,
                       i18n: TranslatorRunner, 
                       state: FSMContext):
     
+    await state.update_data(source='dreams_pages')
     user_id = callback.from_user.id
     page = 0  # Начинаем с первой страницы
     dreams_per_page = 10
@@ -160,6 +161,7 @@ async def day_inline(callback: CallbackQuery,
                      i18n: TranslatorRunner):
     
     await state.clear()
+    await state.update_data(source='calendar')
     _, year, month, day = callback.data.split('_')
     selected_date = f"{year}-{month}-{day}"
     user_id = callback.from_user.id 
@@ -199,6 +201,9 @@ async def dream_inline(callback: CallbackQuery,
                        state: FSMContext,
                        i18n: TranslatorRunner):
     
+    state_data = await state.get_data()
+    source = state_data['calendar']
+
     await state.clear()
     user_id = callback.from_user.id
     dream_id = callback.data[6:]
@@ -234,10 +239,10 @@ async def dream_inline(callback: CallbackQuery,
     if cover:
         await callback.message.answer_photo(cover, 
                                             caption=message_text, 
-                                            reply_markup=kb.dream_edit(i18n, dream_id))
+                                            reply_markup=kb.dream_edit(i18n, dream_id, source))
     else:
         await callback.message.answer(message_text, 
-                                      reply_markup=kb.dream_edit(i18n, dream_id))
+                                      reply_markup=kb.dream_edit(i18n, dream_id, source))
     await callback.answer()
 
 

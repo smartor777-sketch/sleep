@@ -175,7 +175,7 @@ async def analyze_process(callback: CallbackQuery,
         return
 
     # Объединяем записи в один текст
-    combined_text = "\n\n".join(dreams)
+    combined_text = "\n\n".join(dream["content"] for dream in dreams)
     await callback.message.edit_text(i18n.wait.result())
 
     # Анализируем текст с помощью YandexGPT

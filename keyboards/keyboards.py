@@ -81,9 +81,9 @@ def create_dreams_keyboard(dreams: list, page: int, total_dreams: int, i18n: Tra
     
     nav_buttons = []
     if has_prev:
-        nav_buttons.append(InlineKeyboardButton(text=i18n.button.prev(), callback_data=f"dreams_page_{page - 1}"))
+        nav_buttons.append(InlineKeyboardButton(text="◀️", callback_data=f"dreams_page_{page - 1}"))
     if has_next:
-        nav_buttons.append(InlineKeyboardButton(text=i18n.button.next(), callback_data=f"dreams_page_{page + 1}"))
+        nav_buttons.append(InlineKeyboardButton(text="▶️", callback_data=f"dreams_page_{page + 1}"))
     
     if nav_buttons:
         builder.row(*nav_buttons)

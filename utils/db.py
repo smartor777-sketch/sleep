@@ -329,7 +329,7 @@ async def get_user_stats(user_id: int):
     return stats
 
 
-async def get_last_dreams(user_id: int, dreams_count: int, offset: int = 0):
+async def get_last_dreams_analyze(user_id: int, dreams_count: int, offset: int = 0):
     """
     Возвращает последние N записей снов пользователя с заданным смещением.
     Каждый элемент содержит id и content сна.
@@ -346,6 +346,66 @@ async def get_last_dreams(user_id: int, dreams_count: int, offset: int = 0):
         return []  # Возвращаем пустой список в случае ошибки
     finally:
         await conn.close()  # Закрываем соединение вручную
+
+
+async def get_last_dreams(user_id: int, dreams_count: int, offset: int = 0):
+    """
+    Возвращает последние N записей снов пользователя с заданным смещением.
+    Загружает данные в кэш, если их там нет, в формате кортежей с полями как в load_month.
+    Каждый элемент содержит id и content для совместимости с текущим кодом.
+    """
+    dreams_per_page = min(dreams_count, 10)  # Ограничиваем до 10 снов за раз
+    from utils import cache_object, clear_cache
+    
+    # Проверяем, есть ли нужные данные в кэше
+    cached_dreams = []
+    if user_id in cache_object:
+        all_cached = []
+        # Собираем все сны из кэша, отсортированные по create_time
+        for day in cache_object[user_id]:
+            all_cached.extend(cache_object[user_id][day])
+        # Сортируем по create_time DESC
+        all_cached.sort(key=lambda x: x[6], reverse=True)  # 6 — индекс create_time в кортеже
+        # Применяем offset и limit
+        cached_dreams = all_cached[offset:offset + dreams_per_page]
+
+    # Если в кэше недостаточно данных, обращаемся к базе
+    if len(cached_dreams) < dreams_per_page:
+        conn = await get_conn()
+        try:
+            dreams = await conn.fetch(
+                "SELECT id, title, content, emoji, comment, cover, create_time FROM dreams "
+                "WHERE user_id = $1 ORDER BY create_time DESC LIMIT $2 OFFSET $3",
+                user_id, dreams_per_page, offset
+            )
+            # Если кэш пустой, очищаем его (опционально)
+            if not cache_object.get(user_id):
+                clear_cache(user_id)
+            
+            # Группируем сны по дням и добавляем в кэш
+            for dream in dreams:
+                dream_tuple = (dream["id"], dream["title"], dream["content"], 
+                              dream["emoji"], dream["comment"], dream["cover"], dream["create_time"])
+                day = str(dream["create_time"].day)
+                if day not in cache_object[user_id]:
+                    cache_object[user_id][day] = []
+                # Проверяем, нет ли дубликата по id
+                if not any(d[0] == dream_tuple[0] for d in cache_object[user_id][day]):
+                    cache_object[user_id][day].append(dream_tuple)
+            
+            # Формируем результат из базы
+            cached_dreams = [{"id": dream["id"], "content": dream["content"]} for dream in dreams]
+        except Exception as e:
+            print(f"Ошибка в get_last_dreams: {e}")
+            return []
+        finally:
+            await conn.close()
+    
+    # Если кэш был заполнен ранее, возвращаем данные из него
+    else:
+        cached_dreams = [{"id": dream[0], "content": dream[2]} for dream in cached_dreams]  # 0 — id, 2 — content
+    
+    return cached_dreams
 
 
 async def count_dreams_today(user_id: int) -> int:

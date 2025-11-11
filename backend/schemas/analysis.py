@@ -16,7 +16,6 @@ class AnalysisResponse(BaseModel):
     dream_id: UUID
     user_id: UUID
     result: str | None
-    gpt_role: str
     status: str
     error_message: str | None
     created_at: datetime

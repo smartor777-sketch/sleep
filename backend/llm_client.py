@@ -24,7 +24,6 @@ class LLMClient:
     async def analyze_dream(
         self,
         dream_text: str,
-        gpt_role: str,
         user_description: str | None = None
     ) -> str:
         """
@@ -32,7 +31,6 @@ class LLMClient:
         
         Args:
             dream_text: Текст сна
-            gpt_role: Роль ('psychological' или 'esoteric')
             user_description: Описание пользователя (опционально)
         
         Returns:
@@ -45,12 +43,11 @@ class LLMClient:
         
         payload = {
             "dream_text": dream_text,
-            "gpt_role": gpt_role,
             "user_description": user_description
         }
         
         logger.info(f"Sending analysis request to LLM Service: {url}")
-        logger.debug(f"Payload: role={gpt_role}, text_length={len(dream_text)}")
+        logger.debug(f"Payload: text_length={len(dream_text)}")
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:

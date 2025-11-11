@@ -27,7 +27,6 @@ class UserUpdate(BaseModel):
 
 class UserSettingsUpdate(BaseModel):
     """Схема для обновления настроек пользователя"""
-    gpt_role: str | None = Field(None, pattern="^(psychological|esoteric)$")
     self_description: str | None = Field(None, max_length=1000)
     timezone: str | None = None
 
@@ -40,7 +39,6 @@ class UserResponse(UserBase):
     is_admin: bool
     sub_type: str
     sub_expires_at: datetime | None
-    gpt_role: str
     self_description: str | None
     created_at: datetime
     updated_at: datetime

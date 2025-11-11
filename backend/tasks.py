@@ -86,7 +86,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
             try:
                 result_text = await llm_client.analyze_dream(
                     dream_text=dream.content,
-                    gpt_role=analysis.gpt_role,
                     user_description=user.self_description
                 )
                 

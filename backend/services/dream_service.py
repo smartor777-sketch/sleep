@@ -7,6 +7,7 @@ import pytz
 
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from models import Dream, User
 from schemas import DreamCreate, DreamUpdate
@@ -153,7 +154,9 @@ async def get_dream_by_id(
         Сон или None
     """
     result = await db.execute(
-        select(Dream).where(
+        select(Dream)
+        .options(selectinload(Dream.analysis))
+        .where(
             and_(
                 Dream.id == dream_id,
                 Dream.user_id == user.id
@@ -191,6 +194,7 @@ async def get_dreams_list(
     offset = (page - 1) * page_size
     result = await db.execute(
         select(Dream)
+        .options(selectinload(Dream.analysis))
         .where(Dream.user_id == user.id)
         .order_by(Dream.recorded_at.desc())
         .offset(offset)
@@ -265,6 +269,7 @@ async def search_dreams(
     # В будущем можно улучшить с помощью PostgreSQL full-text search
     result = await db.execute(
         select(Dream)
+        .options(selectinload(Dream.analysis))
         .where(
             and_(
                 Dream.user_id == user.id,

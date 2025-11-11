@@ -1,7 +1,7 @@
 """Сервис для аутентификации"""
 
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from passlib.context import CryptContext
@@ -131,7 +131,7 @@ async def create_email_verification_token(
         Токен
     """
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
     
     verification = EmailVerification(
         user_id=user_id,
@@ -164,7 +164,7 @@ async def verify_email_token(db: AsyncSession, token: str) -> User | None:
     if not verification:
         return None
     
-    if verification.expires_at < datetime.utcnow():
+    if verification.expires_at < datetime.now(timezone.utc):
         # Токен истёк
         await db.delete(verification)
         await db.commit()
@@ -203,7 +203,7 @@ async def create_password_reset_token(
         Токен
     """
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(hours=expires_hours)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
     
     reset = PasswordReset(
         user_id=user_id,
@@ -240,7 +240,7 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> Use
     if not reset:
         return None
     
-    if reset.expires_at < datetime.utcnow():
+    if reset.expires_at < datetime.now(timezone.utc):
         # Токен истёк
         await db.delete(reset)
         await db.commit()

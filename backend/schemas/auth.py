@@ -9,6 +9,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(..., min_length=8, max_length=128)
     first_name: str | None = Field(None, max_length=100)
     last_name: str | None = Field(None, max_length=100)
+    timezone: str = Field("UTC", max_length=64, description="IANA timezone, e.g. Europe/Moscow")
 
 
 class LoginRequest(BaseModel):

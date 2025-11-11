@@ -199,7 +199,6 @@ CREATE TABLE users (
     sub_expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
     
     -- Настройки анализа
-    gpt_role VARCHAR(20) DEFAULT 'psychological',  -- 'psychological', 'esoteric'
     self_description TEXT DEFAULT NULL  -- контекст для LLM
 );
 
@@ -253,7 +252,6 @@ CREATE TABLE analyses (
     dream_id UUID NOT NULL REFERENCES dreams(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     result TEXT NOT NULL,  -- текст анализа от LLM
-    gpt_role VARCHAR(20) NOT NULL,  -- роль, которая использовалась
     status VARCHAR(20) DEFAULT 'pending',  -- 'pending', 'processing', 'completed', 'failed'
     celery_task_id VARCHAR(255),  -- ID задачи Celery
     error_message TEXT,  -- если произошла ошибка
@@ -353,7 +351,7 @@ CREATE INDEX idx_password_resets_user_id ON password_resets(user_id);
 |-------|----------|----------|
 | GET | `/user/me` | Получить текущего пользователя |
 | PUT | `/user/me` | Обновить профиль |
-| PUT | `/user/settings` | Обновить настройки (gpt_role, self_description, timezone) |
+| PUT | `/user/settings` | Обновить настройки (self_description, timezone) |
 
 ### 5.6. Админ (`/api/v1/admin`)
 
@@ -402,7 +400,7 @@ CREATE INDEX idx_password_resets_user_id ON password_resets(user_id);
 def analyze_dream(self, dream_id: str, user_id: str):
     """
     1. Получить сон из БД
-    2. Получить настройки пользователя (gpt_role, self_description)
+    2. Получить настройки пользователя (self_description)
     3. Отправить запрос в llm_service
     4. Сохранить результат в таблицу analyses
     5. Обновить статус задачи
@@ -464,9 +462,8 @@ def send_email(to: str, subject: str, body: str):
 2. Перенести логику вызова YandexGPT из `utils/services.py`
 3. Создать эндпоинт `POST /analyze` с параметрами:
    - `dream_text`: str
-   - `gpt_role`: str
    - `user_description`: str | None
-4. Реализовать формирование промптов
+4. Реализовать формирование промпта
 5. Протестировать с реальными данными
 
 ### Шаг 3: Backend - Database

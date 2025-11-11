@@ -65,7 +65,6 @@ async def create_analysis(
     analysis = Analysis(
         dream_id=dream.id,
         user_id=user.id,
-        gpt_role=user.gpt_role,
         status=AnalysisStatus.PENDING.value
     )
     

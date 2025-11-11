@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Text, DateTime, ForeignKey, UniqueConstraint, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -44,7 +44,6 @@ class Analysis(Base):
     
     # Результат
     result: Mapped[str | None] = mapped_column(Text, nullable=True)  # nullable пока обрабатывается
-    gpt_role: Mapped[str] = mapped_column(String(20), nullable=False)
     
     # Статус
     status: Mapped[str] = mapped_column(

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from config import settings
 from providers.yandex import YandexGPTProvider
-from prompts import get_prompt_by_role, get_temperature_by_role
+from prompts import get_analysis_prompt, get_default_temperature
 
 # Настройка логирования
 logging.basicConfig(
@@ -33,14 +33,12 @@ yandex_provider = YandexGPTProvider(
 class AnalyzeRequest(BaseModel):
     """Запрос на анализ сна"""
     dream_text: str = Field(..., min_length=10, max_length=10000, description="Текст сна")
-    gpt_role: str = Field(..., pattern="^(psychological|esoteric)$", description="Роль: psychological или esoteric")
     user_description: str | None = Field(None, max_length=1000, description="Описание пользователя (опционально)")
 
 
 class AnalyzeResponse(BaseModel):
     """Ответ с результатом анализа"""
     result: str = Field(..., description="Результат анализа от нейросети")
-    role: str = Field(..., description="Использованная роль")
 
 
 class HealthResponse(BaseModel):
@@ -75,11 +73,14 @@ async def analyze_dream(request: AnalyzeRequest):
         HTTPException: При ошибке анализа
     """
     try:
-        logger.info(f"Received analysis request with role: {request.gpt_role}")
+        logger.info("Received analysis request")
         
-        # Получаем промпт и temperature по роли
-        system_prompt = get_prompt_by_role(request.gpt_role, request.user_description)
-        temperature = get_temperature_by_role(request.gpt_role)
+        # Получаем промпт и temperature
+        system_prompt = get_analysis_prompt(
+            user_description=request.user_description,
+            dream_text=request.dream_text
+        )
+        temperature = get_default_temperature()
         
         # Вызываем YandexGPT
         result = await yandex_provider.analyze_dream(
@@ -90,10 +91,7 @@ async def analyze_dream(request: AnalyzeRequest):
         
         logger.info(f"Successfully analyzed dream, result length: {len(result)} chars")
         
-        return {
-            "result": result,
-            "role": request.gpt_role
-        }
+        return {"result": result}
     
     except ValueError as e:
         logger.error(f"Validation error: {e}")

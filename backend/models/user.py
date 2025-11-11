@@ -59,7 +59,6 @@ class User(Base):
     sub_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Настройки анализа
-    gpt_role: Mapped[str] = mapped_column(String(20), default="psychological", nullable=False)
     self_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     
     # Связи

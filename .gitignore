@@ -1,0 +1,28 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local configuration / secrets
+.env
+.env.*
+
+# IDE and editor settings
+.idea/
+.vscode/
+
+# Test / coverage artefacts
+.pytest_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+
+# OS specific
+.DS_Store
+
+

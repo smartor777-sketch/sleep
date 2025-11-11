@@ -1,94 +1,331 @@
-# DreamBot (sna_net_bot) - Telegram Bot for Dream Recording and Analysis
+# JungAI - Backend API для анализа снов
 
-Welcome to **DreamBot** (`sna_net_bot`) — a Telegram bot designed to record and analyze dreams using AI. The bot operates in early access mode and is tailored for users interested in psychology and esotericism, particularly women. We welcome your feedback to improve the product!
+**JungAI** — современная backend-платформа для мобильного приложения записи и анализа снов с использованием искусственного интеллекта.
 
-## Features
-- **Dream Recording:** Record up to 5 dreams per day (7 with a subscription). Receive a confirmation after recording.
-- **Dream Analysis:** AI-powered analysis (1 per day) with three approaches:
-  - Psychological (Freud, Jung).
-  - Esoteric (dream books, tarot).
-  - Psychonautic (magic of consciousness).
-  - Powered by YandexGPT for advanced text processing.
-- **Dream History:** View all recorded dreams.
-- **Limits:** Free tier: 5 dreams and 1 analysis per day; with subscription: 7 dreams per day.
-- **Feedback:** Share your thoughts to help us improve the bot.
+## 🌟 Особенности
 
-## Tech Stack
-- **Language:** Python
-- **Framework:** [aiogram](https://docs.aiogram.dev/)
-- **Database:** PostgreSQL
-- **AI:** YandexGPT for dream analysis
-- **Logging:** `logging`
-- **Localization:** i18n
-- **Deployment:** Docker Compose
+- **Регистрация и аутентификация:**
+  - Email/Password с JWT токенами
+  - OAuth2 (Google, Apple Sign-In)
+  - Email verification
+  - Password reset
 
-## Installation and Setup
+- **Управление снами:**
+  - Запись снов (текст или голосовое сообщение)
+  - Редактирование и удаление
+  - Загрузка обложек (изображения)
+  - Поиск по снам
+  - Лимиты: 5 снов в день
 
-### Prerequisites
-- [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/install/)
-- Python 3.10+
-- Telegram Bot Token (get it from [@BotFather](https://t.me/BotFather))
-- YandexGPT API credentials (folder ID, key ID, API key)
+- **Анализ снов:**
+  - AI-powered анализ через YandexGPT
+  - Две роли: Психологический (Фрейд, Юнг) и Эзотерический (сонники, таро)
+  - Асинхронная обработка через Celery
+  - Один анализ на сон
 
-### Steps
-1. Clone the repository:
-```bash
-   git clone https://github.com/your_username/sna_net_bot.git
-   cd sna_net_bot
+- **Экспорт данных:**
+  - Экспорт всех снов в PDF
+  - Экспорт всех снов в JSON
+
+## 🏗️ Архитектура
+
 ```
-2. Install Python dependencies:
-```bash
-pip install -r requirements.txt
+┌─────────────┐      ┌─────────────┐      ┌──────────────┐
+│   Mobile    │─────▶│   Backend   │─────▶│ LLM Service  │
+│     App     │      │  (FastAPI)  │      │ (YandexGPT)  │
+└─────────────┘      └─────────────┘      └──────────────┘
+                           │
+                ┌──────────┼──────────┐
+                │          │          │
+           ┌────▼───┐ ┌───▼────┐ ┌──▼────┐
+           │Postgres│ │ Redis  │ │ MinIO │
+           └────────┘ └────────┘ └───────┘
+                │
+           ┌────▼───────┐
+           │   Celery   │
+           │   Worker   │
+           └────────────┘
 ```
-3. Create a .env file for database initialization:
+
+## 🛠️ Технологический стек
+
+### Backend
+- **FastAPI** 0.110+ — современный асинхронный веб-фреймворк
+- **SQLAlchemy 2.0** (async) — ORM для работы с БД
+- **PostgreSQL 15** — реляционная база данных
+- **Redis 7** — кэш и брокер сообщений для Celery
+- **Celery 5.3** — фоновые задачи (анализ снов)
+- **MinIO** — S3-совместимое хранилище для изображений
+- **JWT** — аутентификация
+- **Pydantic v2** — валидация данных
+
+### LLM Service
+- **YandexGPT** — генерация анализа снов
+- **FastAPI** — REST API
+
+### DevOps
+- **Docker + Docker Compose** — контейнеризация
+
+## 📦 Установка и запуск
+
+### Требования
+- Docker и Docker Compose
+- YandexGPT API credentials (folder_id, api_key)
+
+### Шаг 1: Клонирование репозитория
 ```bash
-POSTGRES_USER='sna_net'
-POSTGRES_PASSWORD='YUCXp?L9@22vQx%'
-POSTGRES_DB='sna_net_bot'
+git clone https://github.com/your_username/sna_net.git
+cd sna_net
 ```
-4. Create a config.yaml file with the following structure:
-```yaml
-bot:
-  token: 'your_bot_token'
 
-channel:
-  url: 'your_channel_url'  # e.g., 'https://t.me/your_channel'
-  id: 'your_channel_id'    # e.g., '-1002223333311'
+### Шаг 2: Настройка переменных окружения
 
-database:
-  user: 'postgres_username'
-  password: 'postgres_password'
-  database: 'postgres_database'
-  host: 'db'
+Создайте файл `.env` в корне проекта:
 
-yandex:
-  folder_id: 'your_folder_id'
-  key_id: 'your_key_id'
-  api_key: 'your_api_key'
+```env
+# Database
+POSTGRES_USER=jungai
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=jungai_db
 
-admin:
-  id: 'your_admin_id'  # e.g., '5111525111'
+# JWT
+JWT_SECRET_KEY=your-very-secret-key-change-in-production
+
+# YandexGPT
+YANDEX_FOLDER_ID=your_folder_id
+YANDEX_API_KEY=your_api_key
+
+# MinIO
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
+
+# Email (SMTP) - опционально
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+SMTP_FROM=noreply@jungai.app
+
+# OAuth2 (опционально)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+APPLE_CLIENT_ID=your_apple_client_id
+
+# Logging
+LOG_LEVEL=INFO
 ```
-5. Run the bot using Docker Compose:
+
+### Шаг 3: Запуск сервисов
+
 ```bash
+# Переименовать новый docker-compose
+mv docker-compose.yml docker-compose.old.yml
+mv docker-compose.new.yml docker-compose.yml
+
+# Запустить все сервисы
 docker-compose up --build
 ```
-### Access the bot on Telegram:
-[Bot link](https://t.me/sna_net_bot)
 
-### Configuration
-.env: Used for PostgreSQL initialization (user, password, database).
-config.yaml: Contains bot token, channel info, database settings, YandexGPT credentials, and admin ID.
+Это запустит:
+- **Backend API** на `http://localhost:8000`
+- **LLM Service** на `http://localhost:8001`
+- **PostgreSQL** на `localhost:5432`
+- **Redis** на `localhost:6379`
+- **MinIO** на `http://localhost:9000` (Console: `http://localhost:9001`)
+- **Celery Worker** (фоновый процесс)
 
-### Contributing
-We are open to contributions! Feel free to create an issue or submit a pull request. Share your feedback via Telegram: t.me/okolo_boga.
+### Шаг 4: Проверка работоспособности
 
-### License
-[MIT License](https://github.com/okoloboga/sna_net/blob/main/LICENSE.md)
+```bash
+# Backend
+curl http://localhost:8000/health
 
-### Authors
-[okoloboga](https://t.me/okolo_boga)
+# LLM Service
+curl http://localhost:8001/health
+```
 
-### Acknowledgments
-Thanks to the [aiogram](https://docs.aiogram.dev/en/v3.18.0/) community for their amazing library.
-Gratitude to all users providing feedback to improve the bot!
+## 📚 API Документация
+
+После запуска backend доступна интерактивная документация:
+
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
+
+## 🔐 API Endpoints
+
+### Аутентификация (`/api/v1/auth`)
+- `POST /auth/register` — Регистрация
+- `POST /auth/login` — Вход
+- `POST /auth/refresh` — Обновление токена
+- `GET /auth/verify-email` — Подтверждение email
+- `POST /auth/forgot-password` — Запрос восстановления пароля
+- `POST /auth/reset-password` — Сброс пароля
+- `DELETE /auth/account` — Удаление аккаунта
+
+### Сны (`/api/v1/dreams`)
+- `POST /dreams` — Создать сон
+- `GET /dreams` — Список снов (пагинация)
+- `GET /dreams/{dream_id}` — Получить сон
+- `PUT /dreams/{dream_id}` — Обновить сон
+- `DELETE /dreams/{dream_id}` — Удалить сон
+- `POST /dreams/{dream_id}/cover` — Загрузить обложку
+- `GET /dreams/search?q=...` — Поиск снов
+
+### Анализ (`/api/v1/analyses`)
+- `POST /analyses` — Запросить анализ (async)
+- `GET /analyses/task/{task_id}` — Статус задачи
+- `GET /analyses/dream/{dream_id}` — Анализ по ID сна
+- `GET /analyses` — Список всех анализов
+
+## 💡 Примеры использования
+
+### Регистрация
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "password": "securepassword123",
+    "first_name": "John"
+  }'
+```
+
+### Создание сна
+```bash
+curl -X POST http://localhost:8000/api/v1/dreams \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Я летал над городом и встретил говорящего кота...",
+    "title": "Полёт над городом",
+    "emoji": "✈️"
+  }'
+```
+
+### Запрос анализа
+```bash
+curl -X POST http://localhost:8000/api/v1/analyses \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dream_id": "your-dream-uuid"
+  }'
+```
+
+### Проверка статуса анализа
+```bash
+curl http://localhost:8000/api/v1/analyses/task/TASK_ID \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+## 🔧 Разработка
+
+### Локальный запуск (без Docker)
+
+#### Backend:
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# Создать .env файл с настройками
+cp .env.example .env
+
+# Запустить
+uvicorn main:app --reload
+```
+
+#### LLM Service:
+```bash
+cd llm_service
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Создать .env файл
+cp .env.example .env
+
+# Запустить
+uvicorn main:app --reload --port 8001
+```
+
+#### Celery Worker:
+```bash
+cd backend
+celery -A celery_app worker --loglevel=info
+```
+
+### Миграции БД (Alembic)
+
+```bash
+cd backend
+
+# Создать миграцию
+alembic revision --autogenerate -m "описание изменений"
+
+# Применить миграции
+alembic upgrade head
+
+# Откатить миграцию
+alembic downgrade -1
+```
+
+## 📊 Мониторинг
+
+### MinIO Console
+- URL: http://localhost:9001
+- Login: `minioadmin` / `minioadmin`
+
+### Celery Flower (опционально)
+```bash
+celery -A celery_app flower
+```
+URL: http://localhost:5555
+
+## 🧪 Тестирование
+
+```bash
+cd backend
+pytest
+```
+
+## 📝 Лицензия
+
+[MIT License](LICENSE.md)
+
+## 🤝 Контрибьюция
+
+Мы открыты для контрибуций! Создавайте issues и pull requests.
+
+## 📧 Контакты
+
+- Telegram: [@okolo_boga](https://t.me/okolo_boga)
+- GitHub: [okoloboga](https://github.com/okoloboga)
+
+## 🙏 Благодарности
+
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [SQLAlchemy](https://www.sqlalchemy.org/)
+- [Celery](https://docs.celeryq.dev/)
+- [YandexGPT](https://cloud.yandex.ru/services/yandexgpt)
+
+---
+
+**Примечание:** Этот проект находится в активной разработке. Функции голосовых сообщений, экспорта и админки будут добавлены в ближайшее время.
+
+## 🚀 Roadmap
+
+- [x] Аутентификация (JWT, OAuth2)
+- [x] CRUD снов
+- [x] Анализ снов через Celery
+- [x] Загрузка обложек (S3/MinIO)
+- [x] Поиск по снам
+- [ ] Голосовые сообщения (speech-to-text)
+- [ ] Экспорт в PDF/JSON
+- [ ] Админка
+- [ ] WebSocket для real-time streaming ответов
+- [ ] Поддержка дополнительных LLM (OpenAI, Gemini)
+- [ ] Rate limiting
+- [ ] Мониторинг (Sentry, Prometheus)
+

@@ -1,18 +1,10 @@
 version: "3.8"
 
 services:
-  bot:
-    build: .
-    depends_on:
-      - db
-    ports:
-      - "8080:8080"
-    volumes:
-      - .:/app
-    command: ["python", "__main__.py"]
-
-  db:
-    image: postgres:13
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: jungai_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -21,6 +13,196 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jungai_network
+
+  # Redis (Cache + Celery Broker)
+  redis:
+    image: redis:7-alpine
+    container_name: jungai_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - jungai_network
+
+  # MinIO (S3-совместимое хранилище для изображений)
+  minio:
+    image: minio/minio:latest
+    container_name: jungai_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - jungai_network
+
+  # LLM Service (YandexGPT)
+  llm_service:
+    build:
+      context: ./llm_service
+      dockerfile: Dockerfile
+    container_name: jungai_llm_service
+    environment:
+      YANDEX_FOLDER_ID: ${YANDEX_FOLDER_ID:-test-folder}
+      YANDEX_API_KEY: ${YANDEX_API_KEY:-test-api-key}
+      HOST: 0.0.0.0
+      PORT: 8001
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - jungai_network
+    restart: unless-stopped
+
+  # Backend (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jungai_backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS}
+      
+      # OAuth2 (опционально)
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
+      
+      # Email (SMTP)
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      
+      # S3/MinIO
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_REGION: ${S3_REGION}
+      S3_USE_SSL: ${S3_USE_SSL}
+      
+      # LLM Service
+      LLM_SERVICE_URL: ${LLM_SERVICE_URL}
+      
+      # Server
+      HOST: ${HOST}
+      PORT: ${PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      
+      # Лимиты
+      DREAMS_PER_DAY_LIMIT: ${DREAMS_PER_DAY_LIMIT}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      llm_service:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - jungai_network
+    restart: unless-stopped
+
+  # Celery Worker (для фоновых задач)
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jungai_celery_worker
+    command: celery -A celery_app worker --loglevel=info
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      LLM_SERVICE_URL: ${LLM_SERVICE_URL}
+      LOG_LEVEL: ${LOG_LEVEL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_REGION: ${S3_REGION}
+      S3_USE_SSL: ${S3_USE_SSL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      llm_service:
+        condition: service_started
+    networks:
+      - jungai_network
+    restart: unless-stopped
+
+  # Celery Beat (опционально, для периодических задач)
+  # celery_beat:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: jungai_celery_beat
+  #   command: celery -A celery_app beat --loglevel=info
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-jungai}:${POSTGRES_PASSWORD:-jungai_password}@postgres:5432/${POSTGRES_DB:-jungai_db}
+  #     REDIS_URL: redis://redis:6379/0
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - jungai_network
+  #   restart: unless-stopped
+
+networks:
+  jungai_network:
+    driver: bridge
 
 volumes:
   postgres_data:
+  redis_data:
+  minio_data:
+

@@ -4,9 +4,9 @@ import logging
 import math
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, status, Query
 
-from dependencies import DatabaseSession, VerifiedUser
+from dependencies import DatabaseSession, CurrentUser
 from schemas import (
     DreamCreate,
     DreamUpdate,
@@ -23,7 +23,6 @@ from services.dream_service import (
     delete_dream,
     search_dreams,
 )
-from services.storage_service import storage_service
 from models import Analysis
 
 router = APIRouter(prefix="/dreams", tags=["Dreams"])
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 @router.post("", response_model=DreamResponse, status_code=status.HTTP_201_CREATED)
 async def create_dream_endpoint(
     dream_data: DreamCreate,
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
@@ -66,10 +65,11 @@ async def create_dream_endpoint(
 
 @router.get("", response_model=DreamListResponse)
 async def get_dreams_endpoint(
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession,
     page: int = Query(1, ge=1, description="Номер страницы"),
-    page_size: int = Query(10, ge=1, le=100, description="Размер страницы")
+    page_size: int = Query(10, ge=1, le=100, description="Размер страницы"),
+    date: str | None = Query(None, description="Фильтр по дате (YYYY-MM-DD)"),
 ):
     """
     Получить список снов пользователя с пагинацией
@@ -78,7 +78,7 @@ async def get_dreams_endpoint(
     - Поддержка пагинации
     """
     try:
-        dreams, total = await get_dreams_list(db, current_user, page, page_size)
+        dreams, total = await get_dreams_list(db, current_user, page, page_size, date)
         
         # Проверяем наличие анализов для снов
         dreams_with_analysis = []
@@ -108,7 +108,7 @@ async def get_dreams_endpoint(
 
 @router.get("/search", response_model=DreamSearchResponse)
 async def search_dreams_endpoint(
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession,
     q: str = Query(..., min_length=1, description="Поисковый запрос")
 ):
@@ -145,7 +145,7 @@ async def search_dreams_endpoint(
 @router.get("/{dream_id}", response_model=DreamResponse)
 async def get_dream_endpoint(
     dream_id: UUID,
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
@@ -169,7 +169,7 @@ async def get_dream_endpoint(
 async def update_dream_endpoint(
     dream_id: UUID,
     dream_data: DreamUpdate,
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
@@ -204,14 +204,13 @@ async def update_dream_endpoint(
 @router.delete("/{dream_id}", response_model=MessageResponse)
 async def delete_dream_endpoint(
     dream_id: UUID,
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
     Удалить сон
     
     - Удаляет сон и все связанные данные (анализ)
-    - Удаляет обложку из S3 если она есть
     """
     dream = await get_dream_by_id(db, dream_id, current_user)
     
@@ -222,14 +221,6 @@ async def delete_dream_endpoint(
         )
     
     try:
-        # Удаляем обложку из S3 если есть
-        if dream.cover_url:
-            try:
-                storage_service.delete_file(dream.cover_url)
-            except Exception as e:
-                logger.warning(f"Failed to delete cover from S3: {e}")
-        
-        # Удаляем сон
         await delete_dream(db, dream)
         
         return {"message": "Dream successfully deleted"}
@@ -240,75 +231,3 @@ async def delete_dream_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete dream"
         )
-
-
-@router.post("/{dream_id}/cover", response_model=DreamResponse)
-async def upload_dream_cover(
-    dream_id: UUID,
-    current_user: VerifiedUser,
-    db: DatabaseSession,
-    file: UploadFile = File(...)
-):
-    """
-    Загрузить обложку для сна
-    
-    - Поддерживаются форматы: JPEG, PNG
-    - Максимальный размер: 5MB
-    """
-    dream = await get_dream_by_id(db, dream_id, current_user)
-    
-    if not dream:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dream not found"
-        )
-    
-    # Проверяем тип файла
-    if file.content_type not in ["image/jpeg", "image/png"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG and PNG images are supported"
-        )
-    
-    # Читаем файл
-    file_content = await file.read()
-    
-    # Проверяем размер файла (5MB)
-    if len(file_content) > 5 * 1024 * 1024:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File size exceeds 5MB limit"
-        )
-    
-    try:
-        # Удаляем старую обложку если есть
-        if dream.cover_url:
-            try:
-                storage_service.delete_file(dream.cover_url)
-            except Exception as e:
-                logger.warning(f"Failed to delete old cover: {e}")
-        
-        # Загружаем новую обложку
-        cover_url = storage_service.upload_file(
-            file_content=file_content,
-            file_name=file.filename,
-            content_type=file.content_type
-        )
-        
-        # Обновляем сон
-        dream.cover_url = cover_url
-        await db.commit()
-        await db.refresh(dream)
-        
-        response_data = DreamResponse.model_validate(dream)
-        response_data.has_analysis = dream.analysis is not None
-        
-        return response_data
-    
-    except Exception as e:
-        logger.error(f"Failed to upload cover: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to upload cover"
-        )
-

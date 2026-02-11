@@ -75,6 +75,54 @@ class LLMClient:
             logger.error(f"Unexpected error calling LLM Service: {e}")
             raise
     
+    async def chat_completion(
+        self,
+        messages: list[dict],
+    ) -> str:
+        """
+        Отправить массив сообщений в LLM Service /chat
+
+        Args:
+            messages: Список сообщений [{role, text}, ...]
+
+        Returns:
+            Текст ответа LLM
+
+        Raises:
+            Exception: При ошибке запроса
+        """
+        url = f"{self.base_url}/chat"
+
+        payload = {"messages": messages}
+
+        logger.info(f"Sending chat request to LLM Service: {url}, {len(messages)} messages")
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, json=payload)
+                response.raise_for_status()
+
+                data = response.json()
+                result = data.get("result")
+
+                if not result:
+                    raise ValueError("Empty result from LLM Service chat")
+
+                logger.info(f"Successfully received chat response, length: {len(result)} chars")
+                return result
+
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error from LLM Service chat: {e.response.status_code} - {e.response.text}")
+            raise Exception(f"LLM Service chat error: {e.response.status_code}")
+
+        except httpx.RequestError as e:
+            logger.error(f"Request error to LLM Service chat: {e}")
+            raise Exception("Failed to connect to LLM Service")
+
+        except Exception as e:
+            logger.error(f"Unexpected error calling LLM Service chat: {e}")
+            raise
+
     async def health_check(self) -> bool:
         """
         Проверить доступность LLM Service

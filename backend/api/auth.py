@@ -1,6 +1,7 @@
 """API эндпоинты для аутентификации"""
 
 import logging
+from datetime import datetime
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 
 from dependencies import (
@@ -19,6 +20,12 @@ from schemas import (
     ResetPasswordRequest,
     ResendVerificationRequest,
     MessageResponse,
+    AnonymousAuthRequest,
+    AnonymousAuthResponse,
+    AuthUserResponse,
+    LinkRequest,
+    LinkResponse,
+    ProviderIdentityResponse,
 )
 from services.auth_service import (
     get_user_by_email,
@@ -28,8 +35,15 @@ from services.auth_service import (
     verify_email_token,
     create_password_reset_token,
     reset_password,
+    get_or_create_anonymous_user,
 )
 from services.email_service import email_service
+from services.oauth_token_service import verify_google_id_token, verify_apple_id_token
+from services.oauth_identity_service import (
+    get_identity,
+    get_user_identities,
+    create_identity,
+)
 from models import User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -125,6 +139,123 @@ async def login(
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
+
+
+@router.post("/anonymous", response_model=AnonymousAuthResponse)
+async def anonymous_auth(
+    data: AnonymousAuthRequest,
+    db: DatabaseSession,
+):
+    """
+    Анонимная авторизация по device_id.
+
+    - Если device_id существует -> выдаём токены
+    - Если нет -> создаём пользователя и выдаём токены
+    """
+    if not data.device_id or len(data.device_id) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid device_id"
+        )
+
+    try:
+        user, _ = await get_or_create_anonymous_user(db, data.device_id)
+
+        # Обновляем last_login_at
+        user.last_login_at = datetime.utcnow()
+        await db.commit()
+
+        access_token = create_access_token(data={"sub": str(user.id)})
+        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+        return AnonymousAuthResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=AuthUserResponse(
+                id=str(user.id),
+                is_anonymous=user.is_anonymous,
+                email=user.email,
+            ),
+        )
+    except Exception as e:
+        logger.error(f"Failed anonymous auth: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed anonymous auth"
+        )
+
+
+@router.post("/link", response_model=LinkResponse)
+async def link_provider(
+    data: LinkRequest,
+    current_user: CurrentUser,
+    db: DatabaseSession,
+):
+    """
+    Привязка Google/Apple к текущему пользователю.
+    """
+    provider = data.provider.lower().strip()
+    if provider not in {"google", "apple"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid_provider"
+        )
+
+    try:
+        if provider == "google":
+            claims = await verify_google_id_token(data.id_token)
+        else:
+            claims = await verify_apple_id_token(data.id_token)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    provider_subject = claims.get("sub")
+    email = claims.get("email")
+
+    # Проверяем, не привязан ли identity к другому пользователю
+    existing = await get_identity(db, provider, provider_subject)
+    if existing and existing.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="identity_already_linked"
+        )
+
+    # Проверяем, нет ли уже identity этого provider у пользователя
+    user_identities = await get_user_identities(db, current_user)
+    if any(i.provider == provider for i in user_identities) and not existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="user_already_has_identity"
+        )
+
+    if existing and existing.user_id == current_user.id:
+        identity = existing
+    else:
+        identity = await create_identity(db, current_user, provider, provider_subject, email)
+
+    # Обновляем пользователя
+    if current_user.is_anonymous:
+        current_user.is_anonymous = False
+    if not current_user.email and email:
+        current_user.email = email
+    await db.commit()
+
+    return LinkResponse(
+        linked=True,
+        user=AuthUserResponse(
+            id=str(current_user.id),
+            is_anonymous=current_user.is_anonymous,
+            email=current_user.email,
+        ),
+        provider_identity=ProviderIdentityResponse(
+            provider=identity.provider,
+            provider_subject=identity.provider_subject,
+            email=identity.email,
+        ),
+    )
 
 
 @router.post("/refresh", response_model=TokenResponse)
@@ -316,4 +447,3 @@ async def logout():
     В будущем можно добавить blacklist для токенов в Redis.
     """
     return {"message": "Successfully logged out"}
-

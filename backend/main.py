@@ -11,6 +11,9 @@ from database import init_db, close_db
 from api import auth
 from api import dreams
 from api import analyses
+from api import messages
+from api import users
+from api import stats
 
 # Настройка логирования
 logging.basicConfig(
@@ -55,6 +58,9 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(dreams.router, prefix="/api/v1")
 app.include_router(analyses.router, prefix="/api/v1")
+app.include_router(messages.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
+app.include_router(stats.router, prefix="/api/v1")
 
 # TODO: Подключить остальные роутеры
 # app.include_router(user.router, prefix="/api/v1")
@@ -92,4 +98,3 @@ if __name__ == "__main__":
         reload=True,
         log_level=settings.log_level.lower()
     )
-

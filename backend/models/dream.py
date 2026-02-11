@@ -31,8 +31,6 @@ class Dream(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     emoji: Mapped[str] = mapped_column(String(10), default="", nullable=False)
     comment: Mapped[str] = mapped_column(String(256), default="", nullable=False)
-    cover_url: Mapped[str] = mapped_column(String(512), default="", nullable=False)
-    
     # Временные метки
     recorded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -59,6 +57,12 @@ class Dream(Base):
         back_populates="dream",
         uselist=False,
         cascade="all, delete-orphan"
+    )
+    messages: Mapped[list["AnalysisMessage"]] = relationship(
+        "AnalysisMessage",
+        back_populates="dream",
+        cascade="all, delete-orphan",
+        order_by="AnalysisMessage.created_at"
     )
     
     def __repr__(self) -> str:

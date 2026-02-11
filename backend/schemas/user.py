@@ -34,6 +34,7 @@ class UserSettingsUpdate(BaseModel):
 class UserResponse(UserBase):
     """Схема ответа с данными пользователя"""
     id: UUID
+    email: EmailStr | None = None
     email_verified: bool
     is_active: bool
     is_admin: bool
@@ -54,3 +55,18 @@ class UserPublic(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
+
+class UserProfileResponse(BaseModel):
+    """Профиль пользователя для /users/me"""
+    about_me: str | None = None
+
+
+class UserMeResponse(BaseModel):
+    """Текущий пользователь"""
+    id: UUID
+    email: EmailStr | None = None
+    is_anonymous: bool
+    linked_providers: list[str]
+    profile: UserProfileResponse
+
+    model_config = ConfigDict(from_attributes=True)

@@ -3,7 +3,8 @@
 from .user import User, UserRole, GPTRole
 from .dream import Dream
 from .analysis import Analysis, AnalysisStatus
-from .oauth import OAuthAccount, EmailVerification, PasswordReset
+from .analysis_message import AnalysisMessage, MessageRole
+from .oauth import OAuthIdentity, EmailVerification, PasswordReset
 
 __all__ = [
     "User",
@@ -12,8 +13,9 @@ __all__ = [
     "Dream",
     "Analysis",
     "AnalysisStatus",
-    "OAuthAccount",
+    "AnalysisMessage",
+    "MessageRole",
+    "OAuthIdentity",
     "EmailVerification",
     "PasswordReset",
 ]
-

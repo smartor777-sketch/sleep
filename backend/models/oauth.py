@@ -2,16 +2,16 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 
-class OAuthAccount(Base):
-    """Модель OAuth аккаунта (Google, Apple)"""
+class OAuthIdentity(Base):
+    """Модель OAuth identity (Google, Apple)"""
     
-    __tablename__ = "oauth_accounts"
+    __tablename__ = "oauth_identities"
     
     # Основные поля
     id: Mapped[uuid.UUID] = mapped_column(
@@ -28,9 +28,8 @@ class OAuthAccount(Base):
     
     # OAuth данные
     provider: Mapped[str] = mapped_column(String(50), nullable=False, index=True)  # 'google', 'apple'
-    provider_user_id: Mapped[str] = mapped_column(String(255), nullable=False)
-    access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
-    refresh_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    provider_subject: Mapped[str] = mapped_column(String(255), nullable=False)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     
     # Временные метки
     created_at: Mapped[datetime] = mapped_column(
@@ -38,23 +37,16 @@ class OAuthAccount(Base):
         default=datetime.utcnow,
         nullable=False
     )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False
-    )
-    
     # Связи
-    user: Mapped["User"] = relationship("User", back_populates="oauth_accounts")
+    user: Mapped["User"] = relationship("User", back_populates="oauth_identities")
     
     # Уникальность (один provider_user_id на один provider)
     __table_args__ = (
-        UniqueConstraint("provider", "provider_user_id", name="uq_provider_user"),
+        UniqueConstraint("provider", "provider_subject", name="uq_provider_subject"),
     )
     
     def __repr__(self) -> str:
-        return f"<OAuthAccount(id={self.id}, provider={self.provider}, user_id={self.user_id})>"
+        return f"<OAuthIdentity(id={self.id}, provider={self.provider}, user_id={self.user_id})>"
 
 
 class EmailVerification(Base):
@@ -112,4 +104,3 @@ class PasswordReset(Base):
     
     def __repr__(self) -> str:
         return f"<PasswordReset(id={self.id}, user_id={self.user_id}, used={self.used})>"
-

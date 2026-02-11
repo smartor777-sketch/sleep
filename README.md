@@ -5,8 +5,9 @@
 ## 🌟 Особенности
 
 - **Регистрация и аутентификация:**
-  - Email/Password с JWT токенами
-  - OAuth2 (Google, Apple Sign-In)
+  - Анонимная авторизация по `device_id` (без экрана логина)
+  - Привязка аккаунта через Google / Apple (id_token)
+  - Email/Password с JWT токенами (опционально)
   - Email verification
   - Password reset
 
@@ -154,6 +155,8 @@ curl http://localhost:8001/health
 ## 🔐 API Endpoints
 
 ### Аутентификация (`/api/v1/auth`)
+- `POST /auth/anonymous` — Анонимный вход (device_id)
+- `POST /auth/link` — Привязка Google/Apple
 - `POST /auth/register` — Регистрация
 - `POST /auth/login` — Вход
 - `POST /auth/refresh` — Обновление токена
@@ -177,7 +180,30 @@ curl http://localhost:8001/health
 - `GET /analyses/dream/{dream_id}` — Анализ по ID сна
 - `GET /analyses` — Список всех анализов
 
+### Чат анализа (`/api/v1/messages`)
+- `POST /messages` — Отправить сообщение в чат по сну
+- `GET /messages/dream/{dream_id}` — История чата
+- `GET /messages/task/{task_id}` — Статус задачи ответа
+
+### Пользователь (`/api/v1/users`)
+- `GET /users/me` — Текущий пользователь и linked providers
+- `PUT /users/me` — Обновить профиль (self_description, timezone)
+
+### Статистика (`/api/v1/stats`)
+- `GET /stats/me` — Персональная статистика
+
 ## 💡 Примеры использования
+
+### Анонимная авторизация
+```bash
+curl -X POST http://localhost:8000/api/v1/auth/anonymous \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_id": "uuid-string",
+    "platform": "ios",
+    "app_version": "1.0.0"
+  }'
+```
 
 ### Регистрация
 ```bash
@@ -328,4 +354,3 @@ pytest
 - [ ] Поддержка дополнительных LLM (OpenAI, Gemini)
 - [ ] Rate limiting
 - [ ] Мониторинг (Sentry, Prometheus)
-

@@ -58,3 +58,43 @@ class OAuth2CallbackResponse(BaseModel):
     token_type: str = "bearer"
     is_new_user: bool
 
+
+class AnonymousAuthRequest(BaseModel):
+    """Схема для анонимной авторизации"""
+    device_id: str = Field(..., min_length=8, max_length=128)
+    platform: str | None = Field(None, description="ios|android")
+    app_version: str | None = Field(None, max_length=32)
+
+
+class AuthUserResponse(BaseModel):
+    """Пользователь в auth-ответах"""
+    id: str
+    is_anonymous: bool
+    email: EmailStr | None = None
+
+
+class AnonymousAuthResponse(BaseModel):
+    """Ответ анонимной авторизации"""
+    access_token: str
+    refresh_token: str
+    user: AuthUserResponse
+
+
+class LinkRequest(BaseModel):
+    """Привязка Google/Apple"""
+    provider: str = Field(..., description="google|apple")
+    id_token: str = Field(..., min_length=10)
+
+
+class ProviderIdentityResponse(BaseModel):
+    """Данные провайдера"""
+    provider: str
+    provider_subject: str
+    email: EmailStr | None = None
+
+
+class LinkResponse(BaseModel):
+    """Ответ при привязке"""
+    linked: bool
+    user: AuthUserResponse
+    provider_identity: ProviderIdentityResponse

@@ -9,7 +9,7 @@
 ⸻
 
 2. Основные принципы UX
-	•	Минимализм: одно поле ввода, переключение текст/голос, возможность прикрепить изображение.
+	•	Минимализм: одно поле ввода, переключение текст/голос, прикрепление изображения — TODO (не реализовано).
 	•	Низкий порог входа: нет дополнительных обязательных полей (title, emoji и т.д.) — всё как в мессенджере.
 	•	Быстрая навигация: поиск и календарь как иконки в header, открывающие панели поверх ленты (не уводя со страницы).
 	•	Контекстные действия через long-press с блюром фона.
@@ -19,14 +19,14 @@
 ⸻
 
 3. Список экранов и модулей (high-level)
-	1.	Onboarding / Auth
-	•	Login (email/password)
-	•	Register (email/password)
-	•	Email verification / password reset — минимально видимые элементы, всё через бэкенд
+1.	Onboarding / Auth
+	•	Нет экрана логина: анонимная авторизация по `device_id` при старте
+	•	Привязка аккаунта через Apple/Google в профиле (опционально)
+	•	Email/password остаются на бэке (не используются в мобильном MVP)
 	2.	Main Chat (Dream List / Feed) — главный экран
 	•	Header: название, кнопки Поиск и Календарь, Menu/Profile
 	•	Контент: непрерывная лента снов (сообщения), пагинация/ленивая подгрузка
-	•	Floating input panel: переключатель Text/Voice, поле ввода, Attach Image, Send
+	•	Floating input panel: переключатель Text/Voice, поле ввода, Send (Attach Image — TODO)
 	•	Long-press context menu (копировать / редактировать / удалить / анализировать)
 	3.	Analysis Chat (ветка по сну)
 	•	Первый сообщения: исходный текст сна (от пользователя)
@@ -40,15 +40,13 @@
 	5.	Calendar Panel
 	•	Календарь (выбор даты)
 	•	При выборе даты — результаты/фильтр (скролл к первому сообщению выбранного дня)
-	6.	Profile / Settings
+6.	Profile / Settings
 	•	Поле “About me” (свободный текст)
-	•	Статистика: total dreams, streak (дни подряд), записи по дням недели/часам (визуализация)
+	•	Статистика: total dreams, streak (дни подряд), записи по дням недели/часам (GET /api/v1/stats/me)
 	•	Настройки (выход, уведомления, экспорт данных)
-	7.	Image picker / Attachment UI
-	•	Поддержка выбора из галереи и камеры
-	•	Маленький превью прикреплённого изображения в сообщении
-	8.	Error / Empty / Loading states
+	7.	Error / Empty / Loading states
 	•	Empty feed, offline indicator, loader при запросах, toasts/snackbars для ошибок
+	•	Обработка сетевых ошибок: “Проблемы с сетью. Проверьте подключение.”
 
 ⸻
 
@@ -71,20 +69,15 @@ Dream (сообщение/сон)
 dream {
   id: string (uuid),
   user_id: string,
+  title: string | null,
   content: string,           // основной текст сна
+  emoji: string,
+  comment: string,
+  recorded_at: ISO8601,
   created_at: ISO8601,
-  updated_at: ISO8601 | null,
-  attachments: [ attachment ], // 0..n (картинки)
+  updated_at: ISO8601,
+  has_analysis: boolean,
   local_state: enum { synced, pending, failed } // клиентская
-}
-
-Attachment
-
-attachment {
-  id: string,
-  url: string | null,      // если загружено в MinIO
-  mime_type: string,
-  local_path: string | null // если временно в клиенте
 }
 
 AnalysisTask / AnalysisChat
@@ -132,40 +125,45 @@ stats {
 (опираемся на твой backend: /api/v1/auth, /api/v1/dreams, /api/v1/analyses)
 
 Аутентификация
-	•	Логин/регистрация возвращают JWT access/refresh.
-	•	Клиент хранит access в flutter_secure_storage.
+	•	Старт: POST /api/v1/auth/anonymous с `device_id` → JWT access/refresh.
+	•	Клиент хранит access/refresh в flutter_secure_storage.
 	•	Каждый запрос к приватным endpoint добавляет Authorization: Bearer <token>.
+	•	Привязка: POST /api/v1/auth/link (provider + id_token).
+	•	Профиль: GET /api/v1/users/me.
 
 Dreams
-	•	GET /api/v1/dreams?limit=&offset=&query=&date= — список (пагинация, фильтр по тексту/дате).
-	•	POST /api/v1/dreams — тело: { content: string, attachments?: [] } — создаёт сон.
+	•	GET /api/v1/dreams?page=&page_size= — список (пагинация).
+	•	GET /api/v1/dreams/search?q=... — поиск.
+	•	POST /api/v1/dreams — тело: { content: string, title?, emoji?, comment? } — создаёт сон.
 	•	PUT /api/v1/dreams/{id} — редактирование.
 	•	DELETE /api/v1/dreams/{id} — удаление.
-	•	POST /api/v1/dreams/{id}/attachments — загрузка изображения (multipart).
+	•	(пока без загрузки изображений)
 
 Клиент: при отправке нового сна — сначала создать локально (local_id), показать в ленте с state pending, затем отправить запрос. При успехе — заменить local_id на server id, state → synced. При ошибке — show retry.
 
 Analyses
 	•	POST /api/v1/analyses — запрос на анализ { dream_id } → возвращает task_id.
 	•	GET /api/v1/analyses/task/{task_id} — статус task.
-	•	GET /api/v1/analyses/dream/{dream_id} — если анализ уже готов, получить историю/чат.
+	•	GET /api/v1/analyses/dream/{dream_id} — статус/результат анализа.
+	•	GET /api/v1/messages/dream/{dream_id} — история чата.
+	•	POST /api/v1/messages — отправка follow‑up сообщения.
 
 Поведение: если GET /analyses/dream/{dream_id} показывает, что анализ существует — кнопку Analyze скрывать/дисейблить (так как только один анализ на сон).
 
 Search / Calendar
-	•	Search: использовать GET /api/v1/dreams?q=... (или искать уже загруженные на клиенте). Для простоты MVP: делать локальный поиск по уже загруженным сообщениям + backend search при необходимости.
-	•	Calendar: GET /api/v1/dreams?date=YYYY-MM-DD — или фильтрация локально.
+	•	Search: использовать GET /api/v1/dreams/search?q=... (или искать уже загруженные на клиенте).
+	•	Calendar: GET /api/v1/dreams?date=YYYY-MM-DD.
 
 ⸻
 
 7. State management и архитектура клиента
 
 Рекомендация (MVP)
-	•	Provider / ChangeNotifier или Riverpod — для простоты MVP Provider с четким разделением:
-	•	AuthProvider — хранит токены, профиль, авторизованное состояние.
-	•	DreamsProvider — хранит список сообщений, пагинацию, методы create/update/delete, локальные состояния.
-	•	AnalysisProvider — хранит активные/архивные анализы, методы создания таска и polling.
-	•	ProfileProvider — профиль и статистика.
+	•	Provider / ChangeNotifier — используем Provider с разделением:
+	•	AuthProvider — токены, текущий пользователь, bootstrap (anonymous auth).
+	•	DreamsProvider — список снов, create/update/delete, поиск.
+	•	AnalysisProvider — чат анализа, polling статусов задач.
+	•	ProfileProvider — статистика и сохранение профиля.
 
 Структура слоёв
 	•	UI (screens, widgets)
@@ -173,14 +171,14 @@ Search / Calendar
 	•	Services:
 	•	ApiService — HTTP wrapper с retry, backoff, token refresh.
 	•	StorageService — secure storage (JWT), local DB/cache (sqflite/hive) для офлайна.
-	•	MediaService — работа с изображениями (resize, compress), загрузка.
+	•	MediaService — можно опустить в MVP (изображений нет).
 	•	SpeechService — локальное speech-to-text (платформенно: iOS Speech API / Android SpeechRecognizer).
 	•	SyncService — управление очередью отправки (outbox), retry, reconciliation.
 
 Offline & Persistence
 	•	Использовать лёгкую локальную БД (Hive или sqflite) для кеша сообщений и офлайн режима.
 	•	Outbox pattern: если пользователь пишет при офлайне — сообщение добавляется в локальную очередь и отправляется при восстановлении сети.
-	•	Local copy должна сохранять timestamps, attachments (temp files), and send status.
+	•	Local copy должна сохранять timestamps и send status.
 
 ⸻
 
@@ -194,25 +192,17 @@ Offline & Persistence
 
 ⸻
 
-9. Загрузка картинок (attachments)
-	•	При прикреплении изображение предварительно сжимается/thumbnail создаётся (чтобы экономить трафик).
-	•	Отправка: multipart upload к POST /dreams/{id}/attachments или предварительный запрос на получение одноразового upload URL (S3/MinIO).
-	•	Пока attachment не загружен — сообщение помечается attachment_pending; отображать placeholder.
-	•	В профиле/просмотре — возможность открыть изображение fullscreen.
-
-⸻
-
-10. Ограничения и бизнес-логика
-	•	Ограничение: 5 снов в день — клиент обязан отображать ошибку/состояние ограничения (backend возвращает 429 или структурированную ошибку). В UI — показать объяснение и время сброса (например, “Вы достигли лимита — следующий доступ через X часов”).
+9. Ограничения и бизнес-логика
+	•	Ограничение: 5 снов в день — клиент отображает ошибку (backend возвращает 429). В UI: “Достигнут лимит 5 снов в день”.
 	•	Анализ: только один анализ на сон — при попытке запросить второй анализ — показать подсказку/disabled button.
 	•	Rate limiting: клиент должен аккуратно обрабатывать 429 и применять exponential backoff.
 	•	Безопасность: хранить JWT в secure storage; для refresh использовать refresh token flow; очистка при logout.
 
 ⸻
 
-11. UI-детали / микро-взаимодействия
+10. UI-детали / микро-взаимодействия
 	•	Input panel:
-	•	Left: toggle Text/Voice (icon), Center: multiline TextField auto-expand (max 5 lines), Right: Attach (paperclip), Send (floating button).
+	•	Left: toggle Text/Voice (icon), Center: multiline TextField auto-expand (max 5 lines), Right: Send (floating button).
 	•	При входе в поле ввода — клавиатура поднимает чат, последняя запись видна.
 	•	Message bubble:
 	•	Однострочный / многострочный, дата над/под сообщением.
@@ -222,13 +212,15 @@ Offline & Persistence
 	•	Элементы: Copy (clipboard), Edit (in-place modal with text field), Delete (confirmation), Analyze (if allowed).
 	•	Analysis chat:
 	•	Слева/справа разделение: пользователь / AI.
-	•	При первом открытии show “Analysis in progress…” + spinner until ready.
+	•	При первом открытии: виден текст сна. Если анализа ещё нет — вместо ввода кнопка “Analyze”.
+	•	После завершения анализа появляется ответ, и становится доступен ввод сообщений.
+	•	В правом верхнем углу — меню (три точки): изменить название сна или удалить сон.
 	•	Profile stats:
 	•	KPI блоки (total dreams, streak) + горизонтальная/вертикальная мини-диаграмма (weekday heatmap) — простые бар/column chart (можно реализовать later).
 
 ⸻
 
-12. События, логика и последовательности (flows)
+11. События, логика и последовательности (flows)
 
 Создание сна (нормальный поток)
 	1.	User types or records voice → filled text.
@@ -249,36 +241,31 @@ Offline & Persistence
 	3.	Provide undo via snackbar during short window.
 
 Анализ сна
-	1.	Long-press → Analyze → Client POST /analyses → receives task_id.
-	2.	Open Analysis Chat — show pending.
-	3.	Poll GET /analyses/task/{task_id} или backend отправляет push/websocket update.
-	4.	When ready — fetch chat content GET /analyses/dream/{dream_id} and show LLM result as AI message.
-	5.	After that — user can continue conversation (POST messages to analysis chat backed by same LLM pipeline).
+	1.	Тап по сну → открывается чат по сну, отображается текст сна.
+	2.	Если анализа нет — показывается кнопка “Analyze”.
+	3.	Нажатие “Analyze” → POST /api/v1/analyses → task_id.
+	4.	Poll GET /api/v1/analyses/task/{task_id}.
+	5.	Когда готово — загрузить историю чата GET /api/v1/messages/dream/{dream_id} и показать ответ.
+	6.	После этого доступен ввод сообщений (POST /api/v1/messages) + polling GET /api/v1/messages/task/{task_id}.
 
 ⸻
 
-13. Notifications / Real-time
-	•	MVP: polling for analysis task (paired with reasonable interval/backoff).
-	•	Опционально: later — WebSocket / Push notifications (для уведомления о завершении анализа).
-
-⸻
-
-14. Тестирование и качество
+12. Тестирование и качество
 	•	Unit tests: провайдеры, services (mock ApiService).
 	•	Widget tests: Main Chat input, message bubble, context menu.
-	•	Integration tests: full login → create dream → analyze → receive result.
-	•	Manual QA: offline mode, large attachments, network flakiness, 5 dreams/day limit.
+	•	Integration tests: anonymous auth → create dream → analyze → receive result.
+	•	Manual QA: offline mode, network flakiness, 5 dreams/day limit.
 
 ⸻
 
-15. CI / Deployment (кратко)
+13. CI / Deployment (кратко)
 	•	Настроить CI: Flutter analyze, tests, build for iOS (macos runner) and Android (linux runner).
 	•	Artifacts: Android debug/apk, iOS xcarchive for TestFlight.
 	•	При релизе: интеграция с backend (env variables) и secrets (YANDEX key не в мобилке — LLM вызовы идут через backend).
 
 ⸻
 
-16. Безопасность и конфиденциальность
+14. Безопасность и конфиденциальность
 	•	Хранить JWT в secure storage; refresh token flow handled by backend.
 	•	Не хранить YandexGPT keys в мобильном клиенте.
 	•	Для экспортов (PDF/JSON) — делать на бэкенде.
@@ -287,7 +274,7 @@ Offline & Persistence
 
 ⸻
 
-17. Нефункциональные требования
+15. Нефункциональные требования
 	•	Поддержка оффлайн: чтение локального кеша, запись в outbox.
 	•	Плавный UX: скроллы, подсветка, анимации минималистичны.
 	•	Размер клиента: оптимизировать изображения перед загрузкой.
@@ -295,7 +282,7 @@ Offline & Persistence
 
 ⸻
 
-18. Мерки, оценки и итерации (roadmap для разработки)
+16. Мерки, оценки и итерации (roadmap для разработки)
 
 Рекомендую разбить на итерации:
 
@@ -310,8 +297,8 @@ Offline & Persistence
 Итерация 2 (Search / Calendar)
 	•	Search overlay, calendar overlay, scrollTo, highlight.
 
-Итерация 3 (Attachments + Voice)
-	•	Image attach + upload, voice recognition integration (iOS/Android).
+Итерация 3 (Voice)
+	•	Voice recognition integration (iOS/Android).
 
 Итерация 4 (Analysis)
 	•	Analysis task creation, polling, analysis chat UI.
@@ -321,4 +308,3 @@ Offline & Persistence
 
 Итерация 6 (Polish & QA)
 	•	Error handling, offline polish, tests, CI.
-

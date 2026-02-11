@@ -2,27 +2,35 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../widgets/message_bubble.dart';
+import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
+import '../widgets/dream_card.dart';
 import '../widgets/message_menu.dart';
 import '../models/dream.dart';
-import '../models/user_profile.dart';
+import '../providers/auth_provider.dart';
+import '../providers/dreams_provider.dart';
+import '../providers/analysis_provider.dart';
 import 'profile_screen.dart';
 import 'analysis_chat_screen.dart';
 
 class MainChatScreen extends StatefulWidget {
-  final UserProfile userProfile;
   final bool isDarkMode;
   final VoidCallback toggleTheme;
   final Color accentColor;
   final Function(Color) setAccentColor;
+  final Function(Locale) setLocale;
+  final double textScale;
+  final Function(double) setTextScale;
 
   const MainChatScreen({
     super.key,
-    required this.userProfile,
     required this.isDarkMode,
     required this.toggleTheme,
     required this.accentColor,
     required this.setAccentColor,
+    required this.setLocale,
+    required this.textScale,
+    required this.setTextScale,
   });
 
 
@@ -31,7 +39,6 @@ class MainChatScreen extends StatefulWidget {
 }
 
 class _MainChatScreenState extends State<MainChatScreen> {
-  final List<Dream> _dreams = []; // список объектов Dream
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -41,41 +48,36 @@ class _MainChatScreenState extends State<MainChatScreen> {
   DateTime? _selectedDate;
 
   // Добавляем сон или редактируем существующий
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
-    setState(() {
-      Dream newDream;
-      if (_editingDream != null) {
-        final index = _dreams.indexOf(_editingDream!);
-        _dreams[index] = _editingDream!.copyWith(content: text);
-        newDream = _dreams[index];
-        _editingDream = null;
-      } else {
-        newDream = Dream(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          content: text,
-        );
-        _dreams.add(newDream);
-
-        // обновляем статистику пользователя
-        widget.userProfile.totalDreams = _dreams.length;
-
-        final weekday = [
-          'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
-        ][newDream.createdAt.weekday - 1];
-        widget.userProfile.weekdayStats[weekday] =
-            (widget.userProfile.weekdayStats[weekday] ?? 0) + 1;
+    final provider = context.read<DreamsProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    if (_editingDream != null) {
+      final updated = await provider.updateDream(_editingDream!.id, text);
+      if (updated == null) {
+        _showError(l10n.dreamSaveError);
+        return;
       }
-
+      _editingDream = null;
       _controller.clear();
-    });
+      return;
+    }
+
+    final created = await provider.createDream(text);
+    if (created == null) {
+      _showError(l10n.dreamSaveError);
+      return;
+    }
+    _controller.clear();
+
+    // stats handled on backend
   }
 
   // Фильтруем сны по поиску и дате
-  List<Dream> get _filteredDreams {
-    return _dreams.where((dream) {
+  List<Dream> _filterDreams(List<Dream> source) {
+    return source.where((dream) {
       final matchesSearch = _searchQuery.isEmpty ||
           dream.content.toLowerCase().contains(_searchQuery.toLowerCase());
       final matchesDate = _selectedDate == null ||
@@ -92,6 +94,9 @@ class _MainChatScreenState extends State<MainChatScreen> {
   void initState() {
     super.initState();
     _accentColor = widget.accentColor;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DreamsProvider>().loadDreams();
+    });
   }
 
   @override
@@ -102,6 +107,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
         _accentColor = widget.accentColor;
       });
     }
+    // user email handled via AuthProvider
   }
 
   void _handleAccentColorChange(Color color) {
@@ -123,7 +129,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
       onCopy: () {
         Clipboard.setData(ClipboardData(text: dream.content));
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Сон скопирован')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.dreamCopied)),
         );
       },
       onEdit: () {
@@ -133,23 +139,50 @@ class _MainChatScreenState extends State<MainChatScreen> {
         });
       },
       onDelete: () {
-        setState(() {
-          _dreams.remove(dream);
-        });
+        _deleteDream(dream);
       },
       onAnalyze: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AnalysisChatScreen(
-              dream: dream,
-              accentColor: _accentColor,
-              setAccentColor: _handleAccentColorChange,
+            builder: (context) => ChangeNotifierProvider(
+              create: (_) => AnalysisProvider(context.read<AuthProvider>()),
+              child: AnalysisChatScreen(
+                dream: dream,
+                accentColor: _accentColor,
+                setAccentColor: _handleAccentColorChange,
+              ),
             ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _deleteDream(Dream dream) async {
+    final ok = await context.read<DreamsProvider>().deleteDream(dream.id);
+    if (!ok) _showError(AppLocalizations.of(context)!.dreamDeleteError);
+  }
+
+  Future<void> _search(String query) async {
+    await context.read<DreamsProvider>().search(query);
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  String _mapDreamsError(int? code, String? message) {
+    final l10n = AppLocalizations.of(context)!;
+    if (code == 429) {
+      return l10n.rateLimitError;
+    }
+    if (message == 'network_error') {
+      return l10n.networkError;
+    }
+    return l10n.genericError;
   }
 
   Future<void> _openCalendarDialog() async {
@@ -192,6 +225,11 @@ class _MainChatScreenState extends State<MainChatScreen> {
       setState(() {
         _selectedDate = date;
       });
+      final formatted =
+          '${date.year.toString().padLeft(4, '0')}-'
+          '${date.month.toString().padLeft(2, '0')}-'
+          '${date.day.toString().padLeft(2, '0')}';
+      context.read<DreamsProvider>().loadDreams(date: formatted);
     }
   }
 
@@ -206,7 +244,10 @@ class _MainChatScreenState extends State<MainChatScreen> {
             onPressed: () {
               setState(() {
                 _showSearch = !_showSearch;
-                if (!_showSearch) _searchQuery = '';
+                if (!_showSearch) {
+                  _searchQuery = '';
+                  context.read<DreamsProvider>().search('');
+                }
               });
             },
           ),
@@ -217,24 +258,13 @@ class _MainChatScreenState extends State<MainChatScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ProfileScreen(
-                    email: widget.userProfile.email,
-                    aboutMe: widget.userProfile.aboutMe ?? '',
-                    totalDreams: 42,       // временные данные
-                    totalAnalyses: 10,     // временные данные
-                    streak: 5,             // временные данные
-                    dreamsPerDay: {
-                      'Пн': 2,
-                      'Вт': 3,
-                      'Ср': 1,
-                      'Чт': 0,
-                      'Пт': 4,
-                      'Сб': 2,
-                      'Вс': 1,
-                    },
                     isDarkMode: widget.isDarkMode,
                     toggleTheme: widget.toggleTheme,
                     accentColor: _accentColor,
                     setAccentColor: _handleAccentColorChange,
+                    setLocale: widget.setLocale,
+                    textScale: widget.textScale,
+                    setTextScale: widget.setTextScale,
                   ),
                 ),
               );
@@ -255,7 +285,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
               child: TextField(
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Поиск снов...',
+                  hintText: AppLocalizations.of(context)!.searchHint,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide(
@@ -273,24 +303,66 @@ class _MainChatScreenState extends State<MainChatScreen> {
                 ),
                 onChanged: (value) {
                   setState(() => _searchQuery = value);
+                  _search(value);
                 },
               ),
             ),
           // Список сообщений
           Expanded(
-            child: ListView.builder(
-              reverse: true, // новые сообщения снизу
-              controller: _scrollController,
-              itemCount: _filteredDreams.length,
-              itemBuilder: (context, index) {
-                final dream = _filteredDreams[_filteredDreams.length - 1 - index];
-                return MessageBubble(
-                  message: dream.content,
-                  isUserMessage: true,
-                  accentColor: _accentColor,
-                  onLongPressStart: (details) =>
-                      _openMessageMenu(dream, details.globalPosition),
-                );
+            child: Consumer<DreamsProvider>(
+              builder: (context, provider, _) {
+                if (provider.error != null) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _showError(_mapDreamsError(provider.errorCode, provider.error));
+                    provider.clearError();
+                  });
+                }
+                if (provider.loading && provider.dreams.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final source = _searchQuery.isEmpty ? provider.dreams : provider.searchResults;
+                final items = _filterDreams(source);
+                if (items.isEmpty && _searchQuery.isEmpty) {
+                  return Center(
+                    child: Text(
+                      AppLocalizations.of(context)!.emptyDreamsHint,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                            fontSize: 36,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+                return ListView.builder(
+                    reverse: true, // новые сообщения снизу
+                    controller: _scrollController,
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final dream = items[items.length - 1 - index];
+                      return DreamCard(
+                        dream: dream,
+                        accentColor: _accentColor,
+                        onLongPressStart: (details) =>
+                            _openMessageMenu(dream, details.globalPosition),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChangeNotifierProvider(
+                                create: (_) => AnalysisProvider(context.read<AuthProvider>()),
+                                child: AnalysisChatScreen(
+                                  dream: dream,
+                                  accentColor: _accentColor,
+                                  setAccentColor: _handleAccentColorChange,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
               },
             ),
           ),
@@ -322,8 +394,8 @@ class _MainChatScreenState extends State<MainChatScreen> {
                     maxLines: null, // позволяет увеличивать высоту при наборе
                     decoration: InputDecoration(
                       hintText: _editingDream != null
-                          ? 'Редактировать сон...'
-                          : 'Напишите сон...',
+                          ? AppLocalizations.of(context)!.editDreamHint
+                          : AppLocalizations.of(context)!.writeDreamHint,
                       border: InputBorder.none,
                     ),
                   ),

@@ -78,6 +78,7 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
         first_name=user_data.first_name,
         last_name=user_data.last_name,
         timezone=user_data.timezone,
+        is_anonymous=False,
     )
     
     db.add(user)
@@ -85,6 +86,44 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
     await db.refresh(user)
     
     return user
+
+
+async def get_user_by_device_id(db: AsyncSession, device_id: str) -> User | None:
+    """Получить пользователя по device_id"""
+    result = await db.execute(
+        select(User).where(User.device_id == device_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_or_create_anonymous_user(
+    db: AsyncSession,
+    device_id: str,
+) -> tuple[User, bool]:
+    """
+    Получить или создать анонимного пользователя по device_id.
+
+    Returns:
+        (user, is_new)
+    """
+    existing = await get_user_by_device_id(db, device_id)
+    if existing:
+        return existing, False
+
+    user = User(
+        email=None,
+        password_hash=None,
+        first_name=None,
+        last_name=None,
+        timezone="UTC",
+        is_anonymous=True,
+        device_id=device_id,
+        email_verified=False,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user, True
 
 
 async def authenticate_user(db: AsyncSession, email: str, password: str) -> User | None:
@@ -260,4 +299,3 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> Use
         await db.refresh(user)
     
     return user
-

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from config import settings
 from providers.yandex import YandexGPTProvider
-from prompts import get_analysis_prompt, get_default_temperature
+from prompts import get_analysis_prompt, get_default_temperature, get_chat_system_prompt
 
 # Настройка логирования
 logging.basicConfig(
@@ -39,6 +39,22 @@ class AnalyzeRequest(BaseModel):
 class AnalyzeResponse(BaseModel):
     """Ответ с результатом анализа"""
     result: str = Field(..., description="Результат анализа от нейросети")
+
+
+class ChatMessage(BaseModel):
+    """Одно сообщение чата"""
+    role: str = Field(..., description="Роль: system, user, assistant")
+    text: str = Field(..., description="Текст сообщения")
+
+
+class ChatRequest(BaseModel):
+    """Запрос на мульти-тёрн чат"""
+    messages: list[ChatMessage] = Field(..., min_length=1, description="Массив сообщений")
+
+
+class ChatResponse(BaseModel):
+    """Ответ чата"""
+    result: str = Field(..., description="Ответ от нейросети")
 
 
 class HealthResponse(BaseModel):
@@ -105,6 +121,42 @@ async def analyze_dream(request: AnalyzeRequest):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to analyze dream. Please try again later."
+        )
+
+
+@app.post("/chat", response_model=ChatResponse, status_code=status.HTTP_200_OK)
+async def chat(request: ChatRequest):
+    """
+    Мульти-тёрн чат с контекстом всех снов.
+
+    Принимает массив сообщений (system + user + assistant + ...),
+    пробрасывает в YandexGPT и возвращает ответ.
+    """
+    try:
+        logger.info(f"Received chat request with {len(request.messages)} messages")
+
+        messages = [{"role": m.role, "text": m.text} for m in request.messages]
+
+        result = await yandex_provider.chat_completion(
+            messages=messages,
+            temperature=get_default_temperature(),
+        )
+
+        logger.info(f"Chat response length: {len(result)} chars")
+        return {"result": result}
+
+    except ValueError as e:
+        logger.error(f"Validation error in chat: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        logger.error(f"Error during chat: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process chat request. Please try again later."
         )
 
 

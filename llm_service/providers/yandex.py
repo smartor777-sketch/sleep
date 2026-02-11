@@ -78,3 +78,38 @@ class YandexGPTProvider:
             logger.error(f"Error calling YandexGPT: {e}")
             raise
 
+    async def chat_completion(
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+    ) -> str:
+        """
+        Мульти-тёрн чат через YandexGPT.
+
+        Args:
+            messages: Список сообщений [{role, text}, ...]
+            temperature: Temperature для генерации
+
+        Returns:
+            Текст ответа от нейросети
+        """
+        logger.info(f"Requesting YandexGPT chat with {len(messages)} messages, temperature={temperature}")
+
+        try:
+            result = (
+                self.sdk.models.completions("yandexgpt")
+                .configure(temperature=temperature)
+                .run(messages)
+            )
+
+            if result and len(result) > 0:
+                logger.info("Successfully received chat response from YandexGPT")
+                return result[0].text if hasattr(result[0], 'text') else str(result[0])
+            else:
+                logger.error("Empty chat response from YandexGPT")
+                raise ValueError("Empty response from YandexGPT")
+
+        except Exception as e:
+            logger.error(f"Error calling YandexGPT chat: {e}")
+            raise
+

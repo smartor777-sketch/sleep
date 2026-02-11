@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 
 class MessageMenu {
   static Future<void> show(
@@ -82,11 +83,12 @@ class _MenuCard extends StatelessWidget {
     final surface = Theme.of(context).colorScheme.surface;
     final onSurface = Theme.of(context).colorScheme.onSurface;
 
-    final items = const [
-      _MenuItemData(0, 'Копировать', Icons.copy),
-      _MenuItemData(1, 'Редактировать', Icons.edit),
-      _MenuItemData(2, 'Удалить', Icons.delete_outline),
-      _MenuItemData(3, 'Анализировать', Icons.analytics_outlined),
+    final l10n = AppLocalizations.of(context)!;
+    final items = [
+      _MenuItemData(0, l10n.copy, Icons.copy),
+      _MenuItemData(1, l10n.edit, Icons.edit),
+      _MenuItemData(2, l10n.delete, Icons.delete_outline),
+      _MenuItemData(3, l10n.analyze, Icons.analytics_outlined),
     ];
 
     return Card(

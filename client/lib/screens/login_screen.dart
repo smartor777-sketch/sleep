@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import 'main_chat_screen.dart';
-import '../models/user_profile.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_emailController.text.trim().isEmpty || _passwordController.text.trim().isEmpty) {
       setState(() {
-        _error = 'Введите email и пароль';
+        _error = AppLocalizations.of(context)!.enterCredentials;
         _isLoading = false;
       });
       return;
@@ -61,7 +61,6 @@ class _LoginScreenState extends State<LoginScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => MainChatScreen(
-          userProfile: UserProfile(email: _emailController.text),
           isDarkMode: widget.isDarkMode,
           toggleTheme: widget.toggleTheme,
           accentColor: widget.accentColor,
@@ -76,12 +75,12 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Регистрация'),
-        content: const Text('Регистрация пока недоступна.'),
+        title: Text(AppLocalizations.of(context)!.registerTitle),
+        content: Text(AppLocalizations.of(context)!.registerUnavailable),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Ок'),
+            child: Text(AppLocalizations.of(context)!.ok),
           ),
         ],
       ),
@@ -125,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _passwordController,
               focusNode: _passwordFocus,
               decoration: InputDecoration(
-                labelText: 'Пароль',
+                labelText: AppLocalizations.of(context)!.passwordLabel,
                 border: _inputBorder(
                   Theme.of(context).colorScheme.outline.withOpacity(0.5),
                 ),
@@ -152,13 +151,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _isLoading ? null : _login,
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Войти', style: TextStyle(color: Colors.white)),
+                    : Text(AppLocalizations.of(context)!.signIn, style: const TextStyle(color: Colors.white)),
               ),
             ),
             const SizedBox(height: 16),
             TextButton(
               onPressed: _goToRegister,
-              child: const Text('Создать аккаунт'),
+              child: Text(AppLocalizations.of(context)!.createAccount),
             ),
           ],
         ),

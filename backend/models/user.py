@@ -32,8 +32,13 @@ class User(Base):
         primary_key=True,
         default=uuid.uuid4
     )
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)  # nullable для OAuth2
+
+    # Анонимный доступ
+    is_anonymous: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    device_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Персональная информация
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -64,12 +69,16 @@ class User(Base):
     # Связи
     dreams: Mapped[list["Dream"]] = relationship("Dream", back_populates="user", cascade="all, delete-orphan")
     analyses: Mapped[list["Analysis"]] = relationship("Analysis", back_populates="user", cascade="all, delete-orphan")
-    oauth_accounts: Mapped[list["OAuthAccount"]] = relationship(
-        "OAuthAccount",
+    analysis_messages: Mapped[list["AnalysisMessage"]] = relationship(
+        "AnalysisMessage",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    oauth_identities: Mapped[list["OAuthIdentity"]] = relationship(
+        "OAuthIdentity",
         back_populates="user",
         cascade="all, delete-orphan"
     )
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
-

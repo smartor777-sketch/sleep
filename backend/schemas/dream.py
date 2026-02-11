@@ -30,7 +30,6 @@ class DreamResponse(DreamBase):
     """Схема ответа с данными сна"""
     id: UUID
     user_id: UUID
-    cover_url: str
     recorded_at: datetime
     created_at: datetime
     updated_at: datetime

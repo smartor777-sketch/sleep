@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 
-from dependencies import DatabaseSession, VerifiedUser
+from dependencies import DatabaseSession, CurrentUser
 from schemas import (
     AnalysisCreate,
     AnalysisResponse,
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 @router.post("", response_model=AnalysisTaskResponse, status_code=status.HTTP_202_ACCEPTED)
 async def create_analysis_endpoint(
     analysis_data: AnalysisCreate,
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
@@ -83,7 +83,7 @@ async def create_analysis_endpoint(
 @router.get("/task/{task_id}", response_model=AnalysisTaskStatusResponse)
 async def get_task_status_endpoint(
     task_id: str,
-    current_user: VerifiedUser
+    current_user: CurrentUser
 ):
     """
     Получить статус задачи анализа по task_id
@@ -113,7 +113,7 @@ async def get_task_status_endpoint(
 @router.get("/dream/{dream_id}", response_model=AnalysisResponse)
 async def get_analysis_by_dream_endpoint(
     dream_id: UUID,
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
@@ -133,7 +133,7 @@ async def get_analysis_by_dream_endpoint(
 @router.get("/{analysis_id}", response_model=AnalysisResponse)
 async def get_analysis_endpoint(
     analysis_id: UUID,
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
@@ -152,7 +152,7 @@ async def get_analysis_endpoint(
 
 @router.get("", response_model=AnalysisListResponse)
 async def get_analyses_endpoint(
-    current_user: VerifiedUser,
+    current_user: CurrentUser,
     db: DatabaseSession
 ):
     """
@@ -175,4 +175,3 @@ async def get_analyses_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get analyses"
         )
-

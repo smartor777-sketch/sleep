@@ -170,7 +170,8 @@ async def get_dreams_list(
     db: AsyncSession,
     user: User,
     page: int = 1,
-    page_size: int = 10
+    page_size: int = 10,
+    date: str | None = None,
 ) -> tuple[list[Dream], int]:
     """
     Получить список снов пользователя с пагинацией
@@ -185,8 +186,23 @@ async def get_dreams_list(
         Кортеж (список снов, общее количество)
     """
     # Подсчитываем общее количество
+    filters = [Dream.user_id == user.id]
+
+    if date:
+        user_tz = await get_user_timezone(user)
+        try:
+            date_obj = datetime.strptime(date, "%Y-%m-%d").date()
+            start_local = user_tz.localize(datetime.combine(date_obj, datetime.min.time()))
+            end_local = user_tz.localize(datetime.combine(date_obj, datetime.max.time()))
+            start_utc = start_local.astimezone(pytz.UTC)
+            end_utc = end_local.astimezone(pytz.UTC)
+            filters.append(Dream.recorded_at >= start_utc)
+            filters.append(Dream.recorded_at <= end_utc)
+        except ValueError:
+            pass
+
     count_result = await db.execute(
-        select(func.count(Dream.id)).where(Dream.user_id == user.id)
+        select(func.count(Dream.id)).where(and_(*filters))
     )
     total = count_result.scalar_one()
     
@@ -195,7 +211,7 @@ async def get_dreams_list(
     result = await db.execute(
         select(Dream)
         .options(selectinload(Dream.analysis))
-        .where(Dream.user_id == user.id)
+        .where(and_(*filters))
         .order_by(Dream.recorded_at.desc())
         .offset(offset)
         .limit(page_size)
@@ -286,4 +302,3 @@ async def search_dreams(
     
     logger.info(f"Search '{query}' returned {len(dreams)} results for user {user.id}")
     return list(dreams)
-

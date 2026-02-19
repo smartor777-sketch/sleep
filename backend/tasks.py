@@ -12,6 +12,16 @@ from llm_client import llm_client
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
+_worker_loop: asyncio.AbstractEventLoop | None = None
+
+
+def _run_in_worker_loop(coro):
+    """Reuse a single event loop per Celery worker process to avoid cross-loop asyncpg usage."""
+    global _worker_loop
+    if _worker_loop is None or _worker_loop.is_closed():
+        _worker_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(_worker_loop)
+    return _worker_loop.run_until_complete(coro)
 
 
 @celery_app.task(bind=True, name="tasks.analyze_dream")
@@ -24,7 +34,7 @@ def analyze_dream_task(self, analysis_id: str):
         analysis_id: UUID анализа
     """
     # Запускаем асинхронную функцию в event loop
-    return asyncio.run(_analyze_dream_async(self, analysis_id))
+    return _run_in_worker_loop(_analyze_dream_async(self, analysis_id))
 
 
 async def _analyze_dream_async(task_instance, analysis_id: str):
@@ -156,7 +166,7 @@ def reply_to_dream_chat_task(self, user_id: str, dream_id: str):
     User-сообщение уже сохранено в analysis_messages (в API-хэндлере).
     Эта задача собирает контекст, вызывает LLM, сохраняет assistant-сообщение.
     """
-    return asyncio.run(_reply_to_dream_chat_async(self, user_id, dream_id))
+    return _run_in_worker_loop(_reply_to_dream_chat_async(self, user_id, dream_id))
 
 
 async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str):

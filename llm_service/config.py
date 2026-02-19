@@ -4,10 +4,11 @@ from pydantic import SecretStr
 
 class Settings(BaseSettings):
     """Настройки LLM Service"""
-    
-    # Yandex Cloud
-    yandex_folder_id: str
-    yandex_api_key: SecretStr
+
+    # Gonka Proxy (OpenAI-compatible)
+    gonka_base_url: str = "https://proxy.gonka.gg/v1"
+    gonka_api_key: SecretStr
+    gonka_model: str = "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8"
     
     # Server
     host: str = "0.0.0.0"
@@ -24,4 +25,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-

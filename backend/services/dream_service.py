@@ -118,8 +118,8 @@ async def create_dream(
     # Автоматически генерируем title если не указан
     title = dream_data.title
     if not title and dream_data.content:
-        # Берём первые 16 символов контента + "..."
-        title = dream_data.content[:16] + "..." if len(dream_data.content) > 16 else dream_data.content
+        clean = ' '.join(dream_data.content.split())
+        title = clean[:16] + "..." if len(clean) > 16 else clean
     
     dream = Dream(
         user_id=user.id,

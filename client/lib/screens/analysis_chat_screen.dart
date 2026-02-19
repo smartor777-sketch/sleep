@@ -6,6 +6,7 @@ import '../models/dream.dart';
 import '../providers/analysis_provider.dart';
 import '../models/analysis_message.dart';
 import '../providers/dreams_provider.dart';
+import '../utils/snackbar.dart';
 
 class AnalysisChatScreen extends StatefulWidget {
   final Dream dream;
@@ -27,14 +28,16 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
   final TextEditingController _controller = TextEditingController();
   late Color _accentColor;
   late String _dreamTitle;
+  late Dream _dream;
 
   @override
   void initState() {
     super.initState();
     _accentColor = widget.accentColor;
-    _dreamTitle = widget.dream.title ?? '';
+    _dream = widget.dream;
+    _dreamTitle = _dream.title ?? '';
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AnalysisProvider>().load(widget.dream);
+      context.read<AnalysisProvider>().load(_dream);
     });
   }
 
@@ -58,9 +61,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    showToast(context, message, isError: true);
   }
 
   String _mapAnalysisError(String? message) {
@@ -79,9 +80,9 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.dreamAnalysisTitle),
+            Text(_dreamTitle.trim().isNotEmpty ? _dreamTitle.trim() : l10n.dreamAnalysisTitle),
             Text(
-              _formatDateTime(widget.dream.createdAt),
+              _formatDateTime(_dream.createdAt),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
                     fontSize: 12,
@@ -94,6 +95,8 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
             onSelected: (value) {
               if (value == 'edit_title') {
                 _openEditTitleDialog(context);
+              } else if (value == 'edit_content') {
+                _openEditContentDialog(context);
               } else if (value == 'delete_dream') {
                 _confirmDeleteDream(context);
               }
@@ -103,6 +106,10 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                 PopupMenuItem(
                   value: 'edit_title',
                   child: Text(l10n.editTitleLabel),
+                ),
+                PopupMenuItem(
+                  value: 'edit_content',
+                  child: Text(l10n.edit),
                 ),
                 PopupMenuItem(
                   value: 'delete_dream',
@@ -137,7 +144,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                   itemBuilder: (context, index) {
                     if (showDreamIntro && index == totalCount - 1) {
                       return MessageBubble(
-                        message: widget.dream.content,
+                        message: _dream.content,
                         isUserMessage: true,
                         accentColor: _accentColor,
                       );
@@ -155,18 +162,9 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
           ),
           Consumer<AnalysisProvider>(
             builder: (context, provider, _) {
-              if (!provider.loading && !provider.analysisInProgress) return const SizedBox.shrink();
-              return const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircularProgressIndicator(),
-              );
-            },
-          ),
-          Consumer<AnalysisProvider>(
-            builder: (context, provider, _) {
               if (!provider.analysisReady) {
                 return Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
                   child: SizedBox(
                     width: double.infinity,
                   child: ElevatedButton(
@@ -186,58 +184,61 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                   ),
                 );
               }
-              return Container(
-                margin: const EdgeInsets.all(12),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4)
-                      : Theme.of(context).colorScheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-                  ),
-                ),
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
                 child: Row(
                   children: [
                     IconButton(
                       icon: Icon(Icons.mic, color: _accentColor),
-                      onPressed: () {
-                        // TODO: голосовой ввод
-                      },
+                      onPressed: () {},
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                     ),
-
                     Expanded(
                       child: TextField(
                         controller: _controller,
                         maxLines: null,
+                        style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
                           hintText: l10n.writeMessageHint,
                           border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                         ),
                       ),
                     ),
-
-                    const SizedBox(width: 8),
-
-                    Container(
-                      decoration: BoxDecoration(
-                        color: _accentColor,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.send, color: Colors.white),
-                        onPressed: () async {
-                          final text = _controller.text.trim();
-                          if (text.isEmpty) return;
-                          _controller.clear();
-                          await context.read<AnalysisProvider>().sendMessage(widget.dream.id, text);
-                          if (context.read<AnalysisProvider>().error != null) {
-                            _showError(l10n.messageSendError);
-                          }
-                        },
-                      ),
-                    )
+                    provider.loading || provider.analysisInProgress
+                        ? Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: _accentColor,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              color: _accentColor,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                              onPressed: () async {
+                                final text = _controller.text.trim();
+                                if (text.isEmpty) return;
+                                _controller.clear();
+                                await context.read<AnalysisProvider>().sendMessage(_dream.id, text);
+                                if (context.read<AnalysisProvider>().error != null) {
+                                  _showError(l10n.messageSendError);
+                                }
+                              },
+                            ),
+                          ),
                   ],
                 ),
               );
@@ -255,6 +256,50 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '$day.$month.$year  $hour:$minute';
+  }
+
+  Future<void> _openEditContentDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController(text: _dream.content);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(l10n.edit),
+          content: TextField(
+            controller: controller,
+            minLines: 4,
+            maxLines: 10,
+            decoration: InputDecoration(
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted || result == null) return;
+    final newContent = result.trim();
+    if (newContent.isEmpty || newContent == _dream.content) return;
+    final updated = await context.read<DreamsProvider>().updateDream(_dream.id, newContent);
+    if (!mounted) return;
+    if (updated == null) {
+      _showError(l10n.dreamSaveError);
+    } else {
+      setState(() {
+        _dream = updated;
+      });
+      showToast(context, l10n.savedSuccess);
+    }
   }
 
   Future<void> _openEditTitleDialog(BuildContext context) async {
@@ -288,7 +333,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     if (!mounted || result == null) return;
     final nextTitle = result.trim();
     final updated = await context.read<DreamsProvider>().updateDreamTitle(
-          widget.dream.id,
+          _dream.id,
           nextTitle.isEmpty ? null : nextTitle,
         );
     if (updated == null) {
@@ -322,7 +367,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
       },
     );
     if (!mounted || shouldDelete != true) return;
-    final ok = await context.read<DreamsProvider>().deleteDream(widget.dream.id);
+    final ok = await context.read<DreamsProvider>().deleteDream(_dream.id);
     if (!ok) {
       _showError(AppLocalizations.of(context)!.dreamDeleteError);
       return;

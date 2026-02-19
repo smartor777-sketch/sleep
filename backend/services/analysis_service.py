@@ -1,12 +1,13 @@
 """Сервис для анализа снов"""
 
 import logging
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Analysis, Dream, User, AnalysisStatus
+from models import Analysis, AnalysisMessage, Dream, User, AnalysisStatus
 from celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -56,32 +57,48 @@ async def create_analysis(
     Raises:
         ValueError: Если анализ уже существует
     """
-    # Проверяем, что анализ не существует
+    from tasks import analyze_dream_task
+
     existing_analysis = await get_analysis_by_dream_id(db, dream.id, user)
+
     if existing_analysis:
-        raise ValueError("Analysis for this dream already exists")
-    
-    # Создаём запись анализа
+        # Сбрасываем существующий анализ и чистим старые сообщения
+        await db.execute(
+            delete(AnalysisMessage).where(
+                AnalysisMessage.dream_id == dream.id,
+                AnalysisMessage.user_id == user.id,
+            )
+        )
+        existing_analysis.result = None
+        existing_analysis.error_message = None
+        existing_analysis.completed_at = None
+        existing_analysis.status = AnalysisStatus.PENDING.value
+        await db.commit()
+        await db.refresh(existing_analysis)
+
+        task = analyze_dream_task.delay(str(existing_analysis.id))
+        existing_analysis.celery_task_id = task.id
+        await db.commit()
+
+        logger.info(f"Analysis {existing_analysis.id} reset and requeued with task_id {task.id}")
+        return existing_analysis, task.id
+
+    # Создаём новую запись анализа
     analysis = Analysis(
         dream_id=dream.id,
         user_id=user.id,
         status=AnalysisStatus.PENDING.value
     )
-    
+
     db.add(analysis)
     await db.commit()
     await db.refresh(analysis)
-    
-    # Запускаем Celery задачу
-    from tasks import analyze_dream_task
+
     task = analyze_dream_task.delay(str(analysis.id))
-    
-    # Сохраняем task_id
     analysis.celery_task_id = task.id
     await db.commit()
-    
+
     logger.info(f"Analysis {analysis.id} created with task_id {task.id}")
-    
     return analysis, task.id
 
 

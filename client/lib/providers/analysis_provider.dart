@@ -131,7 +131,7 @@ class AnalysisProvider extends ChangeNotifier {
   }
 
   Future<void> _pollAnalysis(String taskId) async {
-    for (var i = 0; i < 15; i++) {
+    for (var i = 0; i < 60; i++) {
       final status = await _analysisService.getTaskStatus(taskId);
       if (status.status == 'SUCCESS' || status.status == 'COMPLETED') {
         return;
@@ -145,15 +145,15 @@ class AnalysisProvider extends ChangeNotifier {
   }
 
   Future<void> _pollMessages(String dreamId) async {
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 30; i++) {
       await refreshMessages(dreamId);
-      if (_messages.isNotEmpty) return;
+      if (_analysisReady) return;
       await Future.delayed(const Duration(seconds: 2));
     }
   }
 
   Future<void> _pollMessageTask(String taskId) async {
-    for (var i = 0; i < 15; i++) {
+    for (var i = 0; i < 60; i++) {
       final status = await _analysisService.getMessageTaskStatus(taskId);
       if (status.status == 'SUCCESS' || status.status == 'COMPLETED') {
         return;

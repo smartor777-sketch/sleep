@@ -58,15 +58,16 @@ services:
     networks:
       - jungai_network
 
-  # LLM Service (YandexGPT)
+  # LLM Service (Gonka Proxy)
   llm_service:
     build:
       context: ./llm_service
       dockerfile: Dockerfile
     container_name: jungai_llm_service
     environment:
-      YANDEX_FOLDER_ID: ${YANDEX_FOLDER_ID:-test-folder}
-      YANDEX_API_KEY: ${YANDEX_API_KEY:-test-api-key}
+      GONKA_BASE_URL: ${GONKA_BASE_URL:-https://proxy.gonka.gg/v1}
+      GONKA_API_KEY: ${GONKA_API_KEY}
+      GONKA_MODEL: ${GONKA_MODEL:-Qwen/Qwen3-235B-A22B-Instruct-2507-FP8}
       HOST: 0.0.0.0
       PORT: 8001
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -156,6 +157,7 @@ services:
     container_name: jungai_celery_worker
     command: celery -A celery_app worker --loglevel=info
     environment:
+      PYTHONPATH: /app
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       LLM_SERVICE_URL: ${LLM_SERVICE_URL}
@@ -205,4 +207,3 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
-

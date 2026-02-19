@@ -14,6 +14,8 @@
   "editDreamHint": "Edit dream...",
   "writeDreamHint": "Write a dream...",
   "emptyDreamsHint": "Just write your dream",
+  "listeningLabel": "Recording...",
+  "listeningLabel": "Recording...",
 
   "analysisFailed": "Analysis failed",
   "analyzingLabel": "Analyzing...",
@@ -61,5 +63,7 @@
   "copy": "Copy",
   "edit": "Edit",
   "delete": "Delete",
-  "analyze": "Analyze"
+  "analyze": "Analyze",
+  "save": "Save",
+  "savedSuccess": "Saved"
 }

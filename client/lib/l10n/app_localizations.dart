@@ -170,6 +170,12 @@ abstract class AppLocalizations {
   /// **'Просто запиши свой Сон'**
   String get emptyDreamsHint;
 
+  /// No description provided for @listeningLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Идёт запись...'**
+  String get listeningLabel;
+
   /// No description provided for @analysisFailed.
   ///
   /// In ru, this message translates to:
@@ -433,6 +439,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Анализировать'**
   String get analyze;
+
+  /// No description provided for @save.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранить'**
+  String get save;
+
+  /// No description provided for @savedSuccess.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сохранено'**
+  String get savedSuccess;
 }
 
 class _AppLocalizationsDelegate

@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
 import 'models/user_me.dart';
 import 'screens/main_chat_screen.dart';
+import 'screens/startup_splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dreams_provider.dart';
 import 'providers/profile_provider.dart';
+import 'services/secure_storage_service.dart';
 
 void main() {
   runApp(const MyApp());
@@ -23,19 +25,22 @@ class _MyAppState extends State<MyApp> {
   bool isDarkMode = false;
   Color accentColor = Colors.deepPurple;
   Locale? _locale;
-  double _textScale = 1.0;
+  double _textScale = 1.15;
   Future<void>? _bootstrap;
+  final _settings = SecureStorageService();
 
   void toggleTheme() {
     setState(() {
       isDarkMode = !isDarkMode;
     });
+    _settings.setDarkMode(isDarkMode);
   }
 
   void setAccentColor(Color color) {
     setState(() {
       accentColor = color;
     });
+    _settings.setAccentColor(color);
   }
 
   void setLocale(Locale locale) {
@@ -108,9 +113,7 @@ class _MyAppState extends State<MyApp> {
             final auth = context.watch<AuthProvider>();
             _bootstrap ??= auth.bootstrap();
             if (auth.loading || (auth.user == null && auth.error == null)) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
+              return const StartupSplashScreen();
             }
             if (auth.error != null) {
               return Scaffold(
@@ -141,5 +144,16 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final dark = await _settings.getDarkMode();
+    final color = await _settings.getAccentColor();
+    if (!mounted) return;
+    setState(() {
+      isDarkMode = dark;
+      if (color != null) accentColor = color;
+    });
   }
 }

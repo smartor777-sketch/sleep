@@ -10,6 +10,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
+import '../utils/snackbar.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool isDarkMode;                 // текущий режим
@@ -132,12 +133,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _aboutText = value;
                 });
               },
-              onSubmitted: (_) async {
-                final updated = await context.read<ProfileProvider>().saveAboutMe(_aboutText);
-                if (updated == null) {
-                  _showError(AppLocalizations.of(context)!.profileSaveError);
-                }
-              },
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accentColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                onPressed: profile.loading
+                    ? null
+                    : () async {
+                        final updated = await context.read<ProfileProvider>().saveAboutMe(_aboutText);
+                        if (!mounted) return;
+                        if (updated == null) {
+                          showToast(context, AppLocalizations.of(context)!.profileSaveError, isError: true);
+                        } else {
+                          showToast(context, AppLocalizations.of(context)!.savedSuccess);
+                        }
+                      },
+                child: profile.loading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Text(AppLocalizations.of(context)!.save),
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -421,9 +447,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _showError(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    showToast(context, message, isError: true);
   }
 
   double _nextTextScale(double current) {

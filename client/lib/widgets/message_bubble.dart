@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 
 class MessageBubble extends StatelessWidget {
   final String message;
@@ -37,12 +39,36 @@ class MessageBubble extends StatelessWidget {
               color: isUserMessage ? accentColor : neutralColor,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              message,
-              style: TextStyle(
-                color: isUserMessage ? onAccentColor : neutralOnColor,
-              ),
-            ),
+            child: isUserMessage
+                ? Text(
+                    message,
+                    style: TextStyle(color: onAccentColor),
+                  )
+                : MarkdownBody(
+                    data: message,
+                    shrinkWrap: true,
+                    softLineBreak: true,
+                    extensionSet: md.ExtensionSet.gitHubFlavored,
+                    styleSheet: MarkdownStyleSheet(
+                      p: TextStyle(color: neutralOnColor),
+                      strong: TextStyle(color: neutralOnColor, fontWeight: FontWeight.bold),
+                      em: TextStyle(color: neutralOnColor, fontStyle: FontStyle.italic),
+                      code: TextStyle(
+                        color: neutralOnColor,
+                        backgroundColor: neutralColor.withOpacity(0.5),
+                        fontFamily: 'monospace',
+                      ),
+                      h1: TextStyle(color: neutralOnColor, fontWeight: FontWeight.bold),
+                      h2: TextStyle(color: neutralOnColor, fontWeight: FontWeight.bold),
+                      h3: TextStyle(color: neutralOnColor, fontWeight: FontWeight.bold),
+                      blockquotePadding: const EdgeInsets.only(left: 8),
+                      blockquoteDecoration: BoxDecoration(
+                        border: Border(
+                          left: BorderSide(color: neutralOnColor.withOpacity(0.4), width: 3),
+                        ),
+                      ),
+                    ),
+                  ),
           ),
         ),
       ),

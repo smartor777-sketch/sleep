@@ -48,16 +48,8 @@ async def create_analysis_endpoint(
             detail="Dream not found"
         )
     
-    # Проверяем, что анализ не существует
-    existing_analysis = await get_analysis_by_dream_id(db, dream.id, current_user)
-    if existing_analysis:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Analysis for this dream already exists"
-        )
-    
     try:
-        # Создаём анализ и запускаем задачу
+        # Создаём анализ (или сбрасываем существующий) и запускаем задачу
         analysis, task_id = await create_analysis(db, dream, current_user)
         
         return {

@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
 from config import settings
-from providers.yandex import YandexGPTProvider
+from providers.gonka_proxy import GonkaProxyProvider
 from prompts import get_analysis_prompt, get_default_temperature, get_chat_system_prompt
 
 # Настройка логирования
@@ -23,9 +23,10 @@ app = FastAPI(
 )
 
 # Инициализация провайдера
-yandex_provider = YandexGPTProvider(
-    folder_id=settings.yandex_folder_id,
-    api_key=settings.yandex_api_key.get_secret_value()
+llm_provider = GonkaProxyProvider(
+    base_url=settings.gonka_base_url,
+    api_key=settings.gonka_api_key.get_secret_value(),
+    model=settings.gonka_model,
 )
 
 
@@ -98,8 +99,8 @@ async def analyze_dream(request: AnalyzeRequest):
         )
         temperature = get_default_temperature()
         
-        # Вызываем YandexGPT
-        result = await yandex_provider.analyze_dream(
+        # Вызываем LLM provider
+        result = await llm_provider.analyze_dream(
             dream_text=request.dream_text,
             system_prompt=system_prompt,
             temperature=temperature
@@ -130,14 +131,14 @@ async def chat(request: ChatRequest):
     Мульти-тёрн чат с контекстом всех снов.
 
     Принимает массив сообщений (system + user + assistant + ...),
-    пробрасывает в YandexGPT и возвращает ответ.
+    пробрасывает в LLM provider и возвращает ответ.
     """
     try:
         logger.info(f"Received chat request with {len(request.messages)} messages")
 
-        messages = [{"role": m.role, "text": m.text} for m in request.messages]
+        messages = [{"role": m.role, "content": m.text} for m in request.messages]
 
-        result = await yandex_provider.chat_completion(
+        result = await llm_provider.chat_completion(
             messages=messages,
             temperature=get_default_temperature(),
         )
@@ -169,4 +170,3 @@ if __name__ == "__main__":
         reload=True,
         log_level=settings.log_level.lower()
     )
-

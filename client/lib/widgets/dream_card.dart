@@ -66,7 +66,7 @@ class DreamCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                dream.content,
+                (dream.title?.trim().isNotEmpty ?? false) ? dream.title!.trim() : dream.content,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.right,

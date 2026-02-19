@@ -46,6 +46,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get emptyDreamsHint => 'Просто запиши свой Сон';
 
   @override
+  String get listeningLabel => 'Идёт запись...';
+
+  @override
   String get analysisFailed => 'Анализ не удался';
 
   @override
@@ -178,4 +181,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get analyze => 'Анализировать';
+
+  @override
+  String get save => 'Сохранить';
+
+  @override
+  String get savedSuccess => 'Сохранено';
 }

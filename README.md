@@ -1,40 +1,23 @@
-# JungAI - Backend API для анализа снов
+# JungAI - AI-powered Dream Journal
 
-**JungAI** — современная backend-платформа для мобильного приложения записи и анализа снов с использованием искусственного интеллекта.
+**JungAI** — мобильное приложение для записи и анализа снов с помощью AI в юнгианском стиле.
 
-## 🌟 Особенности
+## Особенности
 
-- **Регистрация и аутентификация:**
-  - Анонимная авторизация по `device_id` (без экрана логина)
-  - Привязка аккаунта через Google / Apple (id_token)
-  - Email/Password с JWT токенами (опционально)
-  - Email verification
-  - Password reset
+- **Без регистрации:** анонимная авторизация по `device_id`, опциональная привязка Google/Apple
+- **Запись снов:** чат-лента с текстовым и голосовым вводом (speech-to-text)
+- **AI-анализ:** диалоговый чат по каждому сну — первичный анализ + follow-up вопросы
+- **Поиск и календарь:** быстрый поиск по снам, фильтрация по дате
+- **Профиль и статистика:** streak, total dreams, распределение по дням недели
 
-- **Управление снами:**
-  - Запись снов (текст или голосовое сообщение)
-  - Редактирование и удаление
-  - Загрузка обложек (изображения)
-  - Поиск по снам
-  - Лимиты: 5 снов в день
-
-- **Анализ снов:**
-  - AI-powered анализ через YandexGPT
-  - Две роли: Психологический (Фрейд, Юнг) и Эзотерический (сонники, таро)
-  - Асинхронная обработка через Celery
-  - Один анализ на сон
-
-- **Экспорт данных:**
-  - Экспорт всех снов в PDF
-  - Экспорт всех снов в JSON
-
-## 🏗️ Архитектура
+## Архитектура
 
 ```
-┌─────────────┐      ┌─────────────┐      ┌──────────────┐
-│   Mobile    │─────▶│   Backend   │─────▶│ LLM Service  │
-│     App     │      │  (FastAPI)  │      │ (YandexGPT)  │
-└─────────────┘      └─────────────┘      └──────────────┘
+┌─────────────┐      ┌─────────────┐      ┌──────────────────┐
+│   Flutter    │─────>│   Backend   │─────>│   LLM Service    │
+│   Client     │      │  (FastAPI)  │      │ (Gonka Proxy /   │
+│ iOS/Android  │      │             │      │  OpenAI-compat)  │
+└─────────────┘      └─────────────┘      └──────────────────┘
                            │
                 ┌──────────┼──────────┐
                 │          │          │
@@ -48,38 +31,39 @@
            └────────────┘
 ```
 
-## 🛠️ Технологический стек
+## Технологический стек
 
 ### Backend
-- **FastAPI** 0.110+ — современный асинхронный веб-фреймворк
-- **SQLAlchemy 2.0** (async) — ORM для работы с БД
-- **PostgreSQL 15** — реляционная база данных
-- **Redis 7** — кэш и брокер сообщений для Celery
-- **Celery 5.3** — фоновые задачи (анализ снов)
-- **MinIO** — S3-совместимое хранилище для изображений
+- **FastAPI** — асинхронный веб-фреймворк
+- **SQLAlchemy 2.0** (async) — ORM
+- **PostgreSQL** — база данных
+- **Redis** — брокер сообщений для Celery
+- **Celery** — фоновые задачи (анализ снов, follow-up ответы)
+- **MinIO** — S3-совместимое хранилище
 - **JWT** — аутентификация
-- **Pydantic v2** — валидация данных
 
 ### LLM Service
-- **YandexGPT** — генерация анализа снов
-- **FastAPI** — REST API
+- **Gonka Proxy** — OpenAI-совместимый API (модель Qwen3-235B)
+- **FastAPI** — REST-обёртка
+
+### Client
+- **Flutter** — iOS / Android
+- **Provider** — state management
+- **flutter_secure_storage** — хранение токенов
+- **speech_to_text** — голосовой ввод
+- **flutter_markdown** — рендеринг Markdown-ответов LLM
 
 ### DevOps
 - **Docker + Docker Compose** — контейнеризация
 
-## 📦 Установка и запуск
+## Установка и запуск
 
 ### Требования
 - Docker и Docker Compose
-- YandexGPT API credentials (folder_id, api_key)
+- Gonka Proxy API key (или YandexGPT credentials)
+- Flutter SDK (для клиента)
 
-### Шаг 1: Клонирование репозитория
-```bash
-git clone https://github.com/your_username/sna_net.git
-cd sna_net
-```
-
-### Шаг 2: Настройка переменных окружения
+### Настройка переменных окружения
 
 Создайте файл `.env` в корне проекта:
 
@@ -92,9 +76,9 @@ POSTGRES_DB=jungai_db
 # JWT
 JWT_SECRET_KEY=your-very-secret-key-change-in-production
 
-# YandexGPT
-YANDEX_FOLDER_ID=your_folder_id
-YANDEX_API_KEY=your_api_key
+# LLM (Gonka Proxy)
+GONKA_API_KEY=sk-your-api-key
+GONKA_MODEL=Qwen/Qwen3-235B-A22B-Instruct-2507-FP8
 
 # MinIO
 MINIO_ROOT_USER=minioadmin
@@ -109,21 +93,12 @@ SMTP_FROM=noreply@jungai.app
 
 # OAuth2 (опционально)
 GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
 APPLE_CLIENT_ID=your_apple_client_id
-
-# Logging
-LOG_LEVEL=INFO
 ```
 
-### Шаг 3: Запуск сервисов
+### Запуск сервисов
 
 ```bash
-# Переименовать новый docker-compose
-mv docker-compose.yml docker-compose.old.yml
-mv docker-compose.new.yml docker-compose.yml
-
-# Запустить все сервисы
 docker-compose up --build
 ```
 
@@ -133,224 +108,101 @@ docker-compose up --build
 - **PostgreSQL** на `localhost:5432`
 - **Redis** на `localhost:6379`
 - **MinIO** на `http://localhost:9000` (Console: `http://localhost:9001`)
-- **Celery Worker** (фоновый процесс)
+- **Celery Worker**
 
-### Шаг 4: Проверка работоспособности
+### Запуск Flutter-клиента
 
 ```bash
-# Backend
-curl http://localhost:8000/health
+cd client
+flutter pub get
+flutter run
+```
 
-# LLM Service
+### Проверка работоспособности
+
+```bash
+curl http://localhost:8000/health
 curl http://localhost:8001/health
 ```
 
-## 📚 API Документация
+## API
 
-После запуска backend доступна интерактивная документация:
-
+Интерактивная документация после запуска:
 - **Swagger UI:** http://localhost:8000/docs
 - **ReDoc:** http://localhost:8000/redoc
 
-## 🔐 API Endpoints
+### Endpoints
 
-### Аутентификация (`/api/v1/auth`)
-- `POST /auth/anonymous` — Анонимный вход (device_id)
-- `POST /auth/link` — Привязка Google/Apple
-- `POST /auth/register` — Регистрация
-- `POST /auth/login` — Вход
-- `POST /auth/refresh` — Обновление токена
-- `GET /auth/verify-email` — Подтверждение email
-- `POST /auth/forgot-password` — Запрос восстановления пароля
-- `POST /auth/reset-password` — Сброс пароля
-- `DELETE /auth/account` — Удаление аккаунта
+| Группа | Метод | Путь | Назначение |
+|--------|-------|------|-----------|
+| Auth | POST | `/api/v1/auth/anonymous` | Анонимный вход (device_id) |
+| Auth | POST | `/api/v1/auth/link` | Привязка Google/Apple |
+| Auth | POST | `/api/v1/auth/register` | Регистрация (email/password) |
+| Auth | POST | `/api/v1/auth/login` | Вход |
+| Auth | POST | `/api/v1/auth/refresh` | Обновление токена |
+| Dreams | POST | `/api/v1/dreams` | Создать сон |
+| Dreams | GET | `/api/v1/dreams` | Список снов (пагинация) |
+| Dreams | GET | `/api/v1/dreams/search?q=` | Поиск |
+| Dreams | PUT | `/api/v1/dreams/{id}` | Обновить |
+| Dreams | DELETE | `/api/v1/dreams/{id}` | Удалить |
+| Analysis | POST | `/api/v1/analyses` | Запросить анализ (async) |
+| Analysis | GET | `/api/v1/analyses/dream/{id}` | Результат анализа |
+| Analysis | GET | `/api/v1/analyses/task/{id}` | Статус задачи |
+| Chat | POST | `/api/v1/messages` | Follow-up сообщение |
+| Chat | GET | `/api/v1/messages/dream/{id}` | История чата |
+| Chat | GET | `/api/v1/messages/task/{id}` | Статус ответа |
+| Users | GET | `/api/v1/users/me` | Текущий пользователь |
+| Users | PUT | `/api/v1/users/me` | Обновить профиль |
+| Stats | GET | `/api/v1/stats/me` | Статистика |
 
-### Сны (`/api/v1/dreams`)
-- `POST /dreams` — Создать сон
-- `GET /dreams` — Список снов (пагинация)
-- `GET /dreams/{dream_id}` — Получить сон
-- `PUT /dreams/{dream_id}` — Обновить сон
-- `DELETE /dreams/{dream_id}` — Удалить сон
-- `POST /dreams/{dream_id}/cover` — Загрузить обложку
-- `GET /dreams/search?q=...` — Поиск снов
-
-### Анализ (`/api/v1/analyses`)
-- `POST /analyses` — Запросить анализ (async)
-- `GET /analyses/task/{task_id}` — Статус задачи
-- `GET /analyses/dream/{dream_id}` — Анализ по ID сна
-- `GET /analyses` — Список всех анализов
-
-### Чат анализа (`/api/v1/messages`)
-- `POST /messages` — Отправить сообщение в чат по сну
-- `GET /messages/dream/{dream_id}` — История чата
-- `GET /messages/task/{task_id}` — Статус задачи ответа
-
-### Пользователь (`/api/v1/users`)
-- `GET /users/me` — Текущий пользователь и linked providers
-- `PUT /users/me` — Обновить профиль (self_description, timezone)
-
-### Статистика (`/api/v1/stats`)
-- `GET /stats/me` — Персональная статистика
-
-## 💡 Примеры использования
-
-### Анонимная авторизация
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/anonymous \
-  -H "Content-Type: application/json" \
-  -d '{
-    "device_id": "uuid-string",
-    "platform": "ios",
-    "app_version": "1.0.0"
-  }'
-```
-
-### Регистрация
-```bash
-curl -X POST http://localhost:8000/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "securepassword123",
-    "first_name": "John"
-  }'
-```
-
-### Создание сна
-```bash
-curl -X POST http://localhost:8000/api/v1/dreams \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Я летал над городом и встретил говорящего кота...",
-    "title": "Полёт над городом",
-    "emoji": "✈️"
-  }'
-```
-
-### Запрос анализа
-```bash
-curl -X POST http://localhost:8000/api/v1/analyses \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "dream_id": "your-dream-uuid"
-  }'
-```
-
-### Проверка статуса анализа
-```bash
-curl http://localhost:8000/api/v1/analyses/task/TASK_ID \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
-```
-
-## 🔧 Разработка
+## Разработка
 
 ### Локальный запуск (без Docker)
 
-#### Backend:
 ```bash
+# Backend
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-
-# Создать .env файл с настройками
-cp .env.example .env
-
-# Запустить
 uvicorn main:app --reload
-```
 
-#### LLM Service:
-```bash
+# LLM Service
 cd llm_service
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
-
-# Создать .env файл
-cp .env.example .env
-
-# Запустить
 uvicorn main:app --reload --port 8001
-```
 
-#### Celery Worker:
-```bash
+# Celery Worker
 cd backend
 celery -A celery_app worker --loglevel=info
 ```
 
-### Миграции БД (Alembic)
+### Миграции БД
 
 ```bash
 cd backend
-
-# Создать миграцию
-alembic revision --autogenerate -m "описание изменений"
-
-# Применить миграции
+alembic revision --autogenerate -m "описание"
 alembic upgrade head
-
-# Откатить миграцию
-alembic downgrade -1
 ```
 
-## 📊 Мониторинг
+## Roadmap
 
-### MinIO Console
-- URL: http://localhost:9001
-- Login: `minioadmin` / `minioadmin`
+- [x] Аутентификация (JWT, anonymous, OAuth2)
+- [x] CRUD снов с лимитами
+- [x] AI-анализ через Celery
+- [x] Диалоговый чат по анализу (follow-up)
+- [x] Flutter-клиент (чат-лента, анализ, профиль)
+- [x] Поиск и календарь
+- [x] Голосовой ввод (speech-to-text)
+- [x] Markdown-рендеринг ответов LLM
+- [x] Переход на Gonka Proxy (OpenAI-compatible)
+- [ ] Экспорт в PDF/JSON
+- [ ] WebSocket streaming ответов
+- [ ] Мониторинг (Sentry)
 
-### Celery Flower (опционально)
-```bash
-celery -A celery_app flower
-```
-URL: http://localhost:5555
-
-## 🧪 Тестирование
-
-```bash
-cd backend
-pytest
-```
-
-## 📝 Лицензия
-
-[MIT License](LICENSE.md)
-
-## 🤝 Контрибьюция
-
-Мы открыты для контрибуций! Создавайте issues и pull requests.
-
-## 📧 Контакты
+## Контакты
 
 - Telegram: [@okolo_boga](https://t.me/okolo_boga)
 - GitHub: [okoloboga](https://github.com/okoloboga)
 
-## 🙏 Благодарности
+## Лицензия
 
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [SQLAlchemy](https://www.sqlalchemy.org/)
-- [Celery](https://docs.celeryq.dev/)
-- [YandexGPT](https://cloud.yandex.ru/services/yandexgpt)
-
----
-
-**Примечание:** Этот проект находится в активной разработке. Функции голосовых сообщений, экспорта и админки будут добавлены в ближайшее время.
-
-## 🚀 Roadmap
-
-- [x] Аутентификация (JWT, OAuth2)
-- [x] CRUD снов
-- [x] Анализ снов через Celery
-- [x] Загрузка обложек (S3/MinIO)
-- [x] Поиск по снам
-- [ ] Голосовые сообщения (speech-to-text)
-- [ ] Экспорт в PDF/JSON
-- [ ] Админка
-- [ ] WebSocket для real-time streaming ответов
-- [ ] Поддержка дополнительных LLM (OpenAI, Gemini)
-- [ ] Rate limiting
-- [ ] Мониторинг (Sentry, Prometheus)
+[MIT License](LICENSE.md)

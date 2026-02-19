@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../l10n/app_localizations.dart';
 import '../widgets/dream_card.dart';
 import '../widgets/message_menu.dart';
@@ -12,6 +13,7 @@ import '../providers/dreams_provider.dart';
 import '../providers/analysis_provider.dart';
 import 'profile_screen.dart';
 import 'analysis_chat_screen.dart';
+import '../utils/snackbar.dart';
 
 class MainChatScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -41,14 +43,26 @@ class MainChatScreen extends StatefulWidget {
 class _MainChatScreenState extends State<MainChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _speechReady = false;
+  bool _isListening = false;
+  List<stt.LocaleName>? _speechLocales;
+  String? _speechLocaleId;
+  String? _speechLocaleCode;
 
   Dream? _editingDream;
   bool _showSearch = false;
   String _searchQuery = '';
   DateTime? _selectedDate;
+  bool _showHeader = true;
+  double _prevScrollOffset = 0;
 
   // Добавляем сон или редактируем существующий
   Future<void> _sendMessage() async {
+    if (_isListening) {
+      await _speech.stop();
+      if (mounted) setState(() => _isListening = false);
+    }
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
@@ -94,6 +108,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
   void initState() {
     super.initState();
     _accentColor = widget.accentColor;
+    _scrollController.addListener(_handleScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DreamsProvider>().loadDreams();
     });
@@ -118,6 +133,70 @@ class _MainChatScreenState extends State<MainChatScreen> {
     widget.setAccentColor(color);
   }
 
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      if (!mounted) return;
+      setState(() => _isListening = false);
+      return;
+    }
+
+    if (!_speechReady) {
+      _speechReady = await _speech.initialize();
+    }
+    if (!_speechReady) {
+      _showError(AppLocalizations.of(context)!.genericError);
+      return;
+    }
+    _speechLocales ??= await _speech.locales();
+    final desiredCode = Localizations.localeOf(context).languageCode.toLowerCase();
+    if (_speechLocaleCode != desiredCode) {
+      _speechLocaleCode = desiredCode;
+      _speechLocaleId = _selectLocaleId(desiredCode);
+    }
+
+    setState(() => _isListening = true);
+    await _speech.listen(
+      onResult: (result) {
+        if (!mounted) return;
+        setState(() {
+          _controller.text = result.recognizedWords;
+          _controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: _controller.text.length),
+          );
+        });
+      },
+      listenMode: stt.ListenMode.dictation,
+      partialResults: true,
+      localeId: _speechLocaleId,
+    );
+  }
+
+  String? _selectLocaleId(String languageCode) {
+    final locales = _speechLocales;
+    if (locales == null || locales.isEmpty) return null;
+    for (final locale in locales) {
+      final id = locale.localeId.toLowerCase();
+      if (id == languageCode || id.startsWith('$languageCode-') || id.startsWith('${languageCode}_')) {
+        return locale.localeId;
+      }
+    }
+    return null;
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    final current = _scrollController.offset;
+    final diff = current - _prevScrollOffset;
+    // reverse: true list — offset increases when scrolling towards older (visual UP)
+    if (diff > 3 && !_showHeader) {
+      setState(() => _showHeader = true);
+    } else if (diff < -3 && _showHeader) {
+      setState(() => _showHeader = false);
+    }
+    _prevScrollOffset = current;
+  }
+
   void _openMessageMenu(Dream dream, Offset globalPosition) {
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
     final overlayPosition =
@@ -128,9 +207,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
       position: overlayPosition,
       onCopy: () {
         Clipboard.setData(ClipboardData(text: dream.content));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.dreamCopied)),
-        );
+        showToast(context, AppLocalizations.of(context)!.dreamCopied);
       },
       onEdit: () {
         setState(() {
@@ -169,9 +246,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    showToast(context, message, isError: true);
   }
 
   String _mapDreamsError(int? code, String? message) {
@@ -234,50 +309,74 @@ class _MainChatScreenState extends State<MainChatScreen> {
   }
 
   @override
+  void dispose() {
+    _speech.stop();
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('JungAI'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              setState(() {
-                _showSearch = !_showSearch;
-                if (!_showSearch) {
-                  _searchQuery = '';
-                  context.read<DreamsProvider>().search('');
-                }
-              });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfileScreen(
-                    isDarkMode: widget.isDarkMode,
-                    toggleTheme: widget.toggleTheme,
-                    accentColor: _accentColor,
-                    setAccentColor: _handleAccentColorChange,
-                    setLocale: widget.setLocale,
-                    textScale: widget.textScale,
-                    setTextScale: widget.setTextScale,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Animated header — hides on scroll down, shows on scroll up
+            ClipRect(
+              child: AnimatedAlign(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                heightFactor: _showHeader ? 1.0 : 0.0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 8),
+                      Text('JungAI', style: Theme.of(context).textTheme.titleLarge),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () {
+                          setState(() {
+                            _showSearch = !_showSearch;
+                            if (!_showSearch) {
+                              _searchQuery = '';
+                              context.read<DreamsProvider>().search('');
+                            }
+                          });
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.person),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ProfileScreen(
+                                isDarkMode: widget.isDarkMode,
+                                toggleTheme: widget.toggleTheme,
+                                accentColor: _accentColor,
+                                setAccentColor: _handleAccentColorChange,
+                                setLocale: widget.setLocale,
+                                textScale: widget.textScale,
+                                setTextScale: widget.setTextScale,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.calendar_today),
+                        onPressed: _openCalendarDialog,
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: _openCalendarDialog,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
+              ),
+            ),
           // Строка поиска
           if (_showSearch)
             Padding(
@@ -324,13 +423,16 @@ class _MainChatScreenState extends State<MainChatScreen> {
                 final items = _filterDreams(source);
                 if (items.isEmpty && _searchQuery.isEmpty) {
                   return Center(
-                    child: Text(
-                      AppLocalizations.of(context)!.emptyDreamsHint,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
-                            fontSize: 36,
-                          ),
-                      textAlign: TextAlign.center,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        AppLocalizations.of(context)!.emptyDreamsHint,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                              fontSize: 36,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   );
                 }
@@ -367,56 +469,75 @@ class _MainChatScreenState extends State<MainChatScreen> {
             ),
           ),
           // Поле ввода
-          Container(
-            margin: const EdgeInsets.all(12), // отступ от краёв экрана
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.4)
-                  : Theme.of(context).colorScheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-              ),
-            ),
-            child: Row(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  icon: Icon(Icons.mic, color: _accentColor),
-                  onPressed: () {
-                    // TODO: голосовой ввод
-                  },
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  child: _isListening
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.circle, color: Colors.red, size: 8),
+                              const SizedBox(width: 6),
+                              Text(
+                                l10n.listeningLabel,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                    ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(),
                 ),
-
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    maxLines: null, // позволяет увеличивать высоту при наборе
-                    decoration: InputDecoration(
-                      hintText: _editingDream != null
-                          ? AppLocalizations.of(context)!.editDreamHint
-                          : AppLocalizations.of(context)!.writeDreamHint,
-                      border: InputBorder.none,
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(_isListening ? Icons.mic_off : Icons.mic, color: _accentColor),
+                      onPressed: _toggleListening,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                     ),
-                  ),
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        minLines: 1,
+                        maxLines: 5,
+                        style: const TextStyle(fontSize: 14),
+                        decoration: InputDecoration(
+                          hintText: _editingDream != null
+                              ? l10n.editDreamHint
+                              : l10n.writeDreamHint,
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _accentColor,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                        onPressed: _sendMessage,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      ),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(width: 8),
-
-                Container(
-                  decoration: BoxDecoration(
-                    color: _accentColor,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _sendMessage,
-                  ),
-                )
               ],
             ),
-          )
-        ],
+          ),
+          ],
+        ),
       ),
     );
   }

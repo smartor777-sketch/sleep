@@ -25,13 +25,13 @@ class DreamMapService {
     );
   }
 
-  Future<DreamMapChunkDetail> getChunkDetail(
+  Future<DreamMapSymbolDetail> getSymbolDetail(
     String userId,
-    String chunkId,
+    String symbolId,
   ) async {
-    final response = await _api.get('/api/v1/map/$userId/chunk/$chunkId');
+    final response = await _api.get('/api/v1/map/$userId/symbol/$symbolId');
     _ensureOk(response.statusCode, response.body);
-    return DreamMapChunkDetail.fromJson(
+    return DreamMapSymbolDetail.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
   }

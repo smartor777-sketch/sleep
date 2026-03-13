@@ -1,12 +1,14 @@
-"""Dream map projection service."""
+"""Dream map projection service built around symbol nodes."""
 
 from __future__ import annotations
 
 import hashlib
 import json
 import logging
+import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -16,15 +18,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
-from models import Dream, DreamArchetype, DreamChunk, DreamSymbol
+from models import Dream, DreamArchetype, DreamChunk, DreamSymbol, DreamSymbolEntity
 from schemas.map import (
-    DreamMapChunkDetailResponse,
     DreamMapClusterCenter,
     DreamMapClusterResponse,
     DreamMapMetaResponse,
-    DreamMapNeighborResponse,
     DreamMapNodeResponse,
+    DreamMapOccurrenceResponse,
     DreamMapResponse,
+    DreamMapSymbolDetailResponse,
 )
 from services.embedding_service import (
     cosine_similarity,
@@ -32,7 +34,7 @@ from services.embedding_service import (
     request_embedding,
     serialize_embedding,
 )
-from services.rag_service import rebuild_dream_memory
+from services.rag_service import _normalize_symbol, rebuild_dream_memory
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +48,90 @@ try:
 except Exception:  # pragma: no cover
     DBSCAN = None
 
-MIN_CHUNKS_REQUIRED = 5
+MIN_SYMBOLS_REQUIRED = 5
 DEFAULT_STREAM_BATCH_SIZE = 20
-_CACHE_PREFIX = "dream-map:v1"
+_CACHE_PREFIX = "dream-map:v3"
 _PREVIEW_LIMIT = 80
+_WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё-]{2,}", re.UNICODE)
+_LABEL_STOPWORDS = {
+    "потом",
+    "кстати",
+    "типа",
+    "кто",
+    "мне",
+    "меня",
+    "было",
+    "были",
+    "такой",
+    "такая",
+    "вот",
+    "это",
+    "как",
+    "что",
+    "где",
+    "когда",
+    "или",
+    "для",
+    "ещё",
+    "еще",
+}
+_GENERIC_SYMBOLS = {
+    "где",
+    "чуть",
+    "следующий",
+    "следующая",
+    "следующее",
+    "находит",
+    "находить",
+    "сон",
+    "сны",
+    "сна",
+    "сне",
+    "который",
+    "которая",
+    "которые",
+    "какой",
+    "какая",
+    "какие",
+    "какое",
+    "потом",
+    "кстати",
+    "типа",
+    "вроде",
+    "такой",
+    "такая",
+    "такие",
+    "единственное",
+    "просто",
+    "вообще",
+    "сразу",
+    "человек",
+    "люди",
+    "место",
+    "штука",
+    "вещь",
+    "трекинг",
+    "tracking",
+    "gps",
+    "людей",
+    "люди",
+    "человек",
+    "компании",
+    "компания",
+    "каких",
+    "какой",
+    "какая",
+    "какие",
+    "возможно",
+    "возможный",
+    "возможная",
+    "возможные",
+    "эльфов",
+    "эльфы",
+    "фей",
+    "фея",
+    "феи",
+}
 
 _ARCHETYPE_COLORS = {
     "Самость": "#F4B266",
@@ -94,15 +176,6 @@ _ARCHETYPE_HINTS = {
     "клоун": "Трикстер",
 }
 
-_POSITIVE_TOKENS = {
-    "свет", "солнце", "радость", "спокойствие", "красивый", "свобода",
-    "любовь", "мягкий", "тихий", "тепло", "hope", "light", "love", "calm",
-}
-_NEGATIVE_TOKENS = {
-    "тьма", "страх", "ужас", "кровь", "смерть", "боль", "тюрьма", "падение",
-    "монстр", "тревога", "panic", "fear", "death", "blood", "prison",
-}
-
 
 def _clamp_unit(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
@@ -115,6 +188,26 @@ class _ChunkRuntime:
     symbols: list[str]
     archetypes: list[str]
     dream: Dream
+
+
+@dataclass
+class _SymbolOccurrence:
+    entity: DreamSymbolEntity
+    chunk: _ChunkRuntime | None
+
+
+@dataclass
+class _SymbolRuntime:
+    id: str
+    symbol_name: str
+    display_label: str
+    embedding: list[float]
+    archetypes: list[str]
+    occurrences: list[_SymbolOccurrence]
+    preview_text: str
+    last_seen_at: datetime
+    dream_count: int
+    occurrence_count: int
 
 
 async def get_dream_map(
@@ -138,18 +231,19 @@ async def get_dream_map(
             cached.meta.cached = True
             return cached
 
-    runtimes = await _load_chunk_runtimes(db, user_id)
-    if len(runtimes) < MIN_CHUNKS_REQUIRED:
+    runtimes = await _load_symbol_runtimes(db, user_id)
+    if len(runtimes) < MIN_SYMBOLS_REQUIRED:
         response = DreamMapResponse(
             nodes=[],
             clusters=[],
+            archetype_filters=[],
             meta=DreamMapMetaResponse(
                 total_nodes=len(runtimes),
                 total_clusters=0,
                 cached=False,
                 computed_with="umap3d" if umap is not None else "pca3d",
                 cluster_method=cluster_method,
-                min_chunks_required=MIN_CHUNKS_REQUIRED,
+                min_nodes_required=MIN_SYMBOLS_REQUIRED,
             ),
         )
         await _set_cached_map(cache_key, response)
@@ -164,12 +258,13 @@ async def get_dream_map(
     xy = _normalize_xy(projected_3d[:, :2])
     z = _normalize_axis(projected_3d[:, 2])
     labels = _cluster_points(xy, method=cluster_method)
-    payloads = _build_cluster_payloads(runtimes, xy, z, labels)
+    payloads = _build_cluster_payloads(runtimes, labels)
 
     nodes = [
         DreamMapNodeResponse(
-            id=str(runtime.chunk.id),
-            dream_id=str(runtime.chunk.dream_id),
+            id=runtime.id,
+            symbol_name=runtime.symbol_name,
+            display_label=runtime.display_label,
             x=float(xy[index][0]),
             y=float(xy[index][1]),
             z=float(z[index]),
@@ -178,10 +273,11 @@ async def get_dream_map(
             archetype_color=payload["color"],
             cosine_sim_to_center=_clamp_unit(payload["cosine_to_center"]),
             size_weight=payload["size_weight"],
-            text_preview=_preview(runtime.chunk.text),
-            date=runtime.dream.created_at.strftime("%Y-%m-%d"),
-            emotion_valence=_emotion_valence(runtime.chunk.text),
-            tokens=len(runtime.chunk.text.split()),
+            occurrence_count=runtime.occurrence_count,
+            dream_count=runtime.dream_count,
+            last_seen_at=runtime.last_seen_at.strftime("%Y-%m-%d"),
+            preview_text=runtime.preview_text,
+            related_archetypes=_top_values(runtime.archetypes, limit=4),
         )
         for index, (runtime, payload) in enumerate(zip(runtimes, payloads, strict=False))
     ]
@@ -207,69 +303,114 @@ async def get_dream_map(
     response = DreamMapResponse(
         nodes=nodes,
         clusters=clusters,
+        archetype_filters=sorted(
+            {
+                archetype
+                for node in nodes
+                for archetype in node.related_archetypes
+                if archetype.strip()
+            }
+        ),
         meta=DreamMapMetaResponse(
             total_nodes=len(nodes),
             total_clusters=len(clusters),
             cached=False,
             computed_with="umap3d" if umap is not None else "pca3d",
             cluster_method=cluster_method,
-            min_chunks_required=MIN_CHUNKS_REQUIRED,
+            min_nodes_required=MIN_SYMBOLS_REQUIRED,
         ),
     )
     await _set_cached_map(cache_key, response)
     return response
 
 
-async def get_map_chunk_detail(
+async def get_map_symbol_detail(
     db: AsyncSession,
     *,
     user_id: UUID,
-    chunk_id: UUID,
-) -> DreamMapChunkDetailResponse | None:
-    runtimes = await _load_chunk_runtimes(db, user_id)
-    if not runtimes:
-        return None
-    runtime_by_id = {runtime.chunk.id: runtime for runtime in runtimes}
-    runtime = runtime_by_id.get(chunk_id)
+    symbol_id: str,
+) -> DreamMapSymbolDetailResponse | None:
+    runtimes = await _load_symbol_runtimes(db, user_id)
+    runtime_by_id = {runtime.id: runtime for runtime in runtimes}
+    runtime = runtime_by_id.get(symbol_id)
     if runtime is None:
         return None
 
     projection = await get_dream_map(db, user_id=user_id)
-    node = next((item for item in projection.nodes if item.id == str(chunk_id)), None)
+    node = next((item for item in projection.nodes if item.id == symbol_id), None)
     if node is None:
         return None
 
-    neighbors = sorted(
-        (
-            DreamMapNeighborResponse(
-                chunk_id=str(other.chunk.id),
-                dream_id=str(other.chunk.dream_id),
-                text_preview=_preview(other.chunk.text),
-                cosine_similarity=_clamp_unit(
-                    cosine_similarity(runtime.embedding, other.embedding)
-                ),
-                date=other.dream.created_at.strftime("%Y-%m-%d"),
-            )
-            for other in runtimes
-            if other.chunk.id != chunk_id
+    occurrences_sorted = sorted(
+        runtime.occurrences,
+        key=lambda item: (
+            item.chunk.dream.created_at
+            if item.chunk is not None
+            else item.entity.created_at
         ),
-        key=lambda item: item.cosine_similarity,
         reverse=True,
-    )[:6]
+    )
+    occurrence_items = [
+        DreamMapOccurrenceResponse(
+            dream_id=str(item.entity.dream_id),
+            date=(
+                item.chunk.dream.created_at.strftime("%Y-%m-%d")
+                if item.chunk is not None
+                else item.entity.created_at.strftime("%Y-%m-%d")
+            ),
+            text_preview=(
+                _preview(item.chunk.chunk.text)
+                if item.chunk is not None
+                else runtime.display_label
+            ),
+        )
+        for item in occurrences_sorted[:6]
+    ]
+    if not occurrences_sorted:
+        return None
 
-    return DreamMapChunkDetailResponse(
-        id=str(runtime.chunk.id),
-        dream_id=str(runtime.chunk.dream_id),
+    dream_ids = {item.entity.dream_id for item in occurrences_sorted}
+    related_symbols = Counter()
+    if dream_ids:
+        rows = list(
+            (
+                await db.execute(
+                    select(DreamSymbolEntity).where(
+                        DreamSymbolEntity.user_id == user_id,
+                        DreamSymbolEntity.dream_id.in_(list(dream_ids)),
+                    )
+                )
+            ).scalars().all()
+        )
+        for row in rows:
+            canonical = _normalize_symbol((row.canonical_name or "").strip().lower())
+            if not canonical or canonical == runtime.symbol_name:
+                continue
+            if not _is_symbol_candidate(canonical):
+                continue
+            label = _clean_display_label(row.display_label, canonical)
+            if len(label.split()) < 2:
+                continue
+            if label == runtime.display_label:
+                continue
+            related_symbols[label] += 1
+
+    return DreamMapSymbolDetailResponse(
+        id=runtime.id,
+        symbol_name=runtime.symbol_name,
+        display_label=runtime.display_label,
+        primary_dream_id=str(occurrences_sorted[0].entity.dream_id),
         cluster_id=node.cluster_id,
         cluster_label=node.cluster_label,
         archetype_color=node.archetype_color,
-        text=runtime.chunk.text,
-        date=runtime.dream.created_at.strftime("%Y-%m-%d"),
-        emotion_valence=_emotion_valence(runtime.chunk.text),
-        tokens=len(runtime.chunk.text.split()),
+        occurrence_count=runtime.occurrence_count,
+        dream_count=runtime.dream_count,
         z=node.z,
         size_weight=node.size_weight,
-        neighbors=neighbors,
+        last_seen_at=runtime.last_seen_at.strftime("%Y-%m-%d"),
+        related_archetypes=_top_values(runtime.archetypes, limit=4),
+        related_symbols=[name for name, _count in related_symbols.most_common(5)],
+        occurrences=occurrence_items,
     )
 
 
@@ -296,6 +437,7 @@ async def stream_dream_map(
         yield {
             "type": "complete",
             "clusters": [cluster.model_dump() for cluster in projection.clusters],
+            "archetype_filters": projection.archetype_filters,
             "meta": projection.meta.model_dump(),
         }
         return
@@ -310,6 +452,7 @@ async def stream_dream_map(
     yield {
         "type": "complete",
         "clusters": [cluster.model_dump() for cluster in projection.clusters],
+        "archetype_filters": projection.archetype_filters,
         "meta": projection.meta.model_dump(),
     }
 
@@ -327,6 +470,122 @@ async def invalidate_user_map_cache(user_id: UUID) -> None:
         logger.warning("Failed to invalidate dream map cache for %s: %s", user_id, exc)
     finally:
         await _close_redis_client(client)
+
+
+async def _load_symbol_runtimes(db: AsyncSession, user_id: UUID) -> list[_SymbolRuntime]:
+    chunk_runtimes = await _load_chunk_runtimes(db, user_id)
+    if not chunk_runtimes:
+        return []
+
+    entity_rows = list(
+        (
+            await db.execute(
+                select(DreamSymbolEntity).where(DreamSymbolEntity.user_id == user_id)
+            )
+        ).scalars().all()
+    )
+    if not entity_rows:
+        return []
+
+    chunk_runtime_by_id = {runtime.chunk.id: runtime for runtime in chunk_runtimes}
+    dream_to_chunks: dict[UUID, list[_ChunkRuntime]] = defaultdict(list)
+    for runtime in chunk_runtimes:
+        dream_to_chunks[runtime.chunk.dream_id].append(runtime)
+
+    occurrences_by_symbol: dict[str, list[_SymbolOccurrence]] = defaultdict(list)
+
+    for row in entity_rows:
+        symbol_name = _normalize_symbol((row.canonical_name or "").strip().lower())
+        if not _is_symbol_candidate(symbol_name):
+            continue
+        chunk_runtime = None
+        if row.chunk_id is not None:
+            chunk_runtime = chunk_runtime_by_id.get(row.chunk_id)
+        else:
+            candidates = dream_to_chunks.get(row.dream_id, [])
+            if candidates:
+                chunk_runtime = candidates[0]
+        occurrences_by_symbol[symbol_name].append(
+            _SymbolOccurrence(entity=row, chunk=chunk_runtime)
+        )
+
+    runtimes: list[_SymbolRuntime] = []
+    for symbol_name, occurrences in occurrences_by_symbol.items():
+        if not occurrences:
+            continue
+        display_labels = Counter()
+        vectors: list[list[float]] = []
+        previews: list[str] = []
+        timestamps: list[datetime] = []
+        dream_ids: set[UUID] = set()
+        archetypes = [
+            archetype
+            for item in occurrences
+            for archetype in (
+                list(item.entity.related_archetypes_json or [])
+                + (item.chunk.archetypes if item.chunk is not None else [])
+            )
+            if archetype.strip()
+        ]
+        for item in occurrences:
+            dream_ids.add(item.entity.dream_id)
+            timestamps.append(item.entity.created_at)
+            if item.chunk is not None:
+                vectors.append(item.chunk.embedding)
+                previews.append(item.chunk.chunk.text)
+                timestamps.append(item.chunk.dream.created_at)
+
+            label = _clean_display_label(item.entity.display_label, symbol_name)
+            if label:
+                display_labels[label] += 1
+
+        if display_labels:
+            display_label = display_labels.most_common(1)[0][0]
+        else:
+            display_label = _build_symbol_display_label(symbol_name, occurrences)
+        if not display_label:
+            display_label = f"мотив {symbol_name}"
+
+        if vectors:
+            embedding = np.mean(np.array(vectors, dtype=float), axis=0).tolist()
+        else:
+            try:
+                embedding = await request_embedding(display_label)
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Failed to embed symbol entity '%s': %s", symbol_name, exc)
+                continue
+
+        preview_text = _preview(previews[0] if previews else display_label)
+        last_seen_at = max(timestamps) if timestamps else datetime.utcnow()
+
+        runtimes.append(
+            _SymbolRuntime(
+                id=_build_symbol_id(user_id, symbol_name),
+                symbol_name=symbol_name,
+                display_label=display_label,
+                embedding=embedding,
+                archetypes=archetypes,
+                occurrences=sorted(
+                    occurrences,
+                    key=lambda item: (
+                        item.chunk.dream.created_at
+                        if item.chunk is not None
+                        else item.entity.created_at
+                    ),
+                    reverse=True,
+                ),
+                preview_text=preview_text,
+                last_seen_at=last_seen_at,
+                dream_count=len(dream_ids),
+                occurrence_count=len(occurrences),
+            )
+        )
+
+    runtimes.sort(
+        key=lambda item: (item.dream_count, item.occurrence_count, item.last_seen_at),
+        reverse=True,
+    )
+    return runtimes
 
 
 async def _load_chunk_runtimes(db: AsyncSession, user_id: UUID) -> list[_ChunkRuntime]:
@@ -376,11 +635,15 @@ async def _load_chunk_runtimes(db: AsyncSession, user_id: UUID) -> list[_ChunkRu
             changed = True
         if not embedding:
             continue
+        chunk_symbols = list(dict.fromkeys(symbols_by_chunk.get(chunk.id, [])))
+        if not chunk_symbols and isinstance(chunk.metadata_json, dict):
+            raw = chunk.metadata_json.get("symbols") or []
+            chunk_symbols = [str(item).strip() for item in raw if str(item).strip()]
         runtimes.append(
             _ChunkRuntime(
                 chunk=chunk,
                 embedding=embedding,
-                symbols=symbols_by_chunk.get(chunk.id, []),
+                symbols=chunk_symbols,
                 archetypes=archetypes_by_dream.get(chunk.dream_id, []),
                 dream=dream,
             )
@@ -438,7 +701,7 @@ def _normalize_axis(values: np.ndarray) -> np.ndarray:
 
 
 def _cluster_points(points: np.ndarray, *, method: str) -> list[int]:
-    if len(points) < MIN_CHUNKS_REQUIRED:
+    if len(points) < MIN_SYMBOLS_REQUIRED:
         return [-1 for _ in range(len(points))]
     if DBSCAN is None or method == "fallback":
         return _fallback_cluster(points)
@@ -471,9 +734,7 @@ def _fallback_cluster(points: np.ndarray) -> list[int]:
 
 
 def _build_cluster_payloads(
-    runtimes: list[_ChunkRuntime],
-    xy: np.ndarray,
-    z_values: np.ndarray,
+    runtimes: list[_SymbolRuntime],
     labels: list[int],
 ) -> list[dict[str, Any]]:
     cluster_to_indices: dict[int, list[int]] = defaultdict(list)
@@ -495,7 +756,11 @@ def _build_cluster_payloads(
                     center_embedding.tolist(),
                 )
             )
-            raw_size_weights[index] = cosine_to_center
+            prominence = (
+                (runtimes[index].dream_count * 0.7) +
+                (runtimes[index].occurrence_count * 0.3)
+            )
+            raw_size_weights[index] = prominence + cosine_to_center
             payloads[index] = {
                 "cluster_id": cluster_id,
                 "label": label,
@@ -512,7 +777,7 @@ def _build_cluster_payloads(
     return payloads
 
 
-def _resolve_cluster_label(runtimes: list[_ChunkRuntime], cluster_id: int) -> str:
+def _resolve_cluster_label(runtimes: list[_SymbolRuntime], cluster_id: int) -> str:
     if cluster_id == -1:
         return "Noise"
     archetypes = Counter(
@@ -524,28 +789,95 @@ def _resolve_cluster_label(runtimes: list[_ChunkRuntime], cluster_id: int) -> st
     if archetypes:
         return archetypes.most_common(1)[0][0]
     hints = Counter(
-        _ARCHETYPE_HINTS[symbol]
+        _ARCHETYPE_HINTS[runtime.symbol_name]
         for runtime in runtimes
-        for symbol in runtime.symbols
-        if symbol in _ARCHETYPE_HINTS
+        if runtime.symbol_name in _ARCHETYPE_HINTS
     )
     if hints:
         return hints.most_common(1)[0][0]
     return f"Pattern {cluster_id + 1}"
 
 
-def _emotion_valence(text: str) -> float:
-    tokens = [token.strip(".,!?;:()[]{}«»\"'").lower() for token in text.split()]
-    score = 0
-    for token in tokens:
-        if token in _POSITIVE_TOKENS:
-            score += 1
-        if token in _NEGATIVE_TOKENS:
-            score -= 1
-    if not tokens:
-        return 0.0
-    value = score / max(4.0, len(tokens) / 8)
-    return max(-1.0, min(1.0, value))
+def _build_symbol_display_label(
+    symbol_name: str,
+    occurrences: list[_SymbolOccurrence],
+) -> str:
+    phrases = Counter()
+    for occurrence in occurrences:
+        if occurrence.chunk is None:
+            continue
+        words = [match.group(0).lower() for match in _WORD_RE.finditer(occurrence.chunk.chunk.text)]
+        normalized = [_normalize_symbol(word) for word in words]
+        for index, token in enumerate(normalized):
+            if token != symbol_name:
+                continue
+            left = words[index - 1] if index > 0 else ""
+            current = words[index]
+            right = words[index + 1] if index + 1 < len(words) else ""
+            parts = [
+                part
+                for part in [left, current, right]
+                if part and part not in _LABEL_STOPWORDS
+            ]
+            if len(parts) >= 2:
+                phrases[" ".join(parts[:3])] += 1
+            elif current:
+                phrases[current] += 1
+    if phrases:
+        label = sorted(
+            phrases.items(),
+            key=lambda item: (item[1], len(item[0].split()), len(item[0])),
+            reverse=True,
+        )[0][0]
+        normalized = " ".join(label.strip().split()[:3])
+        if len(normalized.split()) >= 2:
+            return normalized
+
+    contexts = Counter()
+    for occurrence in occurrences:
+        if occurrence.chunk is None:
+            continue
+        for word in _WORD_RE.findall(occurrence.chunk.chunk.text.lower()):
+            normalized = _normalize_symbol(word)
+            if normalized == symbol_name or normalized in _LABEL_STOPWORDS:
+                continue
+            contexts[normalized] += 1
+    if contexts:
+        other, _count = contexts.most_common(1)[0]
+        label = f"{other} {symbol_name}".strip()
+        if len(label.split()) >= 2:
+            return label
+    return f"мотив {symbol_name}"
+
+
+def _clean_display_label(raw: str, symbol_name: str) -> str:
+    words = []
+    for word in _WORD_RE.findall((raw or "").lower()):
+        normalized = _normalize_symbol(word)
+        if not normalized:
+            continue
+        if normalized in _LABEL_STOPWORDS or normalized in _GENERIC_SYMBOLS:
+            continue
+        words.append(normalized)
+    if not words:
+        return ""
+    words = words[:3]
+    if len(words) == 1:
+        if words[0] == symbol_name:
+            return f"мотив {symbol_name}"
+        return f"{words[0]} {symbol_name}"[:32].strip()
+    return " ".join(words)
+
+
+def _is_symbol_candidate(symbol_name: str) -> bool:
+    normalized = _normalize_symbol((symbol_name or "").strip().lower())
+    if not normalized or len(normalized) < 3:
+        return False
+    if normalized in _GENERIC_SYMBOLS or normalized in _LABEL_STOPWORDS:
+        return False
+    if normalized.isdigit():
+        return False
+    return True
 
 
 def _preview(text: str, limit: int = _PREVIEW_LIMIT) -> str:
@@ -553,6 +885,16 @@ def _preview(text: str, limit: int = _PREVIEW_LIMIT) -> str:
     if len(normalized) <= limit:
         return normalized
     return f"{normalized[:limit].rstrip()}..."
+
+
+def _build_symbol_id(user_id: UUID, symbol_name: str) -> str:
+    digest = hashlib.sha1(f"{user_id}:{symbol_name}".encode("utf-8")).hexdigest()
+    return digest[:24]
+
+
+def _top_values(values: list[str], *, limit: int) -> list[str]:
+    counts = Counter(value for value in values if value.strip())
+    return [name for name, _count in counts.most_common(limit)]
 
 
 def _build_cache_key(
@@ -618,9 +960,9 @@ async def _get_redis_client():
 
 
 async def _close_redis_client(client) -> None:
-    close = getattr(client, "aclose", None) or getattr(client, "close", None)
-    if close is None:
+    if client is None:
         return
-    result = close()
-    if result is not None:
-        await result
+    try:
+        await client.close()
+    except Exception:  # pragma: no cover
+        pass

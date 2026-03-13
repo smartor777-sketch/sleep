@@ -15,31 +15,37 @@ class DreamMapProvider extends ChangeNotifier {
 
   DreamMapData? _map;
   bool _loading = false;
+  bool _refreshing = false;
   bool _detailLoading = false;
   String? _error;
-  DreamMapChunkDetail? _selectedDetail;
-  String? _selectedCluster;
+  DreamMapSymbolDetail? _selectedDetail;
+  String? _selectedArchetype;
 
   DreamMapData? get map => _map;
   bool get loading => _loading;
+  bool get refreshing => _refreshing;
   bool get detailLoading => _detailLoading;
   String? get error => _error;
-  DreamMapChunkDetail? get selectedDetail => _selectedDetail;
-  String? get selectedCluster => _selectedCluster;
+  DreamMapSymbolDetail? get selectedDetail => _selectedDetail;
+  String? get selectedArchetype => _selectedArchetype;
 
   List<DreamMapNode> get visibleNodes {
     final nodes = _map?.nodes ?? const <DreamMapNode>[];
-    final cluster = _selectedCluster;
-    if (cluster == null || cluster.isEmpty) {
+    final archetype = _selectedArchetype;
+    if (archetype == null || archetype.isEmpty) {
       return nodes;
     }
-    return nodes.where((node) => node.clusterLabel == cluster).toList();
+    return nodes
+        .where((node) => node.relatedArchetypes.contains(archetype))
+        .toList();
   }
 
   Future<void> load({bool forceRefresh = false}) async {
     final userId = _auth.user?.id;
     if (userId == null) return;
-    _loading = true;
+    final hasMap = _map != null;
+    _loading = !hasMap;
+    _refreshing = hasMap && forceRefresh;
     _error = null;
     notifyListeners();
     try {
@@ -52,18 +58,19 @@ class DreamMapProvider extends ChangeNotifier {
       }
     } finally {
       _loading = false;
+      _refreshing = false;
       notifyListeners();
     }
   }
 
-  Future<void> selectNode(String chunkId) async {
+  Future<void> selectNode(String nodeId) async {
     final userId = _auth.user?.id;
     if (userId == null) return;
     _detailLoading = true;
     _error = null;
     notifyListeners();
     try {
-      _selectedDetail = await _service.getChunkDetail(userId, chunkId);
+      _selectedDetail = await _service.getSymbolDetail(userId, nodeId);
     } catch (e) {
       if (e is ApiException) {
         _error = e.message;
@@ -76,8 +83,8 @@ class DreamMapProvider extends ChangeNotifier {
     }
   }
 
-  void setClusterFilter(String? clusterLabel) {
-    _selectedCluster = clusterLabel;
+  void setArchetypeFilter(String? archetype) {
+    _selectedArchetype = archetype;
     notifyListeners();
   }
 

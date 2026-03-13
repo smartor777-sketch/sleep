@@ -108,6 +108,24 @@ async def _apply_schema_upgrades(conn):
         "CREATE INDEX IF NOT EXISTS ix_dream_symbols_dream_id ON dream_symbols(dream_id)",
         "CREATE INDEX IF NOT EXISTS ix_dream_symbols_symbol_name ON dream_symbols(symbol_name)",
         """
+        CREATE TABLE IF NOT EXISTS dream_symbol_entities (
+            id UUID PRIMARY KEY,
+            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            dream_id UUID NOT NULL REFERENCES dreams(id) ON DELETE CASCADE,
+            chunk_id UUID REFERENCES dream_chunks(id) ON DELETE CASCADE,
+            canonical_name VARCHAR(128) NOT NULL,
+            display_label VARCHAR(128) NOT NULL,
+            entity_type VARCHAR(32) NOT NULL DEFAULT 'symbol',
+            weight DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+            related_archetypes_json JSONB,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_dream_symbol_entities_user_id ON dream_symbol_entities(user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dream_symbol_entities_dream_id ON dream_symbol_entities(dream_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dream_symbol_entities_chunk_id ON dream_symbol_entities(chunk_id)",
+        "CREATE INDEX IF NOT EXISTS ix_dream_symbol_entities_canonical_name ON dream_symbol_entities(canonical_name)",
+        """
         CREATE TABLE IF NOT EXISTS dream_archetypes (
             id UUID PRIMARY KEY,
             user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

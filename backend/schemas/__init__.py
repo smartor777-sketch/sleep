@@ -33,13 +33,13 @@ from .analysis_message import (
 )
 from .audio import TranscriptionResponse
 from .map import (
-    DreamMapChunkDetailResponse,
     DreamMapClusterCenter,
     DreamMapClusterResponse,
     DreamMapMetaResponse,
-    DreamMapNeighborResponse,
     DreamMapNodeResponse,
+    DreamMapOccurrenceResponse,
     DreamMapResponse,
+    DreamMapSymbolDetailResponse,
 )
 from .auth import (
     RegisterRequest,
@@ -89,13 +89,13 @@ __all__ = [
     "ChatMessageListResponse",
     "ChatMessageTaskResponse",
     "TranscriptionResponse",
-    "DreamMapChunkDetailResponse",
     "DreamMapClusterCenter",
     "DreamMapClusterResponse",
     "DreamMapMetaResponse",
-    "DreamMapNeighborResponse",
     "DreamMapNodeResponse",
+    "DreamMapOccurrenceResponse",
     "DreamMapResponse",
+    "DreamMapSymbolDetailResponse",
     # Auth
     "RegisterRequest",
     "LoginRequest",

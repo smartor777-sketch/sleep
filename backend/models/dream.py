@@ -75,6 +75,11 @@ class Dream(Base):
         back_populates="dream",
         cascade="all, delete-orphan",
     )
+    symbol_entities: Mapped[list["DreamSymbolEntity"]] = relationship(
+        "DreamSymbolEntity",
+        back_populates="dream",
+        cascade="all, delete-orphan",
+    )
     dream_archetypes: Mapped[list["DreamArchetype"]] = relationship(
         "DreamArchetype",
         back_populates="dream",

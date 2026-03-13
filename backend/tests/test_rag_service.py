@@ -95,7 +95,7 @@ async def test_rebuild_dream_memory_persists_chunks_symbols_and_archetypes(monke
 
     user_id = uuid4()
     dream = SimpleNamespace(id=uuid4(), content="Дом и вода. В зеркале тень.")
-    db = FakeDb(execute_results=[FakeResult(), FakeResult(), FakeResult()])
+    db = FakeDb(execute_results=[FakeResult(), FakeResult(), FakeResult(), FakeResult()])
 
     result = await rag_service.rebuild_dream_memory(
         db,
@@ -108,4 +108,5 @@ async def test_rebuild_dream_memory_persists_chunks_symbols_and_archetypes(monke
     assert db.flushes == 1
     assert any(type(item).__name__ == "DreamChunk" for item in db.added)
     assert any(type(item).__name__ == "DreamSymbol" for item in db.added)
+    assert any(type(item).__name__ == "DreamSymbolEntity" for item in db.added)
     assert any(type(item).__name__ == "DreamArchetype" for item in db.added)

@@ -7,7 +7,8 @@ from pydantic import BaseModel, Field
 
 class DreamMapNodeResponse(BaseModel):
     id: str
-    dream_id: str
+    symbol_name: str
+    display_label: str
     x: float = Field(ge=0.0, le=1.0)
     y: float = Field(ge=0.0, le=1.0)
     z: float = Field(ge=-1.0, le=1.0)
@@ -16,10 +17,11 @@ class DreamMapNodeResponse(BaseModel):
     archetype_color: str
     cosine_sim_to_center: float = Field(ge=0.0, le=1.0)
     size_weight: float = Field(ge=0.0, le=1.0)
-    text_preview: str
-    date: str
-    emotion_valence: float = Field(ge=-1.0, le=1.0)
-    tokens: int
+    occurrence_count: int = Field(ge=1)
+    dream_count: int = Field(ge=1)
+    last_seen_at: str
+    preview_text: str
+    related_archetypes: list[str]
 
 
 class DreamMapClusterCenter(BaseModel):
@@ -41,33 +43,35 @@ class DreamMapMetaResponse(BaseModel):
     cached: bool
     computed_with: str
     cluster_method: str
-    min_chunks_required: int
+    min_nodes_required: int
 
 
 class DreamMapResponse(BaseModel):
     nodes: list[DreamMapNodeResponse]
     clusters: list[DreamMapClusterResponse]
+    archetype_filters: list[str]
     meta: DreamMapMetaResponse
 
 
-class DreamMapNeighborResponse(BaseModel):
-    chunk_id: str
+class DreamMapOccurrenceResponse(BaseModel):
     dream_id: str
-    text_preview: str
-    cosine_similarity: float = Field(ge=0.0, le=1.0)
     date: str
+    text_preview: str
 
 
-class DreamMapChunkDetailResponse(BaseModel):
+class DreamMapSymbolDetailResponse(BaseModel):
     id: str
-    dream_id: str
+    symbol_name: str
+    display_label: str
+    primary_dream_id: str
     cluster_id: int
     cluster_label: str
     archetype_color: str
-    text: str
-    date: str
-    emotion_valence: float = Field(ge=-1.0, le=1.0)
-    tokens: int
+    occurrence_count: int = Field(ge=1)
+    dream_count: int = Field(ge=1)
     z: float = Field(ge=-1.0, le=1.0)
     size_weight: float = Field(ge=0.0, le=1.0)
-    neighbors: list[DreamMapNeighborResponse]
+    last_seen_at: str
+    related_archetypes: list[str]
+    related_symbols: list[str]
+    occurrences: list[DreamMapOccurrenceResponse]

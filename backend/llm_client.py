@@ -2,7 +2,7 @@
 
 import logging
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from config import settings
 
@@ -23,11 +23,36 @@ class GradientPayload(BaseModel):
     color2: str | None = None
 
 
+class SymbolEntityPayload(BaseModel):
+    canonical_name: str = Field(..., min_length=1, max_length=128)
+    display_label: str = Field(..., min_length=1, max_length=128)
+    entity_type: str = Field(default="symbol", max_length=32)
+    weight: float = Field(default=1.0, ge=0.0, le=1.0)
+    source_chunk_indexes: list[int] = Field(default_factory=list)
+    related_archetypes: list[str] = Field(default_factory=list)
+
+    @field_validator("source_chunk_indexes")
+    @classmethod
+    def _normalize_indexes(cls, value: list[int]) -> list[int]:
+        return sorted({int(item) for item in value if int(item) >= 0})[:12]
+
+    @field_validator("related_archetypes")
+    @classmethod
+    def _normalize_archetypes(cls, value: list[str]) -> list[str]:
+        normalized = []
+        for item in value:
+            text = str(item or "").strip()
+            if text:
+                normalized.append(text)
+        return list(dict.fromkeys(normalized))[:6]
+
+
 class AnalysisPayload(BaseModel):
     analysis_text: str = Field(..., min_length=1)
     title: str | None = Field(None, max_length=64)
     gradient: GradientPayload | None = None
-    archetypes_delta: dict[str, int] = {}
+    archetypes_delta: dict[str, int] = Field(default_factory=dict)
+    symbol_entities: list[SymbolEntityPayload] = Field(default_factory=list)
 
 
 class LLMClient:

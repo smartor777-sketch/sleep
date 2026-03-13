@@ -1,519 +1,622 @@
-# ТЗ — Dream Map: плоская карта векторного пространства снов
-**Проект:** JungCore | **Версия:** 2.0 | **Стек:** FastAPI + Flutter
+# ТЗ — Dream Map: плоская карта символических сущностей
+**Проект:** JungCore | **Версия:** 3.0 | **Стек:** FastAPI + Flutter
 
 ---
 
-## 1. Обзор и цели
+## 1. Обзор и цель
 
-Модуль визуализирует RAG-базу снов пользователя как **плоскую 2D-карту**.  
-Каждый чанк сна — точка на бесшовном поле. Близкие по смыслу чанки лежат рядом. Кластеры соответствуют архетипическим зонам.
+Dream Map визуализирует не сырые чанки сна и не отдельные токены, а **symbol entities** пользователя в плоском бесшовном 2D-пространстве.
 
-Это **не сфера** и не псевдо-3D. Это именно карта:
+Это именно карта:
 - с pan и zoom
-- с бесшовной циклической прокруткой по X и Y
-- с фильтрами по архетипам
-- с тапом по точке и переходом к записи сна
-- с сохранением дополнительных измерений через цвет и размер точки
+- с циклической прокруткой по X и Y
+- с ручным обновлением
+- с полными фильтрами по архетипам
+- с переходом от symbol entity к связанным снам
 
-**Зачем это нужно:**
-- Пользователь получает читаемую карту своих смысловых паттернов
-- Интерфейс больше похож на навигацию по “территории снов”, а не на вау-демо
-- Карта легче рендерится и проще в UX, чем сфера
-- Проще масштабировать до сотен и тысяч чанков
-
----
-
-## 2. Почему не сфера
-
-Сфера даёт вау-эффект, но для продукта имеет ряд минусов:
-- 3D-рендер сложнее и тяжелее
-- hit-testing сложнее
-- чтение подписи/зон хуже
-- пользователю труднее мыслить о данных как о “карте”
-- в итоге всё равно это проекция на 2D-экран
-
-Плоская карта:
-- честнее как интерфейс
-- лучше соответствует слову “карта”
-- проще в реализации
-- лучше контролируется визуально
-- лучше подходит для фильтров, выделения зон, будущих подписей и heatmap-слоёв
+Главная продуктовая идея:
+- **retrieval layer** остаётся chunk-based
+- **visual layer** становится symbol-entity-based
+- **semantic overlay layer** строится на archetypes
 
 ---
 
-## 3. Архитектура
+## 2. Почему мы отказались от chunk map
 
-### Общий поток данных
+Карта чанков плохо читается пользователем.
 
+Проблемы chunk map:
+- на карте появляются обрывки фраз
+- подписи выглядят как случайные куски речи
+- визуально это похоже не на символику сна, а на техническую отладку retrieval
+- пользователь не получает ощущение “ландшафта образов”
+
+Примеры плохих подписей:
+- `того чтобы`
+- `потом кстати`
+- `единственное что`
+- `где`
+- `чуть`
+
+Это не символика сна.
+
+Поэтому:
+- chunk остаётся внутренней единицей retrieval
+- но chunk не должен быть основной UI-единицей карты
+
+---
+
+## 3. Что отображает карта
+
+### 3.1 Основная видимая сущность
+
+Основной node карты: **symbol entity**
+
+Примеры:
+- `тёмный лес`
+- `чёрная вода`
+- `старый дом`
+- `женская фигура`
+- `пустой коридор`
+- `поезд в темноте`
+
+Symbol entity:
+- человекочитаема
+- отражает образ
+- подходит для прямого отображения на карте
+
+### 3.2 Что не должно отображаться как node
+
+На карте не должны отображаться:
+- сырые chunk-фразы
+- raw tokens
+- служебные слова
+- местоимения
+- случайные глаголы
+- разговорные обрывки
+
+Примеры запрещённых node labels:
+- `где`
+- `чуть`
+- `того`
+- `сон`
+- `находит`
+
+### 3.3 Archetype layer
+
+Archetypes не являются единственной меткой кластера и не должны сводиться к одному доминирующему label.
+
+Archetypes используются как:
+- фильтры
+- semantic overlay
+- cluster naming
+- secondary metadata для symbol entities
+
+---
+
+## 4. Архитектурная модель
+
+### 4.1 Три слоя
+
+#### A. Retrieval layer
+
+Основан на chunk'ах:
+- сон режется на semantic chunks
+- для chunk'ов считаются embeddings
+- retrieval ищет похожие chunks
+
+#### B. Visual layer
+
+Основан на symbol entities:
+- LLM извлекает символические сущности из сна
+- symbol entities становятся узлами карты
+- карта строится по ним, а не по chunk text
+
+#### C. Semantic overlay layer
+
+Основан на archetypes:
+- archetypes связываются с symbol entities
+- archetypes формируют фильтры и области
+- archetypes помогают читать карту как символическое поле
+
+---
+
+## 5. Data flow
+
+```text
+Пользователь сохраняет сон
+    ↓
+Raw dream сохраняется в БД
+    ↓
+Chunking
+    ↓
+Embeddings для chunk'ов
+    ↓
+LLM extraction:
+    - analysis_text
+    - title
+    - gradient
+    - archetypes_delta
+    - symbol_entities
+    ↓
+Persist:
+    - dream_chunks
+    - raw symbols
+    - symbol_entities
+    - dream_archetypes
+    ↓
+Map build:
+    - агрегировать symbol_entities по пользователю
+    - координаты symbol nodes считать по source chunks
+    - archetype filters строить по всем связанным archetypes
+    ↓
+Redis cache
+    ↓
+Flutter Dream Map
 ```
-Flutter-клиент
-     │
-     │  GET /api/v1/map/{user_id}
-     ▼
-FastAPI-бэкенд
-     │
-     ├─→ Redis: есть кеш? ──→ YES ──→ ответ за 50ms
-     │                │
-     │               NO
-     │                ▼
-     ├─→ БД: извлечь чанки и эмбеддинги пользователя
-     │                │
-     │                ▼
-     ├─→ UMAP: 1536D → 3D
-     │                │
-     │                ▼
-     ├─→ Нормализация:
-     │      x,y → карта [0, 1] × [0, 1]
-     │      z   → визуальная интенсивность
-     │                │
-     │                ▼
-     ├─→ Кластеризация и лейблы архетипов
-     │                │
-     │                ▼
-     ├─→ Расчёт 4-го измерения:
-     │      importance / weight → размер точки
-     │
-     │
-     └─→ Redis: сохранить кеш (TTL 1h)
-                      │
-                      ▼
-              JSON → Flutter → 2D-рендер с 4D-кодированием
+
+---
+
+## 6. LLM extraction — обязательное изменение
+
+### 6.1 Почему нужен LLM
+
+Новый embedding не решает проблему плохих символов.
+
+Embedding отвечает за:
+- расположение объектов в пространстве
+- семантическую близость
+
+Embedding не отвечает за:
+- извлечение юнгианской символики
+- превращение мусорного токена в осмысленный образ
+
+Следовательно:
+- extraction symbol entities должен делать LLM
+- retrieval/positioning может оставаться на embeddings
+
+### 6.2 Что должен возвращать LLM
+
+После анализа сна LLM должен возвращать не только raw symbols, но и **symbol_entities**.
+
+Минимальный JSON:
+
+```json
+{
+  "analysis_text": "...",
+  "title": "...",
+  "gradient": {
+    "color1": "#112233",
+    "color2": "#445566"
+  },
+  "archetypes_delta": {
+    "Тень": 1,
+    "Самость": 1
+  },
+  "symbol_entities": [
+    {
+      "canonical_name": "лес",
+      "display_label": "тёмный лес",
+      "entity_type": "place",
+      "weight": 0.92,
+      "source_chunk_indexes": [0, 2],
+      "related_archetypes": ["Тень"]
+    },
+    {
+      "canonical_name": "вода",
+      "display_label": "чёрная вода",
+      "entity_type": "symbol",
+      "weight": 0.88,
+      "source_chunk_indexes": [1],
+      "related_archetypes": ["Самость", "Тень"]
+    }
+  ]
+}
 ```
 
-### Слои системы
+### 6.3 Ограничения для LLM
 
-| Слой | Компонент | Технология |
-|---|---|---|
-| Memory DB | Чанки и эмбеддинги | PostgreSQL + существующая RAG-память |
-| Backend | API + математика | FastAPI + umap-learn |
-| Backend | Кластеризация | scikit-learn |
-| Cache | Кеш проекций | Redis |
-| Frontend | 2D-рендер | Flutter CustomPainter |
-| Frontend | Жесты и UI | Flutter GestureDetector + TransformationController |
+LLM должен соблюдать:
+- `display_label` = 1-3 слова
+- label должен быть человекочитаемым
+- label должен описывать образ
+- нельзя возвращать местоимения
+- нельзя возвращать служебные слова
+- нельзя возвращать случайные разговорные куски
+- нельзя подменять образ аналитическим выводом
+
+Плохие ответы:
+- `того`
+- `где`
+- `чуть`
+- `есть`
+- `находит`
+
+Хорошие ответы:
+- `старый дом`
+- `чёрная вода`
+- `тёмный лес`
+- `женская фигура`
+- `каменный мост`
 
 ---
 
-## 4. Backend — FastAPI
+## 7. Backend model
 
-### 4.1 Зависимости
+### 7.1 Dreams
 
-| Пакет | Назначение |
-|---|---|
-| fastapi | HTTP API |
-| numpy | Векторные операции |
-| umap-learn | Проекция 1536D → 3D |
-| scikit-learn | Кластеризация |
-| redis[asyncio] | Кеш |
-| pydantic v2 | Схемы |
+Обычная запись сна:
+- `id`
+- `user_id`
+- `title`
+- `content`
+- `analysis_text`
+- `created_at`
+- `updated_at`
+- `gradient_color_1`
+- `gradient_color_2`
+
+### 7.2 DreamChunks
+
+Внутренний retrieval layer:
+- `id`
+- `dream_id`
+- `user_id`
+- `chunk_index`
+- `text`
+- `embedding`
+- `created_at`
+- `metadata_json`
+
+Назначение:
+- semantic retrieval
+- source grounding
+- source for symbol positioning
+
+### 7.3 DreamSymbols
+
+Raw symbol layer:
+- `id`
+- `user_id`
+- `dream_id`
+- `chunk_id`
+- `symbol_name`
+- `weight`
+- `created_at`
+
+Назначение:
+- нормализованный словарь символов
+- overlap between chunks
+- базовый retrieval overlap
+
+### 7.4 DreamSymbolEntities
+
+Новая сущность для карты и человекочитаемого UI.
+
+Поля:
+- `id`
+- `user_id`
+- `dream_id`
+- `chunk_id` nullable
+- `canonical_name`
+- `display_label`
+- `entity_type`
+- `weight`
+- `created_at`
+
+Опционально:
+- `source_chunk_indexes`
+- `related_archetypes_json`
+
+Пример:
+- `canonical_name = вода`
+- `display_label = чёрная вода`
+- `entity_type = symbol`
+
+Назначение:
+- symbol nodes for Dream Map
+- readable detail sheets
+- связь между chunk memory и UI
+
+### 7.5 DreamArchetypes
+
+Связь архетипов со сном:
+- `id`
+- `user_id`
+- `dream_id`
+- `archetype_name`
+- `delta`
+- `created_at`
 
 ---
 
-### 4.2 API-эндпоинты
+## 8. API карты
 
-#### `GET /api/v1/map/{user_id}`
+### 8.1 `GET /api/v1/map/{user_id}`
 
-Основной эндпоинт. Возвращает узлы карты и агрегированные кластеры.
+Возвращает symbol map.
 
-**Query-параметры:**
+**Query params**
+- `n_neighbors`
+- `min_dist`
+- `cluster_method`
+- `force_refresh`
 
-| Параметр | Тип | По умолчанию | Описание |
-|---|---|---|---|
-| n_neighbors | int | 15 | Параметр UMAP |
-| min_dist | float | 0.08 | Параметр UMAP |
-| cluster_method | str | dbscan | Метод кластеризации |
-| force_refresh | bool | false | Игнорировать Redis-кеш |
+**Node**
+- `id`
+- `symbol_name`
+- `display_label`
+- `x`
+- `y`
+- `z`
+- `cluster_id`
+- `cluster_label`
+- `archetype_color`
+- `cosine_sim_to_center`
+- `size_weight`
+- `occurrence_count`
+- `dream_count`
+- `last_seen_at`
+- `preview_text`
+- `related_archetypes`
 
-**Структура узла:**
-- `id` — id чанка
-- `dream_id` — id сна
-- `x, y` — координаты на карте в диапазоне `[0, 1]`
-- `z` — третья компонента проекции в диапазоне `[-1, 1]`
-- `cluster_id` — id кластера
-- `cluster_label` — имя архетипа
-- `archetype_color` — цвет кластера
-- `cosine_sim_to_center` — типичность чанка для своего кластера
-- `size_weight` — нормализованный вес точки в диапазоне `[0, 1]`
-- `text_preview` — первые 80 символов
-- `date` — дата записи
-- `emotion_valence` — тон [-1.0 .. +1.0]
-- `tokens` — длина чанка
-
-**Структура кластера:**
+**Cluster**
 - `id`
 - `label`
 - `color`
 - `count`
-- `center: { x, y }`
+- `center`
 
-**Meta:**
-- `total_nodes`
-- `total_clusters`
-- `cached`
-- `computed_with`
-- `cluster_method`
-- `min_chunks_required`
+**Top-level**
+- `nodes`
+- `clusters`
+- `archetype_filters`
+- `meta`
 
----
+### 8.2 `GET /api/v1/map/{user_id}/symbol/{symbol_id}`
 
-#### `GET /api/v1/map/{user_id}/chunk/{chunk_id}`
+Возвращает детали symbol entity:
+- `symbol_name`
+- `display_label`
+- `primary_dream_id`
+- `cluster_label`
+- `occurrence_count`
+- `dream_count`
+- `last_seen_at`
+- `related_archetypes`
+- `related_symbols`
+- `occurrences`
 
-Возвращает:
-- полный текст чанка
-- мета-данные
-- ближайших соседей по косинусной близости
+### 8.3 `WebSocket /api/v1/map/{user_id}/stream`
 
-Используется при тапе на точку.
+Опциональный потоковый режим для больших карт.
 
----
-
-#### `WebSocket /api/v1/map/{user_id}/stream`
-
-Используется для больших наборов, например `200+` чанков.  
-Сервер отправляет карту батчами.
-
-Формат сообщений:
-
-```json
-{ "type": "batch", "batch": [...], "progress": 0.25, "total": 400 }
-{ "type": "complete", "clusters": [...], "meta": {...} }
-```
+Батчи должны передавать уже symbol nodes, а не chunks.
 
 ---
 
-### 4.3 Логика редукции
+## 9. Как строится карта
 
-```
-Шаг 1. Извлечь чанки и их эмбеддинги
-Шаг 2. Построить матрицу (N × 1536)
-Шаг 3. UMAP: 1536D → 3D
-Шаг 4. Нормализовать:
-        x,y → [0, 1]
-        z   → [-1, 1]
-Шаг 5. Выполнить кластеризацию
-Шаг 6. Рассчитать size_weight как 4-е измерение
-Шаг 7. Назначить архетипические лейблы
-Шаг 8. Сохранить результат в Redis
-```
+### 9.1 Координаты
 
-**Важно:**  
-мы больше не пытаемся “натянуть” пространство на сферу.  
-Карта остаётся плоской, но сохраняет больше информации:
-- `x, y` — позиция
-- `z` — интенсивность цвета
-- `size_weight` — размер точки
+Координаты symbol entity вычисляются по source chunks:
+- берутся embeddings связанных chunk'ов
+- агрегируются в один symbol embedding
+- затем выполняется редукция `1536D -> 3D`
+- `x, y` идут в карту
+- `z` используется как интенсивность цвета
 
----
+### 9.2 Размер
 
-### 4.4 Циклическое пространство
+Размер symbol node:
+- зависит от `weight`
+- частоты появления
+- или `dream_count / occurrence_count`
 
-Карта должна поддерживать бесшовную прокрутку:
-- вышел вправо → продолжаешь видеть карту слева
-- вышел вниз → продолжаешь видеть карту сверху
+### 9.3 Цвет
 
-На backend это означает:
-- координаты нормализованы в `[0, 1]`
-- клиент интерпретирует их как повторяющееся тороидальное пространство
+Цвет symbol node:
+- зависит от `z`
+- может модифицироваться archetype color
 
-Backend ничего “бесконечного” не хранит.  
-Он хранит только одну нормализованную плитку карты.  
-Повторение реализуется на клиенте.
+### 9.4 Chunk layer остаётся скрытым
+
+Chunks:
+- не отображаются напрямую на карте
+- используются как grounding
+- используются в detail/debug
+- используются для вычисления символического слоя
 
 ---
 
-### 4.5 Кеширование
+## 10. Archetype filters
 
-Redis хранит готовую 2D-проекцию.
+### 10.1 Главное правило
 
-**Ключ кеша:**  
-`user_id + hash(umap params + cluster params)`
+Фильтры не должны строиться только по доминирующему cluster label.
 
-**TTL:** `1 час`
+Это ошибка, потому что:
+- тогда пользователь видит только один архетип
+- карта теряет многослойность
+- symbol entities с несколькими archetypes становятся невидимыми как сложные объекты
 
-**Инвалидация:**
-- при добавлении нового сна
-- при пересчёте памяти чанков
-- при принудительном `force_refresh=true`
+### 10.2 Правильная логика
+
+`archetype_filters` должны содержать **полный набор archetypes**, реально связанных с symbol entities пользователя.
+
+То есть:
+- backend собирает union всех `related_archetypes` по nodes
+- frontend показывает этот список как chips/filters
+
+### 10.3 Поведение фильтра
+
+Если выбран архетип `Тень`:
+- на карте остаются все symbol entities,
+- у которых `related_archetypes` содержит `Тень`
+
+Важно:
+- `cluster_label` и `archetype_filter` — разные сущности
+- `cluster_label` описывает область
+- `archetype_filter` фильтрует всю карту по semantic relation
 
 ---
 
-### 4.6 Маппинг архетипов
+## 11. Frontend
 
-После кластеризации каждому кластеру даётся человекочитаемое имя.
-
-Источники:
-1. уже существующие `dream_archetypes`
-2. частотные символы чанков
-3. fallback-лейбл, если явный архетип не найден
-
-LLM для naming кластеров в MVP не обязателен.
-
----
-
-## 5. Frontend — Flutter
-
-### 5.1 Основной экран
-
-Новая вкладка footer `Map` открывает экран:
+### 11.1 Экран
 
 `DreamMapScreen`
 
 Состав:
+- `MapHud`
+- `ArchetypeFilterBar`
+- `DreamMapViewport`
+- `SymbolDetailSheet`
 
-```
-DreamMapScreen
-  ├── DreamMapViewport
-  │     ├── CustomPainter: background grid / soft regions
-  │     ├── CustomPainter: cluster halos
-  │     ├── CustomPainter: chunk nodes
-  │     └── CustomPainter: selection glow
-  │
-  ├── ClusterFilterBar
-  ├── MapHud
-  │     ├── reset view
-  │     ├── current zoom
-  │     └── total nodes
-  │
-  └── ChunkDetailSheet
-```
+### 11.2 Поведение
 
----
+Жесты:
+- drag
+- pinch zoom
+- tap on symbol node
+- tap outside to dismiss selection
 
-### 5.2 Поведение карты
+### 11.3 Бесшовная карта
 
-#### Базовые жесты
+Карта должна быть тороидальной:
+- вышел вправо → продолжаешь слева
+- вышел вверх → продолжаешь снизу
 
-| Жест | Поведение |
-|---|---|
-| Drag | сдвиг карты |
-| Pinch | zoom |
-| Double tap | приблизить |
-| Tap on node | выбрать чанк |
-| Tap outside | снять выбор |
+Клиент рендерит:
+- центральную плитку
+- соседние 8 копий
 
-#### Циклическая прокрутка
+Backend хранит только одну плитку `[0..1] × [0..1]`.
 
-Карта должна быть бесшовной:
-- при панорамировании узлы повторяются тайлами
-- viewport всегда рисует центральную плитку и её соседей
-- визуально карта ощущается бесконечной
+### 11.4 Ручное обновление
 
-Это достигается так:
-- у нас есть базовая плитка `[0..1] × [0..1]`
-- при рендере рисуются копии со смещением:
-  - `(-1, -1)`, `(0, -1)`, `(1, -1)`
-  - `(-1, 0)`,  `(0, 0)`,  `(1, 0)`
-  - `(-1, 1)`,  `(0, 1)`,  `(1, 1)`
-- выбирается ближайшая к viewport копия каждой точки
+Карта не обязана пересчитываться автоматически при каждом открытии.
+
+Правильный UX:
+- по умолчанию показывается последняя готовая версия карты
+- пользователь видит кнопку `Обновить`
+- при ручном обновлении карта сообщает, что идёт пересчёт
+- пока пересчёт идёт, можно продолжать показывать предыдущую версию
 
 ---
 
-### 5.3 Рендер
+## 12. Detail sheet
 
-#### Что рисуем
+При tap на symbol node открывается detail sheet:
+- `display_label`
+- canonical symbol
+- последнее появление
+- количество вхождений
+- количество снов
+- связанные archetypes
+- связанные symbols
+- список последних снов/фрагментов
+- CTA `Открыть сон`
 
-1. фоновый мягкий grid / contour-layer
-2. cluster halos
-3. точки-чанки
-4. glow выбранной точки
-
-#### Визуальные правила
-
-- ближе к центру экрана ничего не “важнее”; это не 3D
-- размер точки зависит только от `size_weight`
-- zoom не меняет смысловой размер, только масштабирует весь viewport
-- `z` влияет не на положение, а на интенсивность цвета
-- невыбранные чужие кластеры при фильтре fade до `8–12%`
-
-#### Кодирование измерений
-
-| Измерение | Канал |
-|---|---|
-| `x` | горизонтальная координата |
-| `y` | вертикальная координата |
-| `z` | интенсивность цвета от neutral к accent |
-| `size_weight` | размер точки |
-
-#### Правило для `z`
-
-`z` не влияет на геометрию карты. Он влияет только на цвет:
-- `z = -1` → почти neutral / black-white в контексте текущей темы
-- `z = 0` → умеренно окрашенная точка
-- `z = +1` → максимально близко к `accentColor`
-
-То есть карта остаётся плоской, но третья компонента не теряется.
-
-#### Правило для `size_weight`
-
-Размер точки — отдельный смысловой канал.
-
-Варианты вычисления:
-1. `cosine_sim_to_center`
-2. локальная плотность кластера
-3. важность чанка по длине / повторяемости символов
-
-Для MVP рекомендуется:
-- `size_weight = normalized(cosine_sim_to_center)`
-
-Это даёт 4D-кодирование без перегрузки layout:
-- положение
-- цвет
-- размер
-- кластер
+Detail sheet не должен показывать бессмысленный raw token как главный заголовок.
 
 ---
 
-### 5.4 Hit-testing
+## 13. Нефункциональные требования
 
-Тап определяется по расстоянию в экранных координатах.
+### 13.1 Кеш
 
-```text
-Пользователь тапает
-  ↓
-Берём все видимые точки
-  ↓
-Находим ближайшую по distance(screenPos, tap)
-  ↓
-Если distance <= hitRadius → точка выбрана
-```
+Redis cache обязателен.
 
-`hitRadius` должен быть больше визуального радиуса точки: `16–20 px`.
+Важно:
+- при изменении схемы map response нужно менять cache version/prefix
+- иначе старый cache может стать несовместимым с новой pydantic schema
 
----
+Рекомендуется:
+- versioned cache key, например `dream-map:v2`
 
-### 5.5 Состояние
+### 13.2 Производительность
 
-Если в проекте остаётся Provider, то нужны примерно такие сущности:
+Цели:
+- cached map response < 50 ms
+- cold rebuild для разумного числа nodes < 2.5 s
+- pan/zoom должен быть плавным на реальном устройстве
 
-| Provider | Ответственность |
-|---|---|
-| mapProvider | загрузка карты |
-| mapViewportProvider | pan/zoom/offset |
-| mapSelectionProvider | выбранный чанк |
-| mapFilterProvider | активный архетип |
-| mapChunkDetailProvider | детали чанка |
+### 13.3 Идемпотентность
+
+Повторный processing pipeline:
+- не должен дублировать symbol entities
+- не должен дублировать archetype links
 
 ---
 
-## 6. Модели данных
+## 14. Этапы реализации
 
-### ChunkMapNode
+### Этап 1
 
-```text
-ChunkMapNode
-  ├── id: string
-  ├── dreamId: string
-  ├── x: float [0, 1]
-  ├── y: float [0, 1]
-  ├── z: float [-1, 1]
-  ├── clusterId: int
-  ├── clusterLabel: string
-  ├── color: Color
-  ├── colorMix: float [0, 1]
-  ├── sizeWeight: float [0, 1]
-  ├── cosineSimToCenter: float
-  ├── textPreview: string
-  ├── date: DateTime
-  ├── emotionValence: float
-  └── tokens: int
-```
+Hotfix / стабилизация:
+- versioned map cache
+- полные archetype filters
+- убрать raw-token мусор из current map response
 
-### Runtime поля
+### Этап 2
 
-```text
-ChunkMapNodeRuntime
-  ├── screenPos: Offset
-  ├── wrappedVariants: List<Offset>
-  ├── visible: bool
-  ├── renderedColor: Color
-  ├── renderedRadius: float
-  └── hitRadius: float
-```
+Новый structured output LLM:
+- добавить `symbol_entities`
+- задать жёсткие правила качества label'ов
 
----
+### Этап 3
 
-## 7. Пользовательские сценарии
+Persistence:
+- таблица / storage для `DreamSymbolEntities`
+- связь с chunks и dreams
 
-| # | Сценарий | Поведение |
-|---|---|---|
-| US-1 | Первый вход | карта загружается и мягко появляется |
-| US-2 | Tap on node | открывается detail sheet чанка |
-| US-3 | Tap on “open dream” | переход в чат конкретного сна |
-| US-4 | Filter archetype | остаются только точки нужной зоны |
-| US-5 | Pan beyond edge | карта бесшовно продолжается |
-| US-6 | Pinch zoom | приближение/отдаление |
-| US-7 | Меньше 5 чанков | заглушка “Добавьте ещё N снов для активации карты” |
+### Этап 4
+
+Symbol map:
+- backend map projection строится уже по persisted symbol entities
+- detail sheet полностью основан на symbol entities
+
+### Этап 5
+
+Polish:
+- archetype regions
+- better halos
+- heatmaps
+- compare periods
 
 ---
 
-## 8. Нефункциональные требования
+## 15. Acceptance criteria
 
-| Метрика | Цель |
-|---|---|
-| Cached API response | < 50 ms |
-| Cold API response, N=100 | < 2.5 сек |
-| FPS при pan/zoom, N=500 | ≥ 55 FPS |
-| FPS при N=1000 | ≥ 40 FPS |
-| hit-testing | корректный на реальном девайсе |
-| память клиента | < 100 MB |
+Dream Map считается реализованной по новой концепции, если:
 
----
-
-## 9. Этапы разработки
-
-| Этап | Задачи | Результат |
-|---|---|---|
-| 1 | Backend `/map` + 3D UMAP + Redis кеш | рабочий API |
-| 2 | Client models + service + provider | загрузка карты |
-| 3 | CustomPainter + pan/zoom + color/size encoding | рабочий viewport |
-| 4 | Wrap-around rendering | бесшовная карта |
-| 5 | Chunk detail sheet + open dream | связка с журналом |
-| 6 | Фильтры архетипов + polish | production-ready MVP |
+1. Карта отображает symbol entities, а не сырые chunk text.
+2. На карте не появляются бессмысленные токены вроде `того`, `где`, `чуть`, `сон`.
+3. Каждый node карты имеет человекочитаемый label в 1-3 слова.
+4. Координаты symbol nodes строятся на основе source chunks.
+5. Chunk layer остаётся retrieval foundation, но не является главным visual layer.
+6. В фильтрах отображается полный набор archetypes из map data.
+7. Фильтр по archetype работает по `related_archetypes`, а не только по `cluster_label`.
+8. Карта поддерживает бесшовную циклическую прокрутку.
+9. Пользователь может вручную обновить карту и понимает, что именно обновляется.
+10. Detail sheet symbol node позволяет перейти к связанному сну.
 
 ---
 
-## 10. Открытые решения
+## 16. Итоговое решение
 
-### Почему 2D, а не 3D
-
-Потому что 2D:
-- легче рендерится
-- легче масштабируется
-- легче читается
-- лучше соответствует метафоре карты
-
-### Надо ли хранить torus на backend
-
-Нет.  
-Backend возвращает одну плитку `[0,1] × [0,1]`.  
-Циклическое пространство — чисто клиентская логика рендера.
-
-### Нужно ли делать “реальные географические зоны”
-
-Нет.  
-Это не география, а семантическое поле.  
-Визуально можно добавлять туманные области, contour noise и cluster halos, но координаты остаются математической проекцией.
-
----
-
-## 11. Итоговое решение
-
-Вместо Dream Sphere внедряется **Dream Map**:
-- плоская
-- визуально 2D
+Dream Map — это:
+- плоская 2D-карта
 - бесшовная
-- интерактивная
-- основанная на существующей RAG-памяти чанков
-- с 4D-кодированием данных:
-  - `x,y` — позиция
-  - `z` — интенсивность цвета
-  - `size_weight` — размер точки
+- построенная на существующей chunk-based RAG памяти
+- но визуально отображающая **symbol entities**
+- с archetypes как отдельным полным semantic filter layer
 
-Это даёт:
-- меньше технического риска
-- лучший UX
-- более понятный продуктовый смысл
-- хорошую основу для будущих механик:
-  - heatmap повторяющихся тем
-  - temporal trails
-  - zoom into archetype zone
-  - сравнение периодов жизни
+Формула системы:
+
+- `chunks` = retrieval foundation
+- `symbol_entities` = visual language of the map
+- `archetypes` = semantic structure and filters
+
+Это и есть целевой продуктовый вид Dream Map.

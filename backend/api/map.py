@@ -11,11 +11,11 @@ from sqlalchemy import select
 from database import AsyncSessionLocal
 from dependencies import CurrentUser, DatabaseSession, verify_token
 from models import User
-from schemas.map import DreamMapChunkDetailResponse, DreamMapResponse
+from schemas.map import DreamMapResponse, DreamMapSymbolDetailResponse
 from services.map_service import (
     DEFAULT_STREAM_BATCH_SIZE,
     get_dream_map,
-    get_map_chunk_detail,
+    get_map_symbol_detail,
     stream_dream_map,
 )
 
@@ -51,19 +51,19 @@ async def get_dream_map_endpoint(
     )
 
 
-@router.get("/{user_id}/chunk/{chunk_id}", response_model=DreamMapChunkDetailResponse)
-async def get_dream_map_chunk_detail_endpoint(
+@router.get("/{user_id}/symbol/{symbol_id}", response_model=DreamMapSymbolDetailResponse)
+async def get_dream_map_symbol_detail_endpoint(
     user_id: UUID,
-    chunk_id: UUID,
+    symbol_id: str,
     current_user: CurrentUser,
     db: DatabaseSession,
 ):
     _ensure_same_user(user_id, current_user.id)
-    detail = await get_map_chunk_detail(db, user_id=user_id, chunk_id=chunk_id)
+    detail = await get_map_symbol_detail(db, user_id=user_id, symbol_id=symbol_id)
     if detail is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Map chunk not found",
+            detail="Map symbol not found",
         )
     return detail
 

@@ -75,11 +75,13 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
     TapUpDetails details,
     Size size,
     List<DreamMapNode> nodes,
+    Offset clampedPan,
   ) async {
     final hit = _hitTest(
       tapPosition: details.localPosition,
       size: size,
       nodes: nodes,
+      pan: clampedPan,
     );
     if (hit == null) {
       context.read<DreamMapProvider>().clearSelection();
@@ -101,7 +103,7 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
         accentColor: widget.accentColor,
         onOpenDream: () async {
           Navigator.of(context).pop();
-          await widget.onOpenDream(detail.dreamId);
+          await widget.onOpenDream(detail.primaryDreamId);
         },
       ),
     );
@@ -111,28 +113,25 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
     required Offset tapPosition,
     required Size size,
     required List<DreamMapNode> nodes,
+    required Offset pan,
   }) {
     final base = math.min(size.width, size.height) * 0.78;
     final tile = base * _zoom;
-    final origin = _mapOrigin(size, tile, _pan);
+    final origin = _mapOrigin(size, tile, pan);
 
     DreamMapNode? best;
     double bestDistance = 24;
     for (final node in nodes) {
       final radius = _nodeRadius(node);
-      for (final dx in const [-1.0, 0.0, 1.0]) {
-        for (final dy in const [-1.0, 0.0, 1.0]) {
-          final point = Offset(
-            origin.dx + (node.x + dx) * tile,
-            origin.dy + (node.y + dy) * tile,
-          );
-          final distance = (point - tapPosition).distance;
-          final hitRadius = math.max(18, radius + 10);
-          if (distance <= hitRadius && distance < bestDistance) {
-            best = node;
-            bestDistance = distance;
-          }
-        }
+      final point = Offset(
+        origin.dx + node.x * tile,
+        origin.dy + node.y * tile,
+      );
+      final distance = (point - tapPosition).distance;
+      final hitRadius = math.max(18, radius + 10);
+      if (distance <= hitRadius && distance < bestDistance) {
+        best = node;
+        bestDistance = distance;
       }
     }
     return best;
@@ -141,21 +140,16 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
   double _nodeRadius(DreamMapNode node) => 4 + (node.sizeWeight * 8);
 
   Offset _mapOrigin(Size size, double tile, Offset pan) {
-    final wrappedPan = _wrapPan(pan, tile);
-    return Offset((size.width - tile) / 2, (size.height - tile) / 2) +
-        wrappedPan;
+    return Offset((size.width - tile) / 2, (size.height - tile) / 2) + pan;
   }
 
-  Offset _wrapPan(Offset pan, double tile) {
-    if (tile <= 0) return pan;
-    return Offset(_wrapAxis(pan.dx, tile), _wrapAxis(pan.dy, tile));
-  }
-
-  double _wrapAxis(double value, double tile) {
-    final wrapped = value % tile;
-    if (wrapped > tile / 2) return wrapped - tile;
-    if (wrapped < -tile / 2) return wrapped + tile;
-    return wrapped;
+  Offset _clampPan(Offset pan, Size size, double tile) {
+    final limitX = math.max(0.0, (tile - size.width) / 2 + 28);
+    final limitY = math.max(0.0, (tile - size.height) / 2 + 28);
+    return Offset(
+      pan.dx.clamp(-limitX, limitX).toDouble(),
+      pan.dy.clamp(-limitY, limitY).toDouble(),
+    );
   }
 
   @override
@@ -173,17 +167,18 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
         if (provider.loading && map == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (map == null || map.meta.totalNodes < map.meta.minChunksRequired) {
+        if (map == null || map.meta.totalNodes < map.meta.minNodesRequired) {
           final current = map?.meta.totalNodes ?? 0;
           final missing = math.max(
             0,
-            (map?.meta.minChunksRequired ?? 5) - current,
+            (map?.meta.minNodesRequired ?? 5) - current,
           );
           return _MapEmptyState(missingCount: missing);
         }
 
         final visibleNodes = provider.visibleNodes;
         final clusters = map.clusters;
+        final archetypeFilters = map.archetypeFilters;
 
         return Column(
           children: [
@@ -198,8 +193,10 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
                   const Spacer(),
                   TextButton(onPressed: _resetView, child: const Text('Reset')),
                   TextButton(
-                    onPressed: () => provider.load(forceRefresh: true),
-                    child: const Text('Refresh'),
+                    onPressed: provider.refreshing
+                        ? null
+                        : () => provider.load(forceRefresh: true),
+                    child: const Text('Обновить'),
                   ),
                 ],
               ),
@@ -214,20 +211,20 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
                       label: const Text('All'),
-                      selected: provider.selectedCluster == null,
-                      onSelected: (_) => provider.setClusterFilter(null),
+                      selected: provider.selectedArchetype == null,
+                      onSelected: (_) => provider.setArchetypeFilter(null),
                     ),
                   ),
-                  ...clusters.map(
-                    (cluster) => Padding(
+                  ...archetypeFilters.map(
+                    (archetype) => Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: ChoiceChip(
-                        label: Text(cluster.label),
-                        selected: provider.selectedCluster == cluster.label,
-                        onSelected: (_) => provider.setClusterFilter(
-                          provider.selectedCluster == cluster.label
+                        label: Text(archetype),
+                        selected: provider.selectedArchetype == archetype,
+                        onSelected: (_) => provider.setArchetypeFilter(
+                          provider.selectedArchetype == archetype
                               ? null
-                              : cluster.label,
+                              : archetype,
                         ),
                       ),
                     ),
@@ -244,6 +241,15 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
                   _MapHudPill(label: 'zoom ${_zoom.toStringAsFixed(2)}x'),
                   const SizedBox(width: 8),
                   _MapHudPill(label: map.meta.cached ? 'cached' : 'live'),
+                  if (provider.refreshing) ...[
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: _MapHudPill(
+                        label:
+                            'Карта обновляется. Пока показываем предыдущую версию.',
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -254,20 +260,20 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
                     constraints.maxWidth,
                     constraints.maxHeight,
                   );
+                  final tile =
+                      math.min(size.width, size.height) * 0.78 * _zoom;
+                  final clampedPan = _clampPan(_pan, size, tile);
                   return GestureDetector(
                     onScaleStart: _handleScaleStart,
                     onScaleUpdate: _handleScaleUpdate,
                     onScaleEnd: _handleScaleEnd,
                     onTapUp: (details) =>
-                        _handleTapUp(details, size, visibleNodes),
+                        _handleTapUp(details, size, visibleNodes, clampedPan),
                     child: CustomPaint(
                       painter: _DreamMapPainter(
                         nodes: visibleNodes,
                         clusters: clusters,
-                        pan: _wrapPan(
-                          _pan,
-                          math.min(size.width, size.height) * 0.78 * _zoom,
-                        ),
+                        pan: clampedPan,
                         zoom: _zoom,
                         accentColor: widget.accentColor,
                         brightness: Theme.of(context).brightness,
@@ -338,30 +344,26 @@ class _DreamMapPainter extends CustomPainter {
       ..color = (brightness == Brightness.dark ? Colors.white : Colors.black)
           .withOpacity(0.06)
       ..strokeWidth = 1;
-    const repeats = [-1.0, 0.0, 1.0];
-    for (final dx in repeats) {
-      for (final dy in repeats) {
-        final rect = Rect.fromLTWH(
-          origin.dx + dx * tile,
-          origin.dy + dy * tile,
-          tile,
-          tile,
-        );
-        for (var i = 0; i <= 8; i++) {
-          final t = i / 8;
-          canvas.drawLine(
-            Offset(rect.left + t * rect.width, rect.top),
-            Offset(rect.left + t * rect.width, rect.bottom),
-            gridPaint,
-          );
-          canvas.drawLine(
-            Offset(rect.left, rect.top + t * rect.height),
-            Offset(rect.right, rect.top + t * rect.height),
-            gridPaint,
-          );
-        }
-      }
+    final rect = Rect.fromLTWH(origin.dx, origin.dy, tile, tile);
+    for (var i = 0; i <= 8; i++) {
+      final t = i / 8;
+      canvas.drawLine(
+        Offset(rect.left + t * rect.width, rect.top),
+        Offset(rect.left + t * rect.width, rect.bottom),
+        gridPaint,
+      );
+      canvas.drawLine(
+        Offset(rect.left, rect.top + t * rect.height),
+        Offset(rect.right, rect.top + t * rect.height),
+        gridPaint,
+      );
     }
+    final borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = (brightness == Brightness.dark ? Colors.white : Colors.black)
+          .withOpacity(0.18);
+    canvas.drawRect(rect, borderPaint);
   }
 
   void _paintClusterHalos(Canvas canvas, Offset origin, double tile) {
@@ -370,15 +372,11 @@ class _DreamMapPainter extends CustomPainter {
       final haloPaint = Paint()
         ..color = baseColor.withOpacity(0.07)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 28);
-      for (final dx in const [-1.0, 0.0, 1.0]) {
-        for (final dy in const [-1.0, 0.0, 1.0]) {
-          final center = Offset(
-            origin.dx + (cluster.x + dx) * tile,
-            origin.dy + (cluster.y + dy) * tile,
-          );
-          canvas.drawCircle(center, 44 * zoom.clamp(0.8, 1.5), haloPaint);
-        }
-      }
+      final center = Offset(
+        origin.dx + cluster.x * tile,
+        origin.dy + cluster.y * tile,
+      );
+      canvas.drawCircle(center, 44 * zoom.clamp(0.8, 1.5), haloPaint);
     }
   }
 
@@ -400,16 +398,12 @@ class _DreamMapPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
       final radius = 4 + (node.sizeWeight * 8);
 
-      for (final dx in const [-1.0, 0.0, 1.0]) {
-        for (final dy in const [-1.0, 0.0, 1.0]) {
-          final point = Offset(
-            origin.dx + (node.x + dx) * tile,
-            origin.dy + (node.y + dy) * tile,
-          );
-          canvas.drawCircle(point, radius + 2, glowPaint);
-          canvas.drawCircle(point, radius, paint);
-        }
-      }
+      final point = Offset(
+        origin.dx + node.x * tile,
+        origin.dy + node.y * tile,
+      );
+      canvas.drawCircle(point, radius + 2, glowPaint);
+      canvas.drawCircle(point, radius, paint);
     }
   }
 
@@ -441,86 +435,77 @@ class _DreamMapPainter extends CustomPainter {
       final label = _labelForNode(node);
       if (label.isEmpty) continue;
 
-      for (final dx in const [-1.0, 0.0, 1.0]) {
-        for (final dy in const [-1.0, 0.0, 1.0]) {
-          final point = Offset(
-            origin.dx + (node.x + dx) * tile,
-            origin.dy + (node.y + dy) * tile,
-          );
-          if (!visibleBounds.inflate(48).contains(point)) continue;
+      final point = Offset(
+        origin.dx + node.x * tile,
+        origin.dy + node.y * tile,
+      );
+      if (!visibleBounds.inflate(48).contains(point)) continue;
 
-          final cellKey =
-              '${(point.dx / cellSize).floor()}:${(point.dy / cellSize).floor()}';
-          if (occupiedCells.contains(cellKey)) continue;
+      final cellKey =
+          '${(point.dx / cellSize).floor()}:${(point.dy / cellSize).floor()}';
+      if (occupiedCells.contains(cellKey)) continue;
 
-          final textPainter = TextPainter(
-            text: TextSpan(
-              text: label,
-              style: TextStyle(
-                color: neutralText,
-                fontSize: zoom >= 1.9 ? 12 : 11,
-                fontWeight: FontWeight.w500,
-                height: 1.15,
-              ),
-            ),
-            maxLines: 2,
-            ellipsis: '…',
-            textDirection: TextDirection.ltr,
-          )..layout(maxWidth: zoom >= 1.9 ? 110 : 92);
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: neutralText,
+            fontSize: zoom >= 1.9 ? 12 : 11,
+            fontWeight: FontWeight.w500,
+            height: 1.15,
+          ),
+        ),
+        maxLines: 2,
+        ellipsis: '…',
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: zoom >= 1.9 ? 110 : 92);
 
-          final padding = const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 5,
-          );
-          final labelSize = Size(
-            textPainter.width + padding.horizontal,
-            textPainter.height + padding.vertical,
-          );
-          var topLeft = Offset(
-            point.dx - (labelSize.width / 2),
-            point.dy - 18 - labelSize.height,
-          );
-          if (topLeft.dx < 8) topLeft = Offset(8, topLeft.dy);
-          if (topLeft.dx + labelSize.width > size.width - 8) {
-            topLeft = Offset(size.width - 8 - labelSize.width, topLeft.dy);
-          }
-          if (topLeft.dy < 8) {
-            topLeft = Offset(topLeft.dx, point.dy + 14);
-          }
-
-          final rect = RRect.fromRectAndRadius(
-            topLeft & labelSize,
-            const Radius.circular(12),
-          );
-          final fill = Paint()
-            ..color = backgroundBase.withOpacity(
-              brightness == Brightness.dark ? 0.78 : 0.86,
-            );
-          final stroke = Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1
-            ..color = accentColor.withOpacity(0.18);
-          canvas.drawRRect(rect, fill);
-          canvas.drawRRect(rect, stroke);
-          textPainter.paint(
-            canvas,
-            topLeft + Offset(padding.left, padding.top - 0.5),
-          );
-          occupiedCells.add(cellKey);
-        }
+      final padding = const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 5,
+      );
+      final labelSize = Size(
+        textPainter.width + padding.horizontal,
+        textPainter.height + padding.vertical,
+      );
+      var topLeft = Offset(
+        point.dx - (labelSize.width / 2),
+        point.dy - 18 - labelSize.height,
+      );
+      if (topLeft.dx < 8) topLeft = Offset(8, topLeft.dy);
+      if (topLeft.dx + labelSize.width > size.width - 8) {
+        topLeft = Offset(size.width - 8 - labelSize.width, topLeft.dy);
       }
+      if (topLeft.dy < 8) {
+        topLeft = Offset(topLeft.dx, point.dy + 14);
+      }
+
+      final rect = RRect.fromRectAndRadius(
+        topLeft & labelSize,
+        const Radius.circular(12),
+      );
+      final fill = Paint()
+        ..color = backgroundBase.withOpacity(
+          brightness == Brightness.dark ? 0.78 : 0.86,
+        );
+      final stroke = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = accentColor.withOpacity(0.18);
+      canvas.drawRRect(rect, fill);
+      canvas.drawRRect(rect, stroke);
+      textPainter.paint(
+        canvas,
+        topLeft + Offset(padding.left, padding.top - 0.5),
+      );
+      occupiedCells.add(cellKey);
     }
   }
 
   String _labelForNode(DreamMapNode node) {
-    final words = node.textPreview
-        .replaceAll(RegExp(r'[^\p{L}\p{N}\s-]', unicode: true), ' ')
-        .split(RegExp(r'\s+'))
-        .map((word) => word.trim())
-        .where((word) => word.length > 2)
-        .take(3)
-        .toList();
-    return words.join(' ');
+    return node.displayLabel.trim().isEmpty
+        ? node.symbolName
+        : node.displayLabel.trim();
   }
 
   Color? _parseHexColor(String? value) {
@@ -598,7 +583,7 @@ class _MapDetailSheet extends StatelessWidget {
     required this.onOpenDream,
   });
 
-  final DreamMapChunkDetail detail;
+  final DreamMapSymbolDetail detail;
   final Color accentColor;
   final Future<void> Function() onOpenDream;
 
@@ -629,33 +614,99 @@ class _MapDetailSheet extends StatelessWidget {
               ),
             ),
             Text(
-              detail.clusterLabel,
+              detail.displayLabel,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(color: accentColor),
             ),
             const SizedBox(height: 6),
             Text(
-              _formatDate(detail.date),
+              'Символ: ${detail.symbolName}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Последнее появление: ${_formatDate(detail.lastSeenAt)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 14),
-            Text(detail.text),
-            if (detail.neighbors.isNotEmpty) ...[
+            Text(
+              '${detail.occurrenceCount} вхождений в ${detail.dreamCount} снах',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            if (detail.relatedArchetypes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Архетипы', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: detail.relatedArchetypes
+                    .map(
+                      (item) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accentColor.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          item,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+            if (detail.relatedSymbols.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Ближайшие чанки',
+                'Связанные символы',
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
-              ...detail.neighbors
-                  .take(3)
+              ...detail.relatedSymbols
+                  .take(5)
                   .map(
-                    (neighbor) => Padding(
+                    (symbol) => Padding(
                       padding: const EdgeInsets.only(bottom: 6),
                       child: Text(
-                        '• ${neighbor.textPreview}',
+                        '• $symbol',
                         style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+            ],
+            if (detail.occurrences.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Где встречается',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              ...detail.occurrences
+                  .take(4)
+                  .map(
+                    (occurrence) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _formatDate(occurrence.date),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(color: accentColor),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            occurrence.textPreview,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -669,7 +720,7 @@ class _MapDetailSheet extends StatelessWidget {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: onOpenDream,
-                child: const Text('Открыть сон'),
+                child: const Text('Открыть последний сон'),
               ),
             ),
           ],

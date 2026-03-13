@@ -162,6 +162,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                         dream=dream,
                         user_id=user.id,
                         archetypes_delta=payload.archetypes_delta,
+                        symbol_entities=[item.model_dump() for item in payload.symbol_entities],
                     )
                     await db.commit()
                     await invalidate_user_map_cache(user.id)

@@ -72,3 +72,35 @@ async def test_analyze_dream_truncates_user_description(monkeypatch):
 
     assert result.analysis_text == "ok"
     assert captured[0]["user_description"] == "x" * 1000
+
+
+@pytest.mark.asyncio
+async def test_analyze_dream_structured_parses_symbol_entities(monkeypatch):
+    request = httpx.Request("POST", "http://llm.test/analyze")
+    response = httpx.Response(
+        200,
+        request=request,
+        json={
+            "analysis_text": "ok",
+            "symbol_entities": [
+                {
+                    "canonical_name": "лес",
+                    "display_label": "темный лес",
+                    "entity_type": "place",
+                    "weight": 0.9,
+                    "source_chunk_indexes": [0, 2],
+                    "related_archetypes": ["Тень"],
+                }
+            ],
+        },
+    )
+    monkeypatch.setattr(
+        "llm_client.httpx.AsyncClient",
+        lambda timeout: FakeAsyncClient(response=response),
+    )
+
+    client = LLMClient(base_url="http://llm.test")
+    result = await client.analyze_dream_structured("dream text long enough")
+
+    assert len(result.symbol_entities) == 1
+    assert result.symbol_entities[0].display_label == "темный лес"

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
@@ -43,6 +44,7 @@ class AnalyzeResponse(BaseModel):
     title: str | None = Field(None, max_length=64, description="Короткий заголовок сна")
     gradient: dict | None = Field(None, description="Цвета градиента: color1, color2")
     archetypes_delta: dict[str, int] = Field(default_factory=dict, description="Дельта архетипов")
+    symbol_entities: list[dict] = Field(default_factory=list, description="Список symbol entities")
 
 
 class ChatMessage(BaseModel):
@@ -143,12 +145,14 @@ async def analyze_dream(request: AnalyzeRequest):
 
         if not payload.get("analysis_text"):
             payload["analysis_text"] = result
+        payload["symbol_entities"] = _normalize_symbol_entities(payload.get("symbol_entities"))
 
         logger.info(
-            "Successfully analyzed dream: text=%s title=%s archetypes=%s",
+            "Successfully analyzed dream: text=%s title=%s archetypes=%s symbol_entities=%s",
             len(payload["analysis_text"]),
             bool(payload.get("title")),
             len(payload.get("archetypes_delta", {})),
+            len(payload.get("symbol_entities", [])),
         )
 
         return payload
@@ -236,3 +240,106 @@ def _extract_json(raw: str) -> dict | None:
         return obj if isinstance(obj, dict) else None
     except Exception:
         return None
+
+
+_ENTITY_WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё-]{3,}", re.UNICODE)
+_ENTITY_STOPWORDS = {
+    "того", "где", "чуть", "есть", "находит", "находить", "следующий", "следующая", "следующее",
+    "типа", "кстати", "потом", "вроде", "сон", "сны", "сна", "сне", "это", "как", "что",
+    "когда", "или", "для", "there", "then", "where", "what", "this", "that", "dream",
+    "людей", "люди", "человек", "компании", "компания", "каких", "какой", "какая", "какие",
+    "возможно", "возможный", "возможная", "возможные", "эльфов", "эльфы", "фей", "фея", "феи",
+}
+_ALLOWED_ENTITY_TYPES = {"symbol", "place", "figure", "object", "motif", "event"}
+
+
+def _normalize_symbol_entities(raw: object, limit: int = 20) -> list[dict]:
+    if not isinstance(raw, list):
+        return []
+    normalized: list[dict] = []
+    seen_keys: set[tuple[str, str]] = set()
+
+    for item in raw:
+        if len(normalized) >= limit:
+            break
+        if not isinstance(item, dict):
+            continue
+        canonical = _normalize_token(str(item.get("canonical_name") or ""))
+        if not canonical:
+            continue
+        label = _normalize_label(str(item.get("display_label") or ""))
+        if not label:
+            label = f"образ {canonical}"
+        if len(label.split()) < 2:
+            label = f"образ {canonical}"
+
+        key = (canonical, label)
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+
+        entity_type = str(item.get("entity_type") or "symbol").strip().lower()
+        if entity_type not in _ALLOWED_ENTITY_TYPES:
+            entity_type = "symbol"
+
+        try:
+            weight = float(item.get("weight", 1.0))
+        except Exception:
+            weight = 1.0
+        weight = max(0.05, min(1.0, weight))
+
+        source_indexes = []
+        raw_indexes = item.get("source_chunk_indexes")
+        if isinstance(raw_indexes, list):
+            for idx in raw_indexes:
+                try:
+                    iv = int(idx)
+                except Exception:
+                    continue
+                if iv >= 0:
+                    source_indexes.append(iv)
+        source_indexes = sorted(set(source_indexes))[:12]
+
+        related_archetypes = []
+        raw_archetypes = item.get("related_archetypes")
+        if isinstance(raw_archetypes, list):
+            for archetype in raw_archetypes:
+                name = str(archetype or "").strip()
+                if name:
+                    related_archetypes.append(name)
+        related_archetypes = list(dict.fromkeys(related_archetypes))[:6]
+
+        normalized.append(
+            {
+                "canonical_name": canonical,
+                "display_label": label,
+                "entity_type": entity_type,
+                "weight": weight,
+                "source_chunk_indexes": source_indexes,
+                "related_archetypes": related_archetypes,
+            }
+        )
+
+    return normalized
+
+
+def _normalize_label(value: str) -> str:
+    words: list[str] = []
+    for match in _ENTITY_WORD_RE.finditer((value or "").lower()):
+        token = _normalize_token(match.group(0))
+        if token:
+            words.append(token)
+    if not words:
+        return ""
+    return " ".join(words[:3])
+
+
+def _normalize_token(value: str) -> str:
+    token = (value or "").strip().lower()
+    if not token:
+        return ""
+    if token in _ENTITY_STOPWORDS:
+        return ""
+    if token.isdigit() or len(token) < 3:
+        return ""
+    return token

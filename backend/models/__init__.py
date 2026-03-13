@@ -5,7 +5,7 @@ from .dream import Dream
 from .analysis import Analysis, AnalysisStatus
 from .analysis_message import AnalysisMessage, MessageRole
 from .oauth import OAuthIdentity, EmailVerification, PasswordReset
-from .rag import DreamChunk, DreamSymbol, DreamArchetype
+from .rag import DreamChunk, DreamSymbol, DreamArchetype, DreamSymbolEntity
 
 __all__ = [
     "User",
@@ -19,6 +19,7 @@ __all__ = [
     "MessageRole",
     "DreamChunk",
     "DreamSymbol",
+    "DreamSymbolEntity",
     "DreamArchetype",
     "OAuthIdentity",
     "EmailVerification",

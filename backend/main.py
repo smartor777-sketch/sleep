@@ -12,6 +12,7 @@ from api import auth
 from api import dreams
 from api import analyses
 from api import audio
+from api import map
 from api import messages
 from api import users
 from api import stats
@@ -60,6 +61,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(dreams.router, prefix="/api/v1")
 app.include_router(analyses.router, prefix="/api/v1")
 app.include_router(audio.router, prefix="/api/v1")
+app.include_router(map.router, prefix="/api/v1")
 app.include_router(messages.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(stats.router, prefix="/api/v1")

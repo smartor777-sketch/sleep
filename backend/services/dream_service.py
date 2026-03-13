@@ -18,6 +18,7 @@ from services.embedding_service import (
     recalculate_dream_embedding,
     request_embedding,
 )
+from services.map_service import invalidate_user_map_cache
 from services.rag_service import rebuild_dream_memory
 
 logger = logging.getLogger(__name__)
@@ -139,6 +140,7 @@ async def create_dream(
     db.add(dream)
     await db.commit()
     await db.refresh(dream)
+    await invalidate_user_map_cache(user.id)
     
     logger.info(f"Dream created: {dream.id} for user {user.id}")
     return dream
@@ -268,6 +270,7 @@ async def update_dream(
     
     await db.commit()
     await db.refresh(dream)
+    await invalidate_user_map_cache(dream.user_id)
     
     logger.info(f"Dream updated: {dream.id}")
     return dream
@@ -286,6 +289,7 @@ async def delete_dream(
     """
     await db.delete(dream)
     await db.commit()
+    await invalidate_user_map_cache(dream.user_id)
     logger.info(f"Dream deleted: {dream.id}")
 
 

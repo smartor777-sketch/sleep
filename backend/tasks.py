@@ -12,6 +12,7 @@ from llm_client import llm_client
 from sqlalchemy import select
 from services.embedding_service import recalculate_dream_embedding
 from llm_client import LLMTransientError
+from services.map_service import invalidate_user_map_cache
 
 logger = logging.getLogger(__name__)
 _worker_loop: asyncio.AbstractEventLoop | None = None
@@ -163,6 +164,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                         archetypes_delta=payload.archetypes_delta,
                     )
                     await db.commit()
+                    await invalidate_user_map_cache(user.id)
                 except Exception as postprocess_error:
                     logger.warning(
                         "Post-analysis indexing failed for analysis %s: %s",

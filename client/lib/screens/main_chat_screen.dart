@@ -10,6 +10,7 @@ import 'package:record/record.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/dream.dart';
+import '../providers/dream_map_provider.dart';
 import '../providers/analysis_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/dreams_provider.dart';
@@ -19,6 +20,7 @@ import '../utils/snackbar.dart';
 import '../widgets/dream_card.dart';
 import '../widgets/message_menu.dart';
 import 'analysis_chat_screen.dart';
+import 'dream_map_screen.dart';
 import 'profile_screen.dart';
 
 class MainChatScreen extends StatefulWidget {
@@ -147,6 +149,20 @@ class _MainChatScreenState extends State<MainChatScreen> {
       _currentTab = _tabChat;
       _showSearch = false;
     });
+  }
+
+  Future<void> _openDreamChatById(String dreamId) async {
+    final dreams = context.read<DreamsProvider>().dreams;
+    Dream? target;
+    for (final dream in dreams) {
+      if (dream.id == dreamId) {
+        target = dream;
+        break;
+      }
+    }
+    target ??= await context.read<DreamsProvider>().refreshDream(dreamId);
+    if (!mounted || target == null) return;
+    _openDreamChat(target);
   }
 
   void _activateSearch() {
@@ -452,9 +468,12 @@ class _MainChatScreenState extends State<MainChatScreen> {
           ),
         );
       case _tabMap:
-        return const _EmptyTabState(
-          title: 'Карта снов',
-          subtitle: 'Этот раздел появится в следующем патче.',
+        return ChangeNotifierProvider(
+          create: (_) => DreamMapProvider(context.read<AuthProvider>()),
+          child: DreamMapScreen(
+            accentColor: _accentColor,
+            onOpenDream: _openDreamChatById,
+          ),
         );
       case _tabProfile:
         return ProfileScreen(

@@ -44,4 +44,6 @@ weasyprint==60.2
 # Utils
 python-dotenv==1.0.1
 pytz==2024.1
-
+numpy==1.26.4
+scikit-learn==1.5.2
+umap-learn==0.5.6

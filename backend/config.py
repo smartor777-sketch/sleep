@@ -94,6 +94,7 @@ class Settings(BaseSettings):
     
     # Лимиты
     dreams_per_day_limit: int = 5
+    map_cache_ttl_seconds: int = 3600
     
     model_config = SettingsConfigDict(
         env_file=".env",

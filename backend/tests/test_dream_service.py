@@ -19,23 +19,16 @@ async def test_get_user_timezone_falls_back_to_utc():
 
 
 @pytest.mark.asyncio
-async def test_create_dream_checks_limit_and_builds_embedding(monkeypatch):
+async def test_create_dream_checks_limit_and_invalidates_map_cache(monkeypatch):
     async def fake_check_dreams_limit(_db, _user):
         return True
+    cache_invalidations: list = []
 
-    calls = {"embed": 0, "rag": 0}
-
-    async def fake_recalculate(_db, dream):
-        calls["embed"] += 1
-        dream.embedding_text = "[]"
-
-    async def fake_rebuild(_db, dream, user_id):
-        calls["rag"] += 1
-        assert dream.user_id == user_id
+    async def fake_invalidate(user_id):
+        cache_invalidations.append(user_id)
 
     monkeypatch.setattr(dream_service, "check_dreams_limit", fake_check_dreams_limit)
-    monkeypatch.setattr(dream_service, "recalculate_dream_embedding", fake_recalculate)
-    monkeypatch.setattr(dream_service, "rebuild_dream_memory", fake_rebuild)
+    monkeypatch.setattr(dream_service, "invalidate_user_map_cache", fake_invalidate)
     db = FakeDb()
     user = SimpleNamespace(id=uuid4())
 
@@ -47,9 +40,9 @@ async def test_create_dream_checks_limit_and_builds_embedding(monkeypatch):
 
     assert dream.user_id == user.id
     assert dream.title == "A very long dream text for title generation"
-    assert calls == {"embed": 1, "rag": 1}
-    assert db.commits == 2
-    assert db.refreshes == [dream, dream]
+    assert cache_invalidations == [user.id]
+    assert db.commits == 1
+    assert db.refreshes == [dream]
 
 
 @pytest.mark.asyncio
@@ -150,7 +143,7 @@ async def test_search_dreams_semantic_backfills_missing_embeddings(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_delete_dream_commits():
-    dream = SimpleNamespace(id=uuid4())
+    dream = SimpleNamespace(id=uuid4(), user_id=uuid4())
     db = FakeDb()
 
     await dream_service.delete_dream(db, dream)

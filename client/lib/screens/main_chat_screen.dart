@@ -495,19 +495,9 @@ class _MainChatScreenState extends State<MainChatScreen> {
   Widget _buildDreamsGridTab(BuildContext context, AppLocalizations l10n) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'JungAI',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-          ),
-        ),
         if (_showSearch)
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
             child: TextField(
               focusNode: _searchFocusNode,
               decoration: InputDecoration(

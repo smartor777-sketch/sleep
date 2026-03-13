@@ -114,8 +114,7 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
   }) {
     final base = math.min(size.width, size.height) * 0.78;
     final tile = base * _zoom;
-    final origin =
-        Offset((size.width - tile) / 2, (size.height - tile) / 2) + _pan;
+    final origin = _mapOrigin(size, tile, _pan);
 
     DreamMapNode? best;
     double bestDistance = 24;
@@ -140,6 +139,24 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
   }
 
   double _nodeRadius(DreamMapNode node) => 4 + (node.sizeWeight * 8);
+
+  Offset _mapOrigin(Size size, double tile, Offset pan) {
+    final wrappedPan = _wrapPan(pan, tile);
+    return Offset((size.width - tile) / 2, (size.height - tile) / 2) +
+        wrappedPan;
+  }
+
+  Offset _wrapPan(Offset pan, double tile) {
+    if (tile <= 0) return pan;
+    return Offset(_wrapAxis(pan.dx, tile), _wrapAxis(pan.dy, tile));
+  }
+
+  double _wrapAxis(double value, double tile) {
+    final wrapped = value % tile;
+    if (wrapped > tile / 2) return wrapped - tile;
+    if (wrapped < -tile / 2) return wrapped + tile;
+    return wrapped;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -247,7 +264,10 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
                       painter: _DreamMapPainter(
                         nodes: visibleNodes,
                         clusters: clusters,
-                        pan: _pan,
+                        pan: _wrapPan(
+                          _pan,
+                          math.min(size.width, size.height) * 0.78 * _zoom,
+                        ),
                         zoom: _zoom,
                         accentColor: widget.accentColor,
                         brightness: Theme.of(context).brightness,
@@ -292,6 +312,7 @@ class _DreamMapPainter extends CustomPainter {
     _paintBackground(canvas, size, origin, tile);
     _paintClusterHalos(canvas, origin, tile);
     _paintNodes(canvas, origin, tile);
+    _paintLabels(canvas, size, origin, tile);
   }
 
   void _paintBackground(Canvas canvas, Size size, Offset origin, double tile) {
@@ -390,6 +411,116 @@ class _DreamMapPainter extends CustomPainter {
         }
       }
     }
+  }
+
+  void _paintLabels(Canvas canvas, Size size, Offset origin, double tile) {
+    if (zoom < 1.05) return;
+
+    final visibleBounds = Offset.zero & size;
+    final neutralText = brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF12161F);
+    final backgroundBase = brightness == Brightness.dark
+        ? const Color(0xFF10141D)
+        : Colors.white;
+    final cellSize = zoom >= 1.9
+        ? 72.0
+        : zoom >= 1.45
+        ? 88.0
+        : 108.0;
+    final occupiedCells = <String>{};
+
+    final sortedNodes = [...nodes]
+      ..sort((a, b) {
+        final aScore = (a.sizeWeight * 0.65) + (a.cosineSimToCenter * 0.35);
+        final bScore = (b.sizeWeight * 0.65) + (b.cosineSimToCenter * 0.35);
+        return bScore.compareTo(aScore);
+      });
+
+    for (final node in sortedNodes) {
+      final label = _labelForNode(node);
+      if (label.isEmpty) continue;
+
+      for (final dx in const [-1.0, 0.0, 1.0]) {
+        for (final dy in const [-1.0, 0.0, 1.0]) {
+          final point = Offset(
+            origin.dx + (node.x + dx) * tile,
+            origin.dy + (node.y + dy) * tile,
+          );
+          if (!visibleBounds.inflate(48).contains(point)) continue;
+
+          final cellKey =
+              '${(point.dx / cellSize).floor()}:${(point.dy / cellSize).floor()}';
+          if (occupiedCells.contains(cellKey)) continue;
+
+          final textPainter = TextPainter(
+            text: TextSpan(
+              text: label,
+              style: TextStyle(
+                color: neutralText,
+                fontSize: zoom >= 1.9 ? 12 : 11,
+                fontWeight: FontWeight.w500,
+                height: 1.15,
+              ),
+            ),
+            maxLines: 2,
+            ellipsis: '…',
+            textDirection: TextDirection.ltr,
+          )..layout(maxWidth: zoom >= 1.9 ? 110 : 92);
+
+          final padding = const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 5,
+          );
+          final labelSize = Size(
+            textPainter.width + padding.horizontal,
+            textPainter.height + padding.vertical,
+          );
+          var topLeft = Offset(
+            point.dx - (labelSize.width / 2),
+            point.dy - 18 - labelSize.height,
+          );
+          if (topLeft.dx < 8) topLeft = Offset(8, topLeft.dy);
+          if (topLeft.dx + labelSize.width > size.width - 8) {
+            topLeft = Offset(size.width - 8 - labelSize.width, topLeft.dy);
+          }
+          if (topLeft.dy < 8) {
+            topLeft = Offset(topLeft.dx, point.dy + 14);
+          }
+
+          final rect = RRect.fromRectAndRadius(
+            topLeft & labelSize,
+            const Radius.circular(12),
+          );
+          final fill = Paint()
+            ..color = backgroundBase.withOpacity(
+              brightness == Brightness.dark ? 0.78 : 0.86,
+            );
+          final stroke = Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1
+            ..color = accentColor.withOpacity(0.18);
+          canvas.drawRRect(rect, fill);
+          canvas.drawRRect(rect, stroke);
+          textPainter.paint(
+            canvas,
+            topLeft + Offset(padding.left, padding.top - 0.5),
+          );
+          occupiedCells.add(cellKey);
+        }
+      }
+    }
+  }
+
+  String _labelForNode(DreamMapNode node) {
+    final words = node.textPreview
+        .replaceAll(RegExp(r'[^\p{L}\p{N}\s-]', unicode: true), ' ')
+        .split(RegExp(r'\s+'))
+        .map((word) => word.trim())
+        .where((word) => word.length > 2)
+        .take(3)
+        .toList();
+    return words.join(' ');
   }
 
   Color? _parseHexColor(String? value) {

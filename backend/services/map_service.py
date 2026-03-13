@@ -104,6 +104,10 @@ _NEGATIVE_TOKENS = {
 }
 
 
+def _clamp_unit(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
 @dataclass
 class _ChunkRuntime:
     chunk: DreamChunk
@@ -172,7 +176,7 @@ async def get_dream_map(
             cluster_id=payload["cluster_id"],
             cluster_label=payload["label"],
             archetype_color=payload["color"],
-            cosine_sim_to_center=payload["cosine_to_center"],
+            cosine_sim_to_center=_clamp_unit(payload["cosine_to_center"]),
             size_weight=payload["size_weight"],
             text_preview=_preview(runtime.chunk.text),
             date=runtime.dream.created_at.strftime("%Y-%m-%d"),
@@ -241,7 +245,9 @@ async def get_map_chunk_detail(
                 chunk_id=str(other.chunk.id),
                 dream_id=str(other.chunk.dream_id),
                 text_preview=_preview(other.chunk.text),
-                cosine_similarity=max(0.0, cosine_similarity(runtime.embedding, other.embedding)),
+                cosine_similarity=_clamp_unit(
+                    cosine_similarity(runtime.embedding, other.embedding)
+                ),
                 date=other.dream.created_at.strftime("%Y-%m-%d"),
             )
             for other in runtimes
@@ -483,17 +489,11 @@ def _build_cluster_payloads(
         label = _resolve_cluster_label([runtimes[index] for index in indexes], cluster_id)
         color = _ARCHETYPE_COLORS.get(label, _ARCHETYPE_COLORS["Noise"])
         for index in indexes:
-            cosine_to_center = max(
-                0.0,
-                min(
-                    1.0,
-                    float(
-                        cosine_similarity(
-                            runtimes[index].embedding,
-                            center_embedding.tolist(),
-                        )
-                    ),
-                ),
+            cosine_to_center = _clamp_unit(
+                cosine_similarity(
+                    runtimes[index].embedding,
+                    center_embedding.tolist(),
+                )
             )
             raw_size_weights[index] = cosine_to_center
             payloads[index] = {

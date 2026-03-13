@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'l10n/app_localizations.dart';
 import 'models/user_me.dart';
 import 'screens/main_chat_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/startup_splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dreams_provider.dart';
@@ -126,7 +127,8 @@ class _MyAppState extends State<MyApp> {
                 body: Center(child: Text(AppLocalizations.of(context)?.userLoadError ?? 'Failed to load user')),
               );
             }
-            return MainChatScreen(
+            final needsOnboarding = !user.onboardingCompleted || (user.aboutMe?.trim().isEmpty ?? true);
+            final mainScreen = MainChatScreen(
               isDarkMode: isDarkMode,
               toggleTheme: toggleTheme,
               accentColor: accentColor,
@@ -134,6 +136,30 @@ class _MyAppState extends State<MyApp> {
               setLocale: setLocale,
               textScale: _textScale,
               setTextScale: setTextScale,
+            );
+            if (!needsOnboarding) {
+              return mainScreen;
+            }
+            return Stack(
+              children: [
+                mainScreen,
+                OnboardingScreen(
+                  onCompleted: () {
+                    final current = auth.user;
+                    if (current == null) return;
+                    auth.updateUser(
+                      UserMe(
+                        id: current.id,
+                        email: current.email,
+                        isAnonymous: current.isAnonymous,
+                        linkedProviders: current.linkedProviders,
+                        aboutMe: current.aboutMe,
+                        onboardingCompleted: true,
+                      ),
+                    );
+                  },
+                ),
+              ],
             );
           },
         ),

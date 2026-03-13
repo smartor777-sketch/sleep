@@ -1,4 +1,4 @@
-package com.example.client
+package com.okoloboga.jungai
 
 import io.flutter.embedding.android.FlutterActivity
 

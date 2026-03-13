@@ -68,6 +68,16 @@ class Settings(BaseSettings):
     
     # LLM Service
     llm_service_url: str = "http://llm_service:8001"
+
+    # Embeddings provider
+    embeddings_base_url: str = "https://api.cometapi.com"
+    embeddings_api_key: SecretStr | None = None
+    embeddings_model: str = "text-embedding-3-small"
+
+    # Audio transcription provider
+    transcriptions_base_url: str = "https://api.cometapi.com"
+    transcriptions_api_key: SecretStr | None = None
+    transcriptions_model: str = "whisper-1"
     
     # Google Speech-to-Text
     google_application_credentials: str | None = None
@@ -88,9 +98,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=False
+        case_sensitive=False,
+        extra="ignore",
     )
 
 
 settings = Settings()
-

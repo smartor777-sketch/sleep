@@ -6,9 +6,12 @@ import '../services/auth_service.dart';
 import '../services/secure_storage_service.dart';
 
 class AuthProvider extends ChangeNotifier {
-  AuthProvider() {
-    _authService = AuthService(SecureStorageService());
-    _apiClient = ApiClient(_authService.storage);
+  AuthProvider({
+    AuthService? authService,
+    ApiClient? apiClient,
+  }) {
+    _authService = authService ?? AuthService(SecureStorageService());
+    _apiClient = apiClient ?? ApiClient(_authService.storage);
   }
 
   late final AuthService _authService;

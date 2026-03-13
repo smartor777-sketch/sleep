@@ -21,6 +21,7 @@ async def get_me(current_user: CurrentUser, db: DatabaseSession):
         linked_providers=linked,
         profile=UserProfileResponse(
             about_me=current_user.self_description,
+            onboarding_completed=current_user.onboarding_completed,
         ),
     )
 
@@ -36,6 +37,8 @@ async def update_me(
         current_user.self_description = update["self_description"]
     if "timezone" in update and update["timezone"]:
         current_user.timezone = update["timezone"]
+    if "onboarding_completed" in update and update["onboarding_completed"] is not None:
+        current_user.onboarding_completed = update["onboarding_completed"]
 
     await db.commit()
     await db.refresh(current_user)
@@ -50,5 +53,6 @@ async def update_me(
         linked_providers=linked,
         profile=UserProfileResponse(
             about_me=current_user.self_description,
+            onboarding_completed=current_user.onboarding_completed,
         ),
     )

@@ -31,6 +31,7 @@ from .analysis_message import (
     ChatMessageListResponse,
     ChatMessageTaskResponse,
 )
+from .audio import TranscriptionResponse
 from .auth import (
     RegisterRequest,
     LoginRequest,
@@ -78,6 +79,7 @@ __all__ = [
     "ChatMessageResponse",
     "ChatMessageListResponse",
     "ChatMessageTaskResponse",
+    "TranscriptionResponse",
     # Auth
     "RegisterRequest",
     "LoginRequest",

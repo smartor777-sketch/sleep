@@ -27,10 +27,16 @@ class Dream(Base):
     )
     
     # Содержимое
-    title: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    title: Mapped[str | None] = mapped_column(String(64), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     emoji: Mapped[str] = mapped_column(String(10), default="", nullable=False)
     comment: Mapped[str] = mapped_column(String(256), default="", nullable=False)
+    gradient_color_1: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    gradient_color_2: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    # P2 scaffold for semantic search storage. Real vector index can replace this.
+    embedding_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    embedding_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    embedding_updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Временные метки
     recorded_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -58,6 +64,22 @@ class Dream(Base):
         uselist=False,
         cascade="all, delete-orphan"
     )
+    chunks: Mapped[list["DreamChunk"]] = relationship(
+        "DreamChunk",
+        back_populates="dream",
+        cascade="all, delete-orphan",
+        order_by="DreamChunk.chunk_index",
+    )
+    symbols: Mapped[list["DreamSymbol"]] = relationship(
+        "DreamSymbol",
+        back_populates="dream",
+        cascade="all, delete-orphan",
+    )
+    dream_archetypes: Mapped[list["DreamArchetype"]] = relationship(
+        "DreamArchetype",
+        back_populates="dream",
+        cascade="all, delete-orphan",
+    )
     messages: Mapped[list["AnalysisMessage"]] = relationship(
         "AnalysisMessage",
         back_populates="dream",
@@ -67,4 +89,3 @@ class Dream(Base):
     
     def __repr__(self) -> str:
         return f"<Dream(id={self.id}, user_id={self.user_id}, title={self.title})>"
-

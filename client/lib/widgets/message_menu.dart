@@ -10,16 +10,20 @@ class MessageMenu {
     required VoidCallback onCopy,
     required VoidCallback onEdit,
     required VoidCallback onDelete,
-    required VoidCallback onAnalyze,
+    required VoidCallback onEditDate,
   }) async {
     final size = MediaQuery.of(context).size;
     const menuWidth = 220.0;
-    const menuHeight = 220.0;
+    const menuHeight = 230.0;
 
-    final double left = (position.dx - menuWidth / 2)
-        .clamp(16.0, size.width - menuWidth - 16);
-    final double top = (position.dy - menuHeight)
-        .clamp(16.0, size.height - menuHeight - 16);
+    final double left = (position.dx - menuWidth / 2).clamp(
+      16.0,
+      size.width - menuWidth - 16,
+    );
+    final double top = (position.dy - menuHeight).clamp(
+      16.0,
+      size.height - menuHeight - 16,
+    );
 
     final selected = await showGeneralDialog<int>(
       context: context,
@@ -36,9 +40,7 @@ class MessageMenu {
                   onTap: () => Navigator.of(dialogContext).pop(),
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                    child: Container(
-                      color: Colors.black.withOpacity(0.2),
-                    ),
+                    child: Container(color: Colors.black.withOpacity(0.2)),
                   ),
                 ),
               ),
@@ -46,8 +48,7 @@ class MessageMenu {
                 left: left,
                 top: top,
                 child: _MenuCard(
-                  onSelected: (value) =>
-                      Navigator.of(dialogContext).pop(value),
+                  onSelected: (value) => Navigator.of(dialogContext).pop(value),
                 ),
               ),
             ],
@@ -67,7 +68,7 @@ class MessageMenu {
         onDelete();
         break;
       case 3:
-        onAnalyze();
+        onEditDate();
         break;
     }
   }
@@ -88,7 +89,7 @@ class _MenuCard extends StatelessWidget {
       _MenuItemData(0, l10n.copy, Icons.copy),
       _MenuItemData(1, l10n.edit, Icons.edit),
       _MenuItemData(2, l10n.delete, Icons.delete_outline),
-      _MenuItemData(3, l10n.analyze, Icons.analytics_outlined),
+      const _MenuItemData(3, 'Изменить дату', Icons.edit_calendar_outlined),
     ];
 
     return Card(

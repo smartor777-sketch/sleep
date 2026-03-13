@@ -25,6 +25,18 @@ class TaskStatus {
   TaskStatus({required this.status, this.result, this.error});
 }
 
+class AnalysisStatusSnapshot {
+  final String status;
+  final String? result;
+  final String? errorMessage;
+
+  AnalysisStatusSnapshot({
+    required this.status,
+    required this.result,
+    required this.errorMessage,
+  });
+}
+
 class MessageTaskStatus {
   final String status;
   final String? result;
@@ -64,6 +76,22 @@ class AnalysisService {
       status: data['status'] as String,
       result: data['result'] as String?,
       error: data['error'] as String?,
+    );
+  }
+
+  Future<AnalysisStatusSnapshot?> getAnalysisByDream(String dreamId) async {
+    final response = await _api.get('/api/v1/analyses/dream/$dreamId');
+    if (response.statusCode == 404) {
+      return null;
+    }
+    if (response.statusCode != 200) {
+      _throwApi(response);
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return AnalysisStatusSnapshot(
+      status: data['status'] as String? ?? 'pending',
+      result: data['result'] as String?,
+      errorMessage: data['error_message'] as String?,
     );
   }
 

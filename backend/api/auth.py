@@ -1,7 +1,7 @@
 """API эндпоинты для аутентификации"""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 
 from dependencies import (
@@ -162,7 +162,7 @@ async def anonymous_auth(
         user, _ = await get_or_create_anonymous_user(db, data.device_id)
 
         # Обновляем last_login_at
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc)
         await db.commit()
 
         access_token = create_access_token(data={"sub": str(user.id)})

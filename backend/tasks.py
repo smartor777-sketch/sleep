@@ -10,6 +10,8 @@ from database import AsyncSessionLocal
 from models import Analysis, Dream, User, AnalysisStatus, MessageRole
 from llm_client import llm_client
 from sqlalchemy import select
+from services.embedding_service import recalculate_dream_embedding
+from llm_client import LLMTransientError
 
 logger = logging.getLogger(__name__)
 _worker_loop: asyncio.AbstractEventLoop | None = None
@@ -24,7 +26,15 @@ def _run_in_worker_loop(coro):
     return _worker_loop.run_until_complete(coro)
 
 
-@celery_app.task(bind=True, name="tasks.analyze_dream")
+@celery_app.task(
+    bind=True,
+    name="tasks.analyze_dream",
+    autoretry_for=(LLMTransientError,),
+    retry_backoff=True,
+    retry_backoff_max=120,
+    retry_jitter=True,
+    max_retries=4,
+)
 def analyze_dream_task(self, analysis_id: str):
     """
     Фоновая задача для анализа сна
@@ -43,6 +53,8 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
     Создаёт user-сообщение, собирает контекст, вызывает LLM, сохраняет assistant-сообщение.
     """
     from services.message_service import create_message, build_llm_context
+    from services.archetype_service import apply_archetypes_delta
+    from services.rag_service import rebuild_dream_memory
 
     async with AsyncSessionLocal() as db:
         try:
@@ -106,11 +118,17 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 user_id=user.id,
                 current_dream_id=dream.id,
                 system_prompt=system_prompt,
+                include_retrieval=False,
             )
 
             # Отправляем запрос в LLM Service
             try:
-                result_text = await llm_client.chat_completion(messages=llm_messages)
+                was_completed_before = analysis.completed_at is not None
+                payload = await llm_client.analyze_dream_structured(
+                    dream_text=dream.content,
+                    user_description=user.self_description,
+                )
+                result_text = payload.analysis_text
 
                 # Сохраняем assistant-сообщение в analysis_messages
                 await create_message(
@@ -125,12 +143,43 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 analysis.result = result_text
                 analysis.status = AnalysisStatus.COMPLETED.value
                 analysis.completed_at = datetime.utcnow()
+                if payload.title:
+                    dream.title = payload.title[:64]
+                if payload.gradient:
+                    dream.gradient_color_1 = payload.gradient.color1
+                    dream.gradient_color_2 = payload.gradient.color2
+                if not was_completed_before:
+                    await apply_archetypes_delta(db, user.id, payload.archetypes_delta)
 
                 await db.commit()
+                logger.info("Analysis %s committed, starting background indexing", analysis_id)
+
+                try:
+                    await recalculate_dream_embedding(db, dream)
+                    await rebuild_dream_memory(
+                        db,
+                        dream=dream,
+                        user_id=user.id,
+                        archetypes_delta=payload.archetypes_delta,
+                    )
+                    await db.commit()
+                except Exception as postprocess_error:
+                    logger.warning(
+                        "Post-analysis indexing failed for analysis %s: %s",
+                        analysis_id,
+                        postprocess_error,
+                    )
+                    await db.rollback()
 
                 logger.info(f"Analysis {analysis_id} completed successfully")
                 return result_text
 
+            except LLMTransientError as e:
+                logger.warning("Transient LLM error for analysis %s: %s", analysis_id, e)
+                analysis.status = AnalysisStatus.PENDING.value
+                analysis.error_message = str(e)
+                await db.commit()
+                raise
             except Exception as e:
                 logger.error(f"LLM Service error for analysis {analysis_id}: {e}")
                 analysis.status = AnalysisStatus.FAILED.value
@@ -138,6 +187,8 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 await db.commit()
                 raise
 
+        except LLMTransientError:
+            raise
         except Exception as e:
             logger.error(f"Failed to analyze dream {analysis_id}: {e}")
 

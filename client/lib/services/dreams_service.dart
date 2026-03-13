@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/dream.dart';
@@ -12,30 +11,44 @@ class DreamsService {
 
   final ApiClient _api;
 
-  Future<List<Dream>> getDreams({int page = 1, int pageSize = 50, String? date}) async {
+  Future<List<Dream>> getDreams({
+    int page = 1,
+    int pageSize = 50,
+    String? date,
+  }) async {
     final dateParam = date != null ? '&date=$date' : '';
-    final response = await _api.get('/api/v1/dreams?page=$page&page_size=$pageSize$dateParam');
+    final response = await _api.get(
+      '/api/v1/dreams?page=$page&page_size=$pageSize$dateParam',
+    );
     _ensureOk(response);
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final dreamsJson = data['dreams'] as List<dynamic>? ?? [];
-    return dreamsJson.map((e) => Dream.fromJson(e as Map<String, dynamic>)).toList();
+    return dreamsJson
+        .map((e) => Dream.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  Future<List<Dream>> searchDreams(String query) async {
+  Future<List<Dream>> searchDreams(
+    String query, {
+    String mode = 'semantic',
+  }) async {
     final encoded = Uri.encodeQueryComponent(query);
-    final response = await _api.get('/api/v1/dreams/search?q=$encoded');
+    final encodedMode = Uri.encodeQueryComponent(mode);
+    final response = await _api.get(
+      '/api/v1/dreams/search?q=$encoded&mode=$encodedMode',
+    );
     _ensureOk(response);
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     final dreamsJson = data['dreams'] as List<dynamic>? ?? [];
-    return dreamsJson.map((e) => Dream.fromJson(e as Map<String, dynamic>)).toList();
+    return dreamsJson
+        .map((e) => Dream.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Dream> createDream(String content) async {
     final response = await _api.post(
       '/api/v1/dreams',
-      body: {
-        'content': content,
-      },
+      body: {'content': content},
     );
     if (response.statusCode != 201) {
       _throwApi(response);
@@ -43,12 +56,16 @@ class DreamsService {
     return Dream.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<Dream> getDream(String id) async {
+    final response = await _api.get('/api/v1/dreams/$id');
+    _ensureOk(response);
+    return Dream.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   Future<Dream> updateDream(String id, String content) async {
     final response = await _api.put(
       '/api/v1/dreams/$id',
-      body: {
-        'content': content,
-      },
+      body: {'content': content},
     );
     _ensureOk(response);
     return Dream.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
@@ -57,9 +74,16 @@ class DreamsService {
   Future<Dream> updateDreamTitle(String id, String? title) async {
     final response = await _api.put(
       '/api/v1/dreams/$id',
-      body: {
-        'title': title,
-      },
+      body: {'title': title},
+    );
+    _ensureOk(response);
+    return Dream.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
+  Future<Dream> updateDreamDate(String id, DateTime createdAt) async {
+    final response = await _api.patch(
+      '/api/v1/dreams/$id',
+      body: {'created_at': createdAt.toUtc().toIso8601String()},
     );
     _ensureOk(response);
     return Dream.fromJson(jsonDecode(response.body) as Map<String, dynamic>);

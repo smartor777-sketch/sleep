@@ -7,6 +7,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import AnalysisMessage, MessageRole, Dream, User
+from services.rag_service import build_retrieval_context
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,7 @@ async def build_llm_context(
     user_id: UUID,
     current_dream_id: UUID,
     system_prompt: str,
+    include_retrieval: bool = True,
 ) -> list[dict]:
     """
     Собрать полный контекст для LLM.
@@ -84,6 +86,31 @@ async def build_llm_context(
     4. Если бюджет превышен — обрезаем старые не-якорные сообщения
     """
     messages: list[dict] = [{"role": "system", "text": system_prompt}]
+
+    current_dream = None
+    if include_retrieval:
+        current_dream = (
+            await db.execute(
+                select(Dream).where(
+                    Dream.user_id == user_id,
+                    Dream.id == current_dream_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if current_dream is not None:
+            retrieval = await build_retrieval_context(
+                db,
+                user_id=user_id,
+                dream=current_dream,
+            )
+            prompt_block = retrieval.to_prompt_block().strip()
+            if prompt_block:
+                messages.append(
+                    {
+                        "role": "system",
+                        "text": prompt_block,
+                    }
+                )
 
     # --- Якорные сообщения: все сны пользователя ---
     dreams_q = (

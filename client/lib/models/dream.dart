@@ -9,6 +9,10 @@ class Dream {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool hasAnalysis;
+  final String analysisStatus;
+  final String? analysisErrorMessage;
+  final String? gradientColor1;
+  final String? gradientColor2;
 
   Dream({
     required this.id,
@@ -21,6 +25,10 @@ class Dream {
     required this.createdAt,
     required this.updatedAt,
     required this.hasAnalysis,
+    required this.analysisStatus,
+    required this.analysisErrorMessage,
+    required this.gradientColor1,
+    required this.gradientColor2,
   });
 
   factory Dream.fromJson(Map<String, dynamic> json) {
@@ -35,6 +43,10 @@ class Dream {
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
       hasAnalysis: json['has_analysis'] as bool? ?? false,
+      analysisStatus: json['analysis_status'] as String? ?? 'saved',
+      analysisErrorMessage: json['analysis_error_message'] as String?,
+      gradientColor1: json['gradient_color_1'] as String?,
+      gradientColor2: json['gradient_color_2'] as String?,
     );
   }
 
@@ -50,6 +62,10 @@ class Dream {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? hasAnalysis,
+    String? analysisStatus,
+    String? analysisErrorMessage,
+    String? gradientColor1,
+    String? gradientColor2,
   }) {
     return Dream(
       id: id ?? this.id,
@@ -62,6 +78,10 @@ class Dream {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       hasAnalysis: hasAnalysis ?? this.hasAnalysis,
+      analysisStatus: analysisStatus ?? this.analysisStatus,
+      analysisErrorMessage: analysisErrorMessage ?? this.analysisErrorMessage,
+      gradientColor1: gradientColor1 ?? this.gradientColor1,
+      gradientColor2: gradientColor2 ?? this.gradientColor2,
     );
   }
 

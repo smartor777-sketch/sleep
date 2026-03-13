@@ -4,6 +4,7 @@ class UserMe {
   final bool isAnonymous;
   final List<String> linkedProviders;
   final String? aboutMe;
+  final bool onboardingCompleted;
 
   UserMe({
     required this.id,
@@ -11,6 +12,7 @@ class UserMe {
     required this.isAnonymous,
     required this.linkedProviders,
     required this.aboutMe,
+    required this.onboardingCompleted,
   });
 
   factory UserMe.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class UserMe {
           .map((e) => e as String)
           .toList(),
       aboutMe: profile?['about_me'] as String?,
+      onboardingCompleted: profile?['onboarding_completed'] as bool? ?? false,
     );
   }
 }

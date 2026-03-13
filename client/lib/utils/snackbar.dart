@@ -20,7 +20,12 @@ void showToast(BuildContext context, String message, {bool isError = false}) {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         width: null,
-        margin: const EdgeInsets.symmetric(horizontal: 48, vertical: 16),
+        margin: EdgeInsets.fromLTRB(
+          16,
+          MediaQuery.of(context).padding.top + 8,
+          16,
+          0,
+        ),
       ),
     );
 }

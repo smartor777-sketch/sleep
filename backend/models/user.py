@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, String, Text, DateTime, Enum
+from sqlalchemy import Boolean, String, Text, DateTime, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -65,6 +65,7 @@ class User(Base):
     
     # Настройки анализа
     self_description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
     # Связи
     dreams: Mapped[list["Dream"]] = relationship("Dream", back_populates="user", cascade="all, delete-orphan")
@@ -79,6 +80,41 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
+    archetypes: Mapped[list["UserArchetype"]] = relationship(
+        "UserArchetype",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
     
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email})>"
+
+
+class UserArchetype(Base):
+    """Счётчик архетипов пользователя."""
+
+    __tablename__ = "user_archetypes"
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_archetype_name"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False,
+    )
+
+    user: Mapped["User"] = relationship("User", back_populates="archetypes")

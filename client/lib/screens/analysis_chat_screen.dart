@@ -12,12 +12,16 @@ class AnalysisChatScreen extends StatefulWidget {
   final Dream dream;
   final Color accentColor;
   final Function(Color) setAccentColor;
+  final bool embedded;
+  final VoidCallback? onDreamDeleted;
 
   const AnalysisChatScreen({
     super.key,
     required this.dream,
     required this.accentColor,
     required this.setAccentColor,
+    this.embedded = false,
+    this.onDreamDeleted,
   });
 
   @override
@@ -29,6 +33,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
   late Color _accentColor;
   late String _dreamTitle;
   late Dream _dream;
+  bool _dreamRefreshing = false;
 
   @override
   void initState() {
@@ -38,6 +43,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     _dreamTitle = _dream.title ?? '';
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AnalysisProvider>().load(_dream);
+      _pollDreamState();
     });
   }
 
@@ -51,17 +57,34 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     }
   }
 
-  void _handleAccentColorChange(Color color) {
-    if (_accentColor == color) return;
-    setState(() {
-      _accentColor = color;
-    });
-    widget.setAccentColor(color);
-  }
-
   void _showError(String message) {
     if (!mounted) return;
     showToast(context, message, isError: true);
+  }
+
+  Future<void> _pollDreamState() async {
+    if (_dreamRefreshing) return;
+    _dreamRefreshing = true;
+    try {
+      for (var i = 0; i < 60; i++) {
+        final updated = await context.read<DreamsProvider>().refreshDream(
+          _dream.id,
+        );
+        if (!mounted || updated == null) return;
+        setState(() {
+          _dream = updated;
+          _dreamTitle = updated.title ?? _dreamTitle;
+        });
+        if (updated.analysisStatus == 'analyzed' ||
+            updated.analysisStatus == 'analysis_failed') {
+          await context.read<AnalysisProvider>().load(updated);
+          return;
+        }
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    } finally {
+      _dreamRefreshing = false;
+    }
   }
 
   String _mapAnalysisError(String? message) {
@@ -75,178 +98,247 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_dreamTitle.trim().isNotEmpty ? _dreamTitle.trim() : l10n.dreamAnalysisTitle),
-            Text(
-              _formatDateTime(_dream.createdAt),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                    fontSize: 12,
-                  ),
+    final appBar = AppBar(
+      automaticallyImplyLeading: !widget.embedded,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _dreamTitle.trim().isNotEmpty
+                ? _dreamTitle.trim()
+                : l10n.dreamAnalysisTitle,
+          ),
+          Text(
+            _formatDateTime(_dream.createdAt),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              fontSize: 12,
             ),
-          ],
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'edit_title') {
-                _openEditTitleDialog(context);
-              } else if (value == 'edit_content') {
-                _openEditContentDialog(context);
-              } else if (value == 'delete_dream') {
-                _confirmDeleteDream(context);
-              }
-            },
-            itemBuilder: (context) {
-              return [
-                PopupMenuItem(
-                  value: 'edit_title',
-                  child: Text(l10n.editTitleLabel),
-                ),
-                PopupMenuItem(
-                  value: 'edit_content',
-                  child: Text(l10n.edit),
-                ),
-                PopupMenuItem(
-                  value: 'delete_dream',
-                  child: Text(l10n.delete),
-                ),
-              ];
-            },
-            icon: const Icon(Icons.more_vert),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Consumer<AnalysisProvider>(
-              builder: (context, provider, _) {
-                if (provider.error != null) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _showError(_mapAnalysisError(provider.error));
-                    provider.clearError();
-                  });
-                }
-                final messages = provider.messages;
-                if (provider.loading && messages.isEmpty && !provider.showDreamIntro) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final showDreamIntro = provider.showDreamIntro;
-                final totalCount = messages.length + (showDreamIntro ? 1 : 0);
-                return ListView.builder(
-                  reverse: true,
-                  itemCount: totalCount,
-                  itemBuilder: (context, index) {
-                    if (showDreamIntro && index == totalCount - 1) {
-                      return MessageBubble(
-                        message: _dream.content,
-                        isUserMessage: true,
-                        accentColor: _accentColor,
-                      );
-                    }
-                    final message = messages[messages.length - 1 - index];
+      actions: [
+        PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit_title') {
+              _openEditTitleDialog(context);
+            } else if (value == 'edit_content') {
+              _openEditContentDialog(context);
+            } else if (value == 'edit_date') {
+              _openEditDateDialog(context);
+            } else if (value == 'delete_dream') {
+              _confirmDeleteDream(context);
+            }
+          },
+          itemBuilder: (context) {
+            return [
+              PopupMenuItem(
+                value: 'edit_title',
+                child: Text(l10n.editTitleLabel),
+              ),
+              PopupMenuItem(value: 'edit_content', child: Text(l10n.edit)),
+              const PopupMenuItem(
+                value: 'edit_date',
+                child: Text('Изменить дату'),
+              ),
+              PopupMenuItem(value: 'delete_dream', child: Text(l10n.delete)),
+            ];
+          },
+          icon: const Icon(Icons.more_vert),
+        ),
+      ],
+    );
+
+    final body = Column(
+      children: [
+        Expanded(
+          child: Consumer<AnalysisProvider>(
+            builder: (context, provider, _) {
+              if (provider.error != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _showError(_mapAnalysisError(provider.error));
+                  provider.clearError();
+                });
+              }
+              final messages = provider.messages;
+              if (provider.loading &&
+                  messages.isEmpty &&
+                  !provider.showDreamIntro) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final showDreamIntro = provider.showDreamIntro;
+              final totalCount = messages.length + (showDreamIntro ? 1 : 0);
+              return ListView.builder(
+                reverse: true,
+                itemCount: totalCount,
+                itemBuilder: (context, index) {
+                  if (showDreamIntro && index == totalCount - 1) {
                     return MessageBubble(
-                      message: message.content,
-                      isUserMessage: message.role == MessageRole.user,
+                      message: _dream.content,
+                      isUserMessage: true,
                       accentColor: _accentColor,
                     );
-                  },
-                );
-              },
-            ),
+                  }
+                  final message = messages[messages.length - 1 - index];
+                  return MessageBubble(
+                    message: message.content,
+                    isUserMessage: message.role == MessageRole.user,
+                    accentColor: _accentColor,
+                  );
+                },
+              );
+            },
           ),
-          Consumer<AnalysisProvider>(
-            builder: (context, provider, _) {
-              if (!provider.analysisReady) {
+        ),
+        Consumer<AnalysisProvider>(
+          builder: (context, provider, _) {
+            if (!provider.analysisReady) {
+              if (_dream.analysisStatus == 'analysis_failed' ||
+                  provider.analysisFailed) {
                 return Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-                  child: SizedBox(
-                    width: double.infinity,
-                  child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _accentColor,
-                        foregroundColor: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _dream.analysisErrorMessage ?? l10n.analysisFailed,
+                        textAlign: TextAlign.center,
                       ),
-                      onPressed: provider.analysisInProgress
-                          ? null
-                          : () async {
-                              await context.read<AnalysisProvider>().startAnalysis();
-                            },
-                      child: provider.analysisInProgress
-                          ? Text(l10n.analyzingLabel)
-                          : Text(l10n.analyze),
-                    ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accentColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: provider.analysisInProgress
+                              ? null
+                              : () async {
+                                  await context
+                                      .read<AnalysisProvider>()
+                                      .startAnalysis();
+                                  if (!mounted) return;
+                                  await _pollDreamState();
+                                },
+                          child: const Text('Повторить анализ'),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }
               return Padding(
-                padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.mic, color: _accentColor),
-                      onPressed: () {},
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    children: [
+                      const SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 2.5),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        provider.analysisInProgress
+                            ? l10n.analyzingLabel
+                            : l10n.analyzingLabel,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.mic, color: _accentColor),
+                    onPressed: () {},
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 36,
+                      minHeight: 36,
                     ),
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        maxLines: null,
-                        style: const TextStyle(fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: l10n.writeMessageHint,
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      maxLines: null,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: l10n.writeMessageHint,
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
                         ),
                       ),
                     ),
-                    provider.loading || provider.analysisInProgress
-                        ? Padding(
-                            padding: const EdgeInsets.all(8),
-                            child: SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: _accentColor,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            decoration: BoxDecoration(
+                  ),
+                  provider.loading || provider.analysisInProgress
+                      ? Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
                               color: _accentColor,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: IconButton(
-                              icon: const Icon(Icons.send, color: Colors.white, size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                              onPressed: () async {
-                                final text = _controller.text.trim();
-                                if (text.isEmpty) return;
-                                _controller.clear();
-                                await context.read<AnalysisProvider>().sendMessage(_dream.id, text);
-                                if (context.read<AnalysisProvider>().error != null) {
-                                  _showError(l10n.messageSendError);
-                                }
-                              },
                             ),
                           ),
-                  ],
-                ),
-              );
-            },
-          )
-        ],
-      ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            color: _accentColor,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.send,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
+                            onPressed: () async {
+                              final text = _controller.text.trim();
+                              if (text.isEmpty) return;
+                              _controller.clear();
+                              await context
+                                  .read<AnalysisProvider>()
+                                  .sendMessage(_dream.id, text);
+                              if (context.read<AnalysisProvider>().error !=
+                                  null) {
+                                _showError(l10n.messageSendError);
+                              }
+                            },
+                          ),
+                        ),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
     );
+
+    if (widget.embedded) {
+      return Column(
+        children: [
+          appBar,
+          Expanded(child: body),
+        ],
+      );
+    }
+
+    return Scaffold(appBar: appBar, body: body);
   }
 
   String _formatDateTime(DateTime date) {
@@ -271,7 +363,9 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
             minLines: 4,
             maxLines: 10,
             decoration: InputDecoration(
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
           actions: [
@@ -290,7 +384,10 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     if (!mounted || result == null) return;
     final newContent = result.trim();
     if (newContent.isEmpty || newContent == _dream.content) return;
-    final updated = await context.read<DreamsProvider>().updateDream(_dream.id, newContent);
+    final updated = await context.read<DreamsProvider>().updateDream(
+      _dream.id,
+      newContent,
+    );
     if (!mounted) return;
     if (updated == null) {
       _showError(l10n.dreamSaveError);
@@ -312,10 +409,8 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
           title: Text(l10n.editTitleLabel),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(
-              hintText: l10n.titleHint,
-            ),
-            maxLength: 100,
+            decoration: InputDecoration(hintText: l10n.titleHint),
+            maxLength: 64,
           ),
           actions: [
             TextButton(
@@ -333,9 +428,9 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     if (!mounted || result == null) return;
     final nextTitle = result.trim();
     final updated = await context.read<DreamsProvider>().updateDreamTitle(
-          _dream.id,
-          nextTitle.isEmpty ? null : nextTitle,
-        );
+      _dream.id,
+      nextTitle.isEmpty ? null : nextTitle,
+    );
     if (updated == null) {
       _showError(AppLocalizations.of(context)!.dreamSaveError);
       return;
@@ -372,6 +467,48 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
       _showError(AppLocalizations.of(context)!.dreamDeleteError);
       return;
     }
-    if (mounted) Navigator.of(context).pop();
+    if (!mounted) return;
+    if (widget.embedded) {
+      widget.onDreamDeleted?.call();
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _openEditDateDialog(BuildContext context) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dream.createdAt.isAfter(now) ? now : _dream.createdAt,
+      firstDate: DateTime(2020),
+      lastDate: now,
+    );
+    if (!mounted || date == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_dream.createdAt),
+    );
+    if (!mounted || time == null) return;
+    final next = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    if (next.isAfter(now)) return;
+    final updated = await context.read<DreamsProvider>().updateDreamDate(
+      _dream.id,
+      next,
+    );
+    if (!mounted) return;
+    if (updated == null) {
+      _showError(AppLocalizations.of(context)!.dreamSaveError);
+      return;
+    }
+    setState(() {
+      _dream = updated;
+    });
+    showToast(context, AppLocalizations.of(context)!.savedSuccess);
   }
 }

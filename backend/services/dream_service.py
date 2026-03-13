@@ -1,7 +1,7 @@
 """Сервис для работы со снами"""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 import pytz
 
@@ -12,6 +12,13 @@ from sqlalchemy.orm import selectinload
 from models import Dream, User
 from schemas import DreamCreate, DreamUpdate
 from config import settings
+from services.embedding_service import (
+    cosine_similarity,
+    deserialize_embedding,
+    recalculate_dream_embedding,
+    request_embedding,
+)
+from services.rag_service import rebuild_dream_memory
 
 logger = logging.getLogger(__name__)
 
@@ -118,8 +125,8 @@ async def create_dream(
     # Автоматически генерируем title если не указан
     title = dream_data.title
     if not title and dream_data.content:
-        clean = ' '.join(dream_data.content.split())
-        title = clean[:16] + "..." if len(clean) > 16 else clean
+        clean = " ".join(dream_data.content.split())
+        title = clean[:64]
     
     dream = Dream(
         user_id=user.id,
@@ -221,6 +228,12 @@ async def get_dreams_list(
     return list(dreams), total
 
 
+def _normalize_created_at(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 async def update_dream(
     db: AsyncSession,
     dream: Dream,
@@ -239,8 +252,19 @@ async def update_dream(
     """
     update_data = dream_data.model_dump(exclude_unset=True)
     
+    if "created_at" in update_data and update_data["created_at"] is not None:
+        normalized = _normalize_created_at(update_data["created_at"])
+        now_utc = datetime.now(timezone.utc)
+        if normalized > now_utc:
+            raise ValueError("created_at_cannot_be_in_future")
+        update_data["created_at"] = normalized
+        update_data["recorded_at"] = normalized
+
     for field, value in update_data.items():
         setattr(dream, field, value)
+    if {"title", "content", "comment"} & set(update_data.keys()):
+        await recalculate_dream_embedding(db, dream)
+        await rebuild_dream_memory(db, dream, dream.user_id)
     
     await db.commit()
     await db.refresh(dream)
@@ -269,7 +293,7 @@ async def search_dreams(
     db: AsyncSession,
     user: User,
     query: str
-) -> list[Dream]:
+) -> list[tuple[Dream, float]]:
     """
     Поиск снов по тексту (PostgreSQL full-text search)
     
@@ -298,7 +322,50 @@ async def search_dreams(
         )
         .order_by(Dream.recorded_at.desc())
     )
-    dreams = result.scalars().all()
-    
-    logger.info(f"Search '{query}' returned {len(dreams)} results for user {user.id}")
-    return list(dreams)
+    dreams = list(result.scalars().all())
+    scored: list[tuple[Dream, float]] = []
+    q = query.lower().strip()
+    for dream in dreams:
+        score = 0.1
+        if dream.title and q in dream.title.lower():
+            score += 0.5
+        if q in dream.content.lower():
+            score += 0.4
+        if dream.comment and q in dream.comment.lower():
+            score += 0.1
+        scored.append((dream, min(score, 1.0)))
+
+    logger.info(f"Search '{query}' returned {len(scored)} results for user {user.id}")
+    return scored
+
+
+async def search_dreams_semantic(
+    db: AsyncSession,
+    user: User,
+    query: str,
+    limit: int = 50,
+) -> list[tuple[Dream, float]]:
+    query_vec = await request_embedding(query)
+    result = await db.execute(
+        select(Dream)
+        .options(selectinload(Dream.analysis))
+        .where(Dream.user_id == user.id)
+        .order_by(Dream.recorded_at.desc())
+        .limit(max(limit * 4, 100))
+    )
+    dreams = list(result.scalars().all())
+    scored: list[tuple[Dream, float]] = []
+    for dream in dreams:
+        emb = deserialize_embedding(dream.embedding_text)
+        if emb is None:
+            # Lazy backfill so old rows become searchable.
+            await recalculate_dream_embedding(db, dream)
+            emb = deserialize_embedding(dream.embedding_text)
+        if emb is None:
+            continue
+        score = cosine_similarity(query_vec, emb)
+        if score > 0:
+            scored.append((dream, score))
+    await db.commit()
+    scored.sort(key=lambda item: item[1], reverse=True)
+    return scored[:limit]

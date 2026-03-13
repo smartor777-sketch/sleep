@@ -22,8 +22,34 @@ from services.dream_service import (
     update_dream,
     delete_dream,
     search_dreams,
+    search_dreams_semantic,
 )
-from models import Analysis
+from services.analysis_service import create_analysis
+from models import AnalysisStatus
+
+
+def _map_analysis_status(dream) -> tuple[bool, str, str | None]:
+    analysis = dream.analysis
+    if analysis is None:
+        return False, "saved", None
+    status = analysis.status
+    if status in {AnalysisStatus.PENDING.value, AnalysisStatus.PROCESSING.value}:
+        return False, "analyzing", analysis.error_message
+    if status == AnalysisStatus.COMPLETED.value:
+        return True, "analyzed", None
+    if status == AnalysisStatus.FAILED.value:
+        return False, "analysis_failed", analysis.error_message
+    return False, "saved", analysis.error_message
+
+
+def _map_analysis_status_value(status: str | None, error_message: str | None) -> tuple[bool, str, str | None]:
+    if status in {AnalysisStatus.PENDING.value, AnalysisStatus.PROCESSING.value}:
+        return False, "analyzing", error_message
+    if status == AnalysisStatus.COMPLETED.value:
+        return True, "analyzed", None
+    if status == AnalysisStatus.FAILED.value:
+        return False, "analysis_failed", error_message
+    return False, "saved", error_message
 
 router = APIRouter(prefix="/dreams", tags=["Dreams"])
 logger = logging.getLogger(__name__)
@@ -43,11 +69,24 @@ async def create_dream_endpoint(
     """
     try:
         dream = await create_dream(db, current_user, dream_data)
-        
-        # Добавляем информацию о наличии анализа
+        analysis_status = "saved"
+        analysis_error_message = None
+        has_analysis = False
+
+        try:
+            analysis, _task_id = await create_analysis(db, dream, current_user, allow_retry=False)
+            has_analysis, analysis_status, analysis_error_message = _map_analysis_status_value(
+                analysis.status,
+                analysis.error_message,
+            )
+        except ValueError as e:
+            logger.warning(f"Auto-analysis skipped for dream {dream.id}: {e}")
+
         response_data = DreamResponse.model_validate(dream)
-        response_data.has_analysis = False  # Новый сон не имеет анализа
-        
+        response_data.has_analysis = has_analysis
+        response_data.analysis_status = analysis_status
+        response_data.analysis_error_message = analysis_error_message
+
         return response_data
     
     except ValueError as e:
@@ -84,8 +123,10 @@ async def get_dreams_endpoint(
         dreams_with_analysis = []
         for dream in dreams:
             dream_response = DreamResponse.model_validate(dream)
-            # Проверяем, есть ли анализ
-            dream_response.has_analysis = dream.analysis is not None
+            has_analysis, analysis_status, analysis_error_message = _map_analysis_status(dream)
+            dream_response.has_analysis = has_analysis
+            dream_response.analysis_status = analysis_status
+            dream_response.analysis_error_message = analysis_error_message
             dreams_with_analysis.append(dream_response)
         
         total_pages = math.ceil(total / page_size) if total > 0 else 0
@@ -110,7 +151,8 @@ async def get_dreams_endpoint(
 async def search_dreams_endpoint(
     current_user: CurrentUser,
     db: DatabaseSession,
-    q: str = Query(..., min_length=1, description="Поисковый запрос")
+    q: str = Query(..., min_length=1, description="Поисковый запрос"),
+    mode: str = Query("semantic", pattern="^(semantic|lexical)$"),
 ):
     """
     Поиск снов по тексту
@@ -119,19 +161,26 @@ async def search_dreams_endpoint(
     - Регистронезависимый поиск
     """
     try:
-        dreams = await search_dreams(db, current_user, q)
+        if mode == "semantic":
+            dreams = await search_dreams_semantic(db, current_user, q)
+        else:
+            dreams = await search_dreams(db, current_user, q)
         
         # Проверяем наличие анализов
         dreams_with_analysis = []
-        for dream in dreams:
+        for dream, _score in dreams:
             dream_response = DreamResponse.model_validate(dream)
-            dream_response.has_analysis = dream.analysis is not None
+            has_analysis, analysis_status, analysis_error_message = _map_analysis_status(dream)
+            dream_response.has_analysis = has_analysis
+            dream_response.analysis_status = analysis_status
+            dream_response.analysis_error_message = analysis_error_message
             dreams_with_analysis.append(dream_response)
         
         return {
             "dreams": dreams_with_analysis,
             "total": len(dreams_with_analysis),
-            "query": q
+            "query": q,
+            "mode": mode,
         }
     
     except Exception as e:
@@ -160,12 +209,16 @@ async def get_dream_endpoint(
         )
     
     response_data = DreamResponse.model_validate(dream)
-    response_data.has_analysis = dream.analysis is not None
+    has_analysis, analysis_status, analysis_error_message = _map_analysis_status(dream)
+    response_data.has_analysis = has_analysis
+    response_data.analysis_status = analysis_status
+    response_data.analysis_error_message = analysis_error_message
     
     return response_data
 
 
 @router.put("/{dream_id}", response_model=DreamResponse)
+@router.patch("/{dream_id}", response_model=DreamResponse)
 async def update_dream_endpoint(
     dream_id: UUID,
     dream_data: DreamUpdate,
@@ -189,10 +242,19 @@ async def update_dream_endpoint(
         updated_dream = await update_dream(db, dream, dream_data)
         
         response_data = DreamResponse.model_validate(updated_dream)
-        response_data.has_analysis = updated_dream.analysis is not None
+        has_analysis, analysis_status, analysis_error_message = _map_analysis_status(updated_dream)
+        response_data.has_analysis = has_analysis
+        response_data.analysis_status = analysis_status
+        response_data.analysis_error_message = analysis_error_message
         
         return response_data
     
+    except ValueError as e:
+        detail = str(e)
+        status_code = status.HTTP_400_BAD_REQUEST
+        if detail == "created_at_cannot_be_in_future":
+            status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        raise HTTPException(status_code=status_code, detail=detail)
     except Exception as e:
         logger.error(f"Failed to update dream: {e}")
         raise HTTPException(

@@ -4,10 +4,10 @@ import logging
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Analysis, AnalysisMessage, Dream, User, AnalysisStatus
+from models import Analysis, Dream, User, AnalysisStatus
 from celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,8 @@ async def get_analysis_by_dream_id(
 async def create_analysis(
     db: AsyncSession,
     dream: Dream,
-    user: User
+    user: User,
+    allow_retry: bool = False,
 ) -> tuple[Analysis, str]:
     """
     Создать анализ сна и запустить фоновую задачу
@@ -62,33 +63,23 @@ async def create_analysis(
     existing_analysis = await get_analysis_by_dream_id(db, dream.id, user)
 
     if existing_analysis:
-        # Сбрасываем существующий анализ и чистим старые сообщения
-        await db.execute(
-            delete(AnalysisMessage).where(
-                AnalysisMessage.dream_id == dream.id,
-                AnalysisMessage.user_id == user.id,
-            )
+        if existing_analysis.status in {AnalysisStatus.PENDING.value, AnalysisStatus.PROCESSING.value}:
+            raise ValueError("analysis_already_exists")
+        if existing_analysis.status == AnalysisStatus.COMPLETED.value:
+            raise ValueError("analysis_already_exists")
+        if existing_analysis.status == AnalysisStatus.FAILED.value and allow_retry:
+            existing_analysis.status = AnalysisStatus.PENDING.value
+            existing_analysis.error_message = None
+            existing_analysis.completed_at = None
+            analysis = existing_analysis
+        else:
+            raise ValueError("analysis_already_exists")
+    else:
+        analysis = Analysis(
+            dream_id=dream.id,
+            user_id=user.id,
+            status=AnalysisStatus.PENDING.value
         )
-        existing_analysis.result = None
-        existing_analysis.error_message = None
-        existing_analysis.completed_at = None
-        existing_analysis.status = AnalysisStatus.PENDING.value
-        await db.commit()
-        await db.refresh(existing_analysis)
-
-        task = analyze_dream_task.delay(str(existing_analysis.id))
-        existing_analysis.celery_task_id = task.id
-        await db.commit()
-
-        logger.info(f"Analysis {existing_analysis.id} reset and requeued with task_id {task.id}")
-        return existing_analysis, task.id
-
-    # Создаём новую запись анализа
-    analysis = Analysis(
-        dream_id=dream.id,
-        user_id=user.id,
-        status=AnalysisStatus.PENDING.value
-    )
 
     db.add(analysis)
     await db.commit()
@@ -181,4 +172,3 @@ async def get_user_analyses(
         .limit(limit)
     )
     return list(result.scalars().all())
-

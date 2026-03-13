@@ -50,7 +50,7 @@ async def create_analysis_endpoint(
     
     try:
         # Создаём анализ (или сбрасываем существующий) и запускаем задачу
-        analysis, task_id = await create_analysis(db, dream, current_user)
+        analysis, task_id = await create_analysis(db, dream, current_user, allow_retry=True)
         
         return {
             "analysis_id": analysis.id,

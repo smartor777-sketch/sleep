@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Dream, User
+from models import Dream, User, UserArchetype
 from services.dream_service import get_user_timezone
 
 
@@ -47,9 +47,30 @@ async def get_user_stats(db: AsyncSession, user: User) -> dict:
             streak += 1
             day -= timedelta(days=1)
 
+    # last 14 days chart
+    today = datetime.now(tz).date()
+    dreams_by_date = {}
+    for dt in rows:
+        local = dt.astimezone(tz).date()
+        dreams_by_date[local] = dreams_by_date.get(local, 0) + 1
+    last_14_days = []
+    for i in range(13, -1, -1):
+        day = today - timedelta(days=i)
+        last_14_days.append({"date": day.isoformat(), "count": dreams_by_date.get(day, 0)})
+
+    archetypes_q = (
+        select(UserArchetype)
+        .where(UserArchetype.user_id == user.id)
+        .order_by(UserArchetype.count.desc(), UserArchetype.name.asc())
+        .limit(10)
+    )
+    archetypes = list((await db.execute(archetypes_q)).scalars().all())
+
     return {
         "total_dreams": total,
         "streak_days": streak,
         "dreams_by_weekday": weekday_map,
+        "dreams_last_14_days": last_14_days,
+        "archetypes_top": [{"name": item.name, "count": item.count} for item in archetypes],
         "avg_time_of_day": avg_time,
     }

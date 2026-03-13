@@ -5,6 +5,7 @@ __pycache__/
 
 # Virtual environments
 .venv/
+.venv312/
 venv/
 env/
 
@@ -24,5 +25,4 @@ coverage.xml
 
 # OS specific
 .DS_Store
-
 

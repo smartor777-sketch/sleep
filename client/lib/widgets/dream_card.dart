@@ -18,67 +18,155 @@ class DreamCard extends StatelessWidget {
   String _formatDate(DateTime date) {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
-    final year = date.year % 100;
-    final yearShort = year.toString().padLeft(2, '0');
-    return '$day.$month.$yearShort';
-  }
-
-  String _formatTime(DateTime date) {
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    final year = date.year;
+    return '$day.$month.$year';
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final background = theme.colorScheme.surface;
+    final color1 = _parseHexColor(dream.gradientColor1);
+    final color2 = _parseHexColor(dream.gradientColor2);
+    final hasGradient = color1 != null && color2 != null && dream.hasAnalysis;
+    final titleText = (dream.title?.trim().isNotEmpty ?? false)
+        ? dream.title!.trim()
+        : dream.content.trim();
+    final textColor = hasGradient ? Colors.white : theme.colorScheme.onSurface;
+    final dateColor = hasGradient
+        ? Colors.white.withOpacity(0.68)
+        : theme.colorScheme.onSurface.withOpacity(0.62);
+
     return GestureDetector(
       onLongPressStart: onLongPressStart,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 78,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _formatDate(dream.createdAt),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 16,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: hasGradient ? null : theme.colorScheme.surfaceVariant,
+            gradient: hasGradient
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    stops: const [0.0, 0.52, 1.0],
+                    colors: [color1, color2, background],
+                  )
+                : null,
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (hasGradient)
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.12),
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.28),
+                      ],
+                      stops: const [0.0, 0.42, 1.0],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatTime(dream.createdAt),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                      fontSize: 16,
+                ),
+              if (dream.analysisStatus == 'analyzing')
+                Container(
+                  color: Colors.black.withOpacity(0.18),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                (dream.title?.trim().isNotEmpty ?? false) ? dream.title!.trim() : dream.content,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.right,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 16,
+                ),
+              if (dream.analysisStatus == 'analysis_failed')
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.88),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Icon(
+                        Icons.error_outline,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _formatDate(dream.createdAt),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: dateColor,
+                        fontSize: 11,
+                        shadows: hasGradient
+                            ? const [
+                                Shadow(
+                                  color: Color(0x55000000),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 1),
+                                ),
+                              ]
+                            : null,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      titleText.length > 32
+                          ? '${titleText.substring(0, 32)}...'
+                          : titleText,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: textColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        height: 1.12,
+                        shadows: hasGradient
+                            ? const [
+                                Shadow(
+                                  color: Color(0x70000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Color? _parseHexColor(String? value) {
+    final raw = value?.trim();
+    if (raw == null || !RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(raw)) return null;
+    final hex = raw.substring(1);
+    return Color(int.parse('FF$hex', radix: 16));
   }
 }

@@ -1,5 +1,6 @@
 """LLM Service - Микросервис для анализа снов с помощью LLM"""
 
+import json
 import logging
 from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
@@ -38,8 +39,10 @@ class AnalyzeRequest(BaseModel):
 
 
 class AnalyzeResponse(BaseModel):
-    """Ответ с результатом анализа"""
-    result: str = Field(..., description="Результат анализа от нейросети")
+    analysis_text: str = Field(..., description="Markdown-анализ сна")
+    title: str | None = Field(None, max_length=64, description="Короткий заголовок сна")
+    gradient: dict | None = Field(None, description="Цвета градиента: color1, color2")
+    archetypes_delta: dict[str, int] = Field(default_factory=dict, description="Дельта архетипов")
 
 
 class ChatMessage(BaseModel):
@@ -105,10 +108,50 @@ async def analyze_dream(request: AnalyzeRequest):
             system_prompt=system_prompt,
             temperature=temperature
         )
-        
-        logger.info(f"Successfully analyzed dream, result length: {len(result)} chars")
-        
-        return {"result": result}
+
+        payload = _extract_json(result)
+        if payload is None:
+            payload = {"analysis_text": result, "archetypes_delta": {}}
+
+        # Hard constraints for downstream storage
+        title = payload.get("title")
+        if isinstance(title, str):
+            payload["title"] = title.strip()[:64] or None
+        else:
+            payload["title"] = None
+
+        gradient = payload.get("gradient")
+        if not isinstance(gradient, dict):
+            payload["gradient"] = None
+
+        delta = payload.get("archetypes_delta")
+        if not isinstance(delta, dict):
+            payload["archetypes_delta"] = {}
+        else:
+            normalized = {}
+            for k, v in delta.items():
+                key = str(k).strip()
+                if not key:
+                    continue
+                try:
+                    iv = int(v)
+                except Exception:
+                    continue
+                if iv > 0:
+                    normalized[key] = iv
+            payload["archetypes_delta"] = normalized
+
+        if not payload.get("analysis_text"):
+            payload["analysis_text"] = result
+
+        logger.info(
+            "Successfully analyzed dream: text=%s title=%s archetypes=%s",
+            len(payload["analysis_text"]),
+            bool(payload.get("title")),
+            len(payload.get("archetypes_delta", {})),
+        )
+
+        return payload
     
     except ValueError as e:
         logger.error(f"Validation error: {e}")
@@ -170,3 +213,26 @@ if __name__ == "__main__":
         reload=True,
         log_level=settings.log_level.lower()
     )
+
+
+def _extract_json(raw: str) -> dict | None:
+    """Extract first valid JSON object from raw model output."""
+    text = raw.strip()
+    if not text:
+        return None
+    try:
+        obj = json.loads(text)
+        return obj if isinstance(obj, dict) else None
+    except Exception:
+        pass
+
+    fence_start = text.find("{")
+    fence_end = text.rfind("}")
+    if fence_start == -1 or fence_end == -1 or fence_end <= fence_start:
+        return None
+    candidate = text[fence_start:fence_end + 1]
+    try:
+        obj = json.loads(candidate)
+        return obj if isinstance(obj, dict) else None
+    except Exception:
+        return None

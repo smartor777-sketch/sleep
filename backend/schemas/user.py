@@ -29,6 +29,7 @@ class UserSettingsUpdate(BaseModel):
     """Схема для обновления настроек пользователя"""
     self_description: str | None = Field(None, max_length=1000)
     timezone: str | None = None
+    onboarding_completed: bool | None = None
 
 
 class UserResponse(UserBase):
@@ -59,6 +60,7 @@ class UserPublic(BaseModel):
 class UserProfileResponse(BaseModel):
     """Профиль пользователя для /users/me"""
     about_me: str | None = None
+    onboarding_completed: bool = False
 
 
 class UserMeResponse(BaseModel):

@@ -8,14 +8,20 @@ import 'secure_storage_service.dart';
 import 'api_client.dart';
 
 class AuthService {
-  AuthService(this._storage) : _api = ApiClient(_storage);
+  AuthService(
+    this._storage, {
+    ApiClient? apiClient,
+    http.Client? httpClient,
+  })  : _api = apiClient ?? ApiClient(_storage, httpClient: httpClient),
+        _httpClient = httpClient ?? http.Client();
 
   final SecureStorageService _storage;
   final ApiClient _api;
+  final http.Client _httpClient;
 
   Future<UserMe> anonymousAuth({required String deviceId}) async {
     final uri = Uri.parse('$apiBaseUrl/api/v1/auth/anonymous');
-    final response = await http.post(
+    final response = await _httpClient.post(
       uri,
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({

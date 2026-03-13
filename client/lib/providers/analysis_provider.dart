@@ -8,12 +8,27 @@ import 'auth_provider.dart';
 import '../services/api_exception.dart';
 
 class AnalysisProvider extends ChangeNotifier {
-  AnalysisProvider(this._auth) {
-    _messagesService = MessagesService(_auth.apiClient);
-    _analysisService = AnalysisService(_auth.apiClient);
+  AnalysisProvider(
+    this._auth, {
+    MessagesService? messagesService,
+    AnalysisService? analysisService,
+    Duration pollInterval = const Duration(seconds: 2),
+    int maxAnalysisPollAttempts = 60,
+    int maxMessagePollAttempts = 60,
+    int maxInitialLoadPollAttempts = 30,
+  })  : _pollInterval = pollInterval,
+        _maxAnalysisPollAttempts = maxAnalysisPollAttempts,
+        _maxMessagePollAttempts = maxMessagePollAttempts,
+        _maxInitialLoadPollAttempts = maxInitialLoadPollAttempts {
+    _messagesService = messagesService ?? MessagesService(_auth.apiClient);
+    _analysisService = analysisService ?? AnalysisService(_auth.apiClient);
   }
 
   final AuthProvider _auth;
+  final Duration _pollInterval;
+  final int _maxAnalysisPollAttempts;
+  final int _maxMessagePollAttempts;
+  final int _maxInitialLoadPollAttempts;
   late final MessagesService _messagesService;
   late final AnalysisService _analysisService;
 
@@ -22,6 +37,7 @@ class AnalysisProvider extends ChangeNotifier {
   bool _analysisInProgress = false;
   bool _analysisReady = false;
   bool _analysisStarted = false;
+  bool _analysisFailed = false;
   Dream? _dream;
   String? _error;
   int? _errorCode;
@@ -31,6 +47,7 @@ class AnalysisProvider extends ChangeNotifier {
   bool get analysisInProgress => _analysisInProgress;
   bool get analysisReady => _analysisReady;
   bool get analysisStarted => _analysisStarted;
+  bool get analysisFailed => _analysisFailed;
   String? get error => _error;
   int? get errorCode => _errorCode;
 
@@ -41,10 +58,21 @@ class AnalysisProvider extends ChangeNotifier {
     _errorCode = null;
     _analysisStarted = false;
     _analysisInProgress = false;
+    _analysisFailed = false;
     notifyListeners();
     try {
       await refreshMessages(dream.id);
-      if (_analysisStarted && !_analysisReady) {
+      final snapshot = await _analysisService.getAnalysisByDream(dream.id);
+      if (snapshot != null) {
+        _analysisStarted = true;
+        _analysisReady = snapshot.status == 'completed';
+        _analysisInProgress =
+            snapshot.status == 'pending' || snapshot.status == 'processing';
+        _analysisFailed = snapshot.status == 'failed';
+      }
+      if ((_analysisStarted || _analysisInProgress) &&
+          !_analysisReady &&
+          !_analysisFailed) {
         _analysisInProgress = true;
         notifyListeners();
         await _pollMessages(dream.id);
@@ -70,6 +98,9 @@ class AnalysisProvider extends ChangeNotifier {
       ..addAll(items);
     _analysisReady = _messages.any((m) => m.role == MessageRole.assistant);
     _analysisStarted = _messages.any((m) => m.role == MessageRole.user);
+    if (_analysisReady) {
+      _analysisFailed = false;
+    }
     notifyListeners();
   }
 
@@ -78,13 +109,16 @@ class AnalysisProvider extends ChangeNotifier {
     if (dream == null) return false;
     final content = dream.content.trim();
     if (content.isEmpty) return false;
-    return !_messages.any((m) => m.role == MessageRole.user && m.content.trim() == content);
+    return !_messages.any(
+      (m) => m.role == MessageRole.user && m.content.trim() == content,
+    );
   }
 
   Future<void> startAnalysis() async {
     if (_dream == null || _analysisInProgress || _analysisReady) return;
     _analysisInProgress = true;
     _analysisStarted = true;
+    _analysisFailed = false;
     _error = null;
     _errorCode = null;
     notifyListeners();
@@ -131,29 +165,35 @@ class AnalysisProvider extends ChangeNotifier {
   }
 
   Future<void> _pollAnalysis(String taskId) async {
-    for (var i = 0; i < 60; i++) {
+    for (var i = 0; i < _maxAnalysisPollAttempts; i++) {
       final status = await _analysisService.getTaskStatus(taskId);
       if (status.status == 'SUCCESS' || status.status == 'COMPLETED') {
         return;
       }
       if (status.status == 'FAILURE' || status.status == 'FAILED') {
         _error = 'analysis_failed';
+        _analysisFailed = true;
         return;
       }
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(_pollInterval);
     }
   }
 
   Future<void> _pollMessages(String dreamId) async {
-    for (var i = 0; i < 30; i++) {
+    for (var i = 0; i < _maxInitialLoadPollAttempts; i++) {
       await refreshMessages(dreamId);
       if (_analysisReady) return;
-      await Future.delayed(const Duration(seconds: 2));
+      final snapshot = await _analysisService.getAnalysisByDream(dreamId);
+      if (snapshot?.status == 'failed') {
+        _analysisFailed = true;
+        return;
+      }
+      await Future.delayed(_pollInterval);
     }
   }
 
   Future<void> _pollMessageTask(String taskId) async {
-    for (var i = 0; i < 60; i++) {
+    for (var i = 0; i < _maxMessagePollAttempts; i++) {
       final status = await _analysisService.getMessageTaskStatus(taskId);
       if (status.status == 'SUCCESS' || status.status == 'COMPLETED') {
         return;
@@ -162,7 +202,7 @@ class AnalysisProvider extends ChangeNotifier {
         _error = 'message_failed';
         return;
       }
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(_pollInterval);
     }
   }
 

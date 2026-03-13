@@ -65,6 +65,9 @@ class _LoginScreenState extends State<LoginScreen> {
           toggleTheme: widget.toggleTheme,
           accentColor: widget.accentColor,
           setAccentColor: widget.setAccentColor,
+          setLocale: (_) {},
+          textScale: 1.0,
+          setTextScale: (_) {},
         ),
       ),
     );

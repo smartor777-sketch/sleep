@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'package:provider/provider.dart';
@@ -13,13 +12,14 @@ import '../providers/profile_provider.dart';
 import '../utils/snackbar.dart';
 
 class ProfileScreen extends StatefulWidget {
-  final bool isDarkMode;                 // текущий режим
-  final VoidCallback toggleTheme;        // функция смены темы
+  final bool isDarkMode; // текущий режим
+  final VoidCallback toggleTheme; // функция смены темы
   final Color accentColor;
   final Function(Color) setAccentColor;
   final Function(Locale) setLocale;
   final double textScale;
   final Function(double) setTextScale;
+  final bool embedded;
 
   const ProfileScreen({
     super.key,
@@ -30,6 +30,7 @@ class ProfileScreen extends StatefulWidget {
     required this.setLocale,
     required this.textScale,
     required this.setTextScale,
+    this.embedded = false,
   });
 
   @override
@@ -90,238 +91,377 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(AppLocalizations.of(context)!.profileTitle)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Email
-            if (user != null && !(user.isAnonymous) && user.email != null) ...[
-              Text(
-                user.email!,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-            ],
-
-            // About Me
-            TextField(
-              controller: _aboutController,
-              minLines: 2,
-              maxLines: 6,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(context)!.aboutMeLabel,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-                    width: 2,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(
-                    color: _accentColor,
-                    width: 2,
-                  ),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _aboutText = value;
-                });
-              },
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: profile.loading
-                    ? null
-                    : () async {
-                        final updated = await context.read<ProfileProvider>().saveAboutMe(_aboutText);
-                        if (!mounted) return;
-                        if (updated == null) {
-                          showToast(context, AppLocalizations.of(context)!.profileSaveError, isError: true);
-                        } else {
-                          showToast(context, AppLocalizations.of(context)!.savedSuccess);
-                        }
-                      },
-                child: profile.loading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : Text(AppLocalizations.of(context)!.save),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Статистика
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildStatCard(AppLocalizations.of(context)!.totalDreams, (stats?.totalDreams ?? 0).toString(), Colors.deepPurple),
-                _buildStatCard(AppLocalizations.of(context)!.streak, (stats?.streakDays ?? 0).toString(), Colors.green),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // График снов по дням
+    final content = SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Email
+          if (user != null && !(user.isAnonymous) && user.email != null) ...[
             Text(
-              AppLocalizations.of(context)!.dreamsByWeekday,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              user.email!,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY: ((stats?.dreamsByWeekday.values.isEmpty ?? true)
-                            ? 1
-                            : (stats?.dreamsByWeekday.values.reduce((a,b) => a>b?a:b) ?? 1))
-                        .toDouble() + 1,
-                    gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 32,
-                          interval: 1,
-                          getTitlesWidget: (value, meta) {
-                            if (value % 1 != 0) return const SizedBox.shrink();
-                            return Text(value.toInt().toString());
-                          },
-                        ),
+          ],
+
+          // About Me
+          TextField(
+            controller: _aboutController,
+            minLines: 2,
+            maxLines: 6,
+            decoration: InputDecoration(
+              labelText: AppLocalizations.of(context)!.aboutMeLabel,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+                  width: 2,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: _accentColor, width: 2),
+              ),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _aboutText = value;
+              });
+            },
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              onPressed: profile.loading
+                  ? null
+                  : () async {
+                      final updated = await context
+                          .read<ProfileProvider>()
+                          .saveAboutMe(_aboutText);
+                      if (!mounted) return;
+                      if (updated == null) {
+                        showToast(
+                          context,
+                          AppLocalizations.of(context)!.profileSaveError,
+                          isError: true,
+                        );
+                      } else {
+                        showToast(
+                          context,
+                          AppLocalizations.of(context)!.savedSuccess,
+                        );
+                      }
+                    },
+              child: profile.loading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
                       ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            final days = (stats?.dreamsByWeekday.keys.toList() ??
-                                ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
-                            if (value.toInt() >= 0 && value.toInt() < days.length) {
-                              return Text(days[value.toInt()]);
-                            }
-                            return const Text('');
-                          },
-                          reservedSize: 32,
-                        ),
+                    )
+                  : Text(AppLocalizations.of(context)!.save),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Статистика
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildStatCard(
+                AppLocalizations.of(context)!.totalDreams,
+                (stats?.totalDreams ?? 0).toString(),
+                Colors.deepPurple,
+              ),
+              _buildStatCard(
+                AppLocalizations.of(context)!.streak,
+                (stats?.streakDays ?? 0).toString(),
+                Colors.green,
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+
+          // График снов по последним 14 дням
+          Text(
+            'Сны за 14 дней',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 200,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: BarChart(
+                BarChartData(
+                  minY: 0,
+                  alignment: BarChartAlignment.spaceAround,
+                  maxY: () {
+                    final counts =
+                        stats?.dreamsLast14Days.map((e) => e.count).toList() ??
+                        [];
+                    final maxCount = counts.isEmpty
+                        ? 0
+                        : counts.reduce((a, b) => a > b ? a : b);
+                    return (maxCount < 3 ? 3 : maxCount + 1).toDouble();
+                  }(),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    horizontalInterval: 1,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withOpacity(0.2),
+                      strokeWidth: 1,
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 32,
+                        interval: 1,
+                        getTitlesWidget: (value, meta) {
+                          if (value % 1 != 0) return const SizedBox.shrink();
+                          if (value < 0) return const SizedBox.shrink();
+                          return Text(
+                            value.toInt().toString(),
+                            style: const TextStyle(fontSize: 11),
+                          );
+                        },
                       ),
                     ),
-                    barGroups: (stats?.dreamsByWeekday.entries ??
-                        {'Mon':0,'Tue':0,'Wed':0,'Thu':0,'Fri':0,'Sat':0,'Sun':0}.entries).mapIndexed((index, entry) {
-                      return BarChartGroupData(
-                        x: index,
-                        barRods: [
-                          BarChartRodData(
-                            toY: entry.value.toDouble(),
-                            color: _accentColor,
-                            width: 18,
-                          )
-                        ],
-                      );
-                    }).toList(),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (value, meta) {
+                          final days = stats?.dreamsLast14Days ?? [];
+                          final index = value.toInt();
+                          if (index >= 0 && index < days.length) {
+                            final label = days[index].date;
+                            final shouldShow =
+                                index == 0 ||
+                                index == days.length - 1 ||
+                                index.isEven;
+                            if (!shouldShow) {
+                              return const SizedBox.shrink();
+                            }
+                            return SideTitleWidget(
+                              meta: meta,
+                              space: 6,
+                              child: Text(
+                                label.substring(8, 10),
+                                style: const TextStyle(fontSize: 10),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                        reservedSize: 24,
+                      ),
+                    ),
                   ),
+                  barGroups: (stats?.dreamsLast14Days ?? []).mapIndexed((
+                    index,
+                    entry,
+                  ) {
+                    return BarChartGroupData(
+                      x: index,
+                      barRods: [
+                        BarChartRodData(
+                          toY: entry.count.toDouble(),
+                          color: _accentColor,
+                          width: 10,
+                        ),
+                      ],
+                    );
+                  }).toList(),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            Text(AppLocalizations.of(context)!.accentColorLabel, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 20),
+          if ((stats?.archetypesTop.isNotEmpty ?? false)) ...[
+            const Text(
+              'Архетипы',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Colors.deepPurple,
-                Colors.teal,
-                Colors.orange,
-                Colors.pink,
-                Colors.lightBlue,
-              ].map((color) {
-                return GestureDetector(
-                  onTap: () {
-                    widget.setAccentColor(color);
-                    setState(() {
-                      _accentColor = color;
-                    });
-                  },
-                  child: CircleAvatar(
-                    backgroundColor: color,
-                    radius: 20,
-                    child: color == _accentColor
-                        ? const Icon(Icons.check, color: Colors.white)
-                        : null,
-                  ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 32),
-            // Тёмная тема
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(AppLocalizations.of(context)!.darkThemeLabel, style: const TextStyle(fontSize: 16)),
-                Switch(
-                  value: _isDarkMode,
-                  onChanged: (_) {
-                    widget.toggleTheme();
-                    setState(() {
-                      _isDarkMode = !_isDarkMode;
-                    });
-                  },
+            ...stats!.archetypesTop.map((item) {
+              final max = stats.archetypesTop.first.count == 0
+                  ? 1
+                  : stats.archetypesTop.first.count;
+              final ratio = item.count / max;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(item.count.toString()),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: ratio.clamp(0, 1),
+                      minHeight: 8,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.outline.withOpacity(0.2),
+                      color: _accentColor,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(AppLocalizations.of(context)!.fontSizeLabel, style: const TextStyle(fontSize: 16)),
-                TextButton(
-                  onPressed: () {
-                    final next = _nextTextScale(widget.textScale);
-                    widget.setTextScale(next);
-                  },
-                  child: Text(_fontScaleLabel(widget.textScale)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(AppLocalizations.of(context)!.languageLabel, style: const TextStyle(fontSize: 16)),
-                TextButton(
-                  onPressed: () {
-                    final current = Localizations.localeOf(context).languageCode;
-                    final next = current == 'ru' ? const Locale('en') : const Locale('ru');
-                    widget.setLocale(next);
-                  },
-                  child: Text(Localizations.localeOf(context).languageCode.toUpperCase()),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildLinkSection(context),
+              );
+            }),
           ],
-        ),
+          const SizedBox(height: 24),
+          Text(
+            AppLocalizations.of(context)!.accentColorLabel,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children:
+                [
+                  Colors.deepPurple,
+                  Colors.teal,
+                  Colors.orange,
+                  Colors.pink,
+                  Colors.lightBlue,
+                ].map((color) {
+                  return GestureDetector(
+                    onTap: () {
+                      widget.setAccentColor(color);
+                      setState(() {
+                        _accentColor = color;
+                      });
+                    },
+                    child: CircleAvatar(
+                      backgroundColor: color,
+                      radius: 20,
+                      child: color == _accentColor
+                          ? const Icon(Icons.check, color: Colors.white)
+                          : null,
+                    ),
+                  );
+                }).toList(),
+          ),
+          const SizedBox(height: 32),
+          // Тёмная тема
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.darkThemeLabel,
+                style: const TextStyle(fontSize: 16),
+              ),
+              Switch(
+                value: _isDarkMode,
+                onChanged: (_) {
+                  widget.toggleTheme();
+                  setState(() {
+                    _isDarkMode = !_isDarkMode;
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.fontSizeLabel,
+                style: const TextStyle(fontSize: 16),
+              ),
+              TextButton(
+                onPressed: () {
+                  final next = _nextTextScale(widget.textScale);
+                  widget.setTextScale(next);
+                },
+                child: Text(_fontScaleLabel(widget.textScale)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.languageLabel,
+                style: const TextStyle(fontSize: 16),
+              ),
+              TextButton(
+                onPressed: () {
+                  final current = Localizations.localeOf(context).languageCode;
+                  final next = current == 'ru'
+                      ? const Locale('en')
+                      : const Locale('ru');
+                  widget.setLocale(next);
+                },
+                child: Text(
+                  Localizations.localeOf(context).languageCode.toUpperCase(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildLinkSection(context),
+        ],
       ),
+    );
+
+    if (widget.embedded) {
+      return Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                AppLocalizations.of(context)!.profileTitle,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+          ),
+          Expanded(child: content),
+        ],
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text(AppLocalizations.of(context)!.profileTitle)),
+      body: content,
     );
   }
 
@@ -331,11 +471,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Column(
             children: [
-              Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
               Text(title, style: const TextStyle(fontSize: 14)),
             ],
           ),
@@ -367,60 +514,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text('Sign in with Apple'),
             ),
           ),
-        if (Platform.isAndroid)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: _linking ? null : _linkWithGoogle,
-              child: const Text('Continue with Google'),
-            ),
-          ),
       ],
     );
-  }
-
-  Future<void> _linkWithGoogle() async {
-    setState(() => _linking = true);
-    try {
-      final googleSignIn = GoogleSignIn(scopes: ['email']);
-      final account = await googleSignIn.signIn();
-      final auth = await account?.authentication;
-      final idToken = auth?.idToken;
-      if (idToken == null) {
-        _showError(AppLocalizations.of(context)!.googleTokenError);
-        return;
-      }
-      final updated = await context.read<AuthProvider>().authService.linkProvider(
-        provider: 'google',
-        idToken: idToken,
-      );
-      context.read<AuthProvider>().updateUser(updated);
-    } catch (e) {
-      _handleLinkError(e);
-    } finally {
-      setState(() => _linking = false);
-    }
   }
 
   Future<void> _linkWithApple() async {
     setState(() => _linking = true);
     try {
       final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
       );
       final idToken = credential.identityToken;
       if (idToken == null) {
         _showError(AppLocalizations.of(context)!.appleTokenError);
         return;
       }
-      final updated = await context.read<AuthProvider>().authService.linkProvider(
-        provider: 'apple',
-        idToken: idToken,
-      );
+      final updated = await context
+          .read<AuthProvider>()
+          .authService
+          .linkProvider(provider: 'apple', idToken: idToken);
       context.read<AuthProvider>().updateUser(updated);
     } catch (e) {
       _handleLinkError(e);
@@ -462,7 +577,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (current < 1.25) return l10n.fontSizeMedium;
     return l10n.fontSizeLarge;
   }
-
 }
 
 // Extension для индексированной map

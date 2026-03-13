@@ -7,9 +7,13 @@ import 'auth_provider.dart';
 import '../services/api_exception.dart';
 
 class ProfileProvider extends ChangeNotifier {
-  ProfileProvider(this._auth) {
-    _statsService = StatsService(_auth.apiClient);
-    _usersService = UsersService(_auth.apiClient);
+  ProfileProvider(
+    this._auth, {
+    StatsService? statsService,
+    UsersService? usersService,
+  }) {
+    _statsService = statsService ?? StatsService(_auth.apiClient);
+    _usersService = usersService ?? UsersService(_auth.apiClient);
   }
 
   final AuthProvider _auth;
@@ -42,12 +46,15 @@ class ProfileProvider extends ChangeNotifier {
     }
   }
 
-  Future<UserMe?> saveAboutMe(String aboutMe) async {
+  Future<UserMe?> saveAboutMe(String aboutMe, {bool? onboardingCompleted}) async {
     _loading = true;
     _error = null;
     notifyListeners();
     try {
-      final updated = await _usersService.updateMe(aboutMe: aboutMe);
+      final updated = await _usersService.updateMe(
+        aboutMe: aboutMe,
+        onboardingCompleted: onboardingCompleted,
+      );
       _auth.updateUser(updated);
       return updated;
     } catch (e) {

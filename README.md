@@ -201,7 +201,7 @@ alembic upgrade head
 ## Контакты
 
 - Telegram: [@okolo_boga](https://t.me/okolo_boga)
-- GitHub: [okoloboga](https://github.com/okoloboga)
+- GitHub: [core-euler](https://github.com/core-euler)
 
 ## Лицензия
 

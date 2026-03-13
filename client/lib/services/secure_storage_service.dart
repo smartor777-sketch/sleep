@@ -3,14 +3,20 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:uuid/uuid.dart';
 
 class SecureStorageService {
+  SecureStorageService({
+    FlutterSecureStorage? storage,
+    Uuid? uuid,
+  })  : _storage = storage ?? const FlutterSecureStorage(),
+        _uuid = uuid ?? const Uuid();
+
   static const _deviceIdKey = 'device_id';
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
   static const _darkModeKey = 'theme_dark_mode';
   static const _accentColorKey = 'theme_accent_color';
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final Uuid _uuid = const Uuid();
+  final FlutterSecureStorage _storage;
+  final Uuid _uuid;
 
   Future<String> getOrCreateDeviceId() async {
     final existing = await _storage.read(key: _deviceIdKey);

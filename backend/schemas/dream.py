@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class DreamBase(BaseModel):
     """Базовая схема сна"""
-    title: str | None = Field(None, max_length=100)
+    title: str | None = Field(None, max_length=64)
     content: str = Field(..., min_length=10, max_length=10000)
     emoji: str = Field("", max_length=10)
     comment: str = Field("", max_length=256)
@@ -20,10 +20,11 @@ class DreamCreate(DreamBase):
 
 class DreamUpdate(BaseModel):
     """Схема для обновления сна"""
-    title: str | None = Field(None, max_length=100)
+    title: str | None = Field(None, max_length=64)
     content: str | None = Field(None, min_length=10, max_length=10000)
     emoji: str | None = Field(None, max_length=10)
     comment: str | None = Field(None, max_length=256)
+    created_at: datetime | None = None
 
 
 class DreamResponse(DreamBase):
@@ -34,6 +35,10 @@ class DreamResponse(DreamBase):
     created_at: datetime
     updated_at: datetime
     has_analysis: bool = False  # Есть ли анализ для этого сна
+    analysis_status: str = "saved"
+    analysis_error_message: str | None = None
+    gradient_color_1: str | None = None
+    gradient_color_2: str | None = None
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -52,4 +57,4 @@ class DreamSearchResponse(BaseModel):
     dreams: list[DreamResponse]
     total: int
     query: str
-
+    mode: str = "lexical"

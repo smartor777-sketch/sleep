@@ -186,4 +186,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSuccess => 'Saved';
+
+  @override
+  String get updateAvailable => 'Update available';
+
+  @override
+  String get updateMessage =>
+      'A new version of the app is available. Update for the best experience.';
+
+  @override
+  String get updateNow => 'Update';
+
+  @override
+  String get later => 'Later';
 }

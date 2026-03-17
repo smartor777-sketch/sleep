@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'config.dart';
 import 'l10n/app_localizations.dart';
 import 'models/user_me.dart';
 import 'screens/main_chat_screen.dart';
@@ -22,6 +27,8 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
+const String _appVersion = '0.3.2';
+
 class _MyAppState extends State<MyApp> {
   bool isDarkMode = false;
   Color accentColor = Colors.deepPurple;
@@ -29,6 +36,7 @@ class _MyAppState extends State<MyApp> {
   double _textScale = 1.15;
   Future<void>? _bootstrap;
   final _settings = SecureStorageService();
+  bool _updateChecked = false;
 
   void toggleTheme() {
     setState(() {
@@ -127,6 +135,9 @@ class _MyAppState extends State<MyApp> {
                 body: Center(child: Text(AppLocalizations.of(context)?.userLoadError ?? 'Failed to load user')),
               );
             }
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _checkUpdate(context);
+            });
             final needsOnboarding = !user.onboardingCompleted || (user.aboutMe?.trim().isEmpty ?? true);
             final mainScreen = MainChatScreen(
               isDarkMode: isDarkMode,
@@ -181,5 +192,67 @@ class _MyAppState extends State<MyApp> {
       isDarkMode = dark;
       if (color != null) accentColor = color;
     });
+  }
+
+  Future<void> _checkUpdate(BuildContext context) async {
+    if (_updateChecked) return;
+    _updateChecked = true;
+    try {
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/api/v1/app/version'),
+      ).timeout(const Duration(seconds: 5));
+      if (response.statusCode != 200 || !mounted) return;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final latest = data['version'] as String?;
+      final url = data['download_url'] as String?;
+      if (latest == null || url == null) return;
+      if (_isNewer(latest, _appVersion)) {
+        _showUpdateDialog(context, url);
+      }
+    } catch (_) {
+      // Silent fail — don't block the app
+    }
+  }
+
+  bool _isNewer(String remote, String local) {
+    final r = remote.split('.').map(int.tryParse).toList();
+    final l = local.split('.').map(int.tryParse).toList();
+    for (var i = 0; i < r.length && i < l.length; i++) {
+      if ((r[i] ?? 0) > (l[i] ?? 0)) return true;
+      if ((r[i] ?? 0) < (l[i] ?? 0)) return false;
+    }
+    return r.length > l.length;
+  }
+
+  void _showUpdateDialog(BuildContext context, String url) {
+    final l10n = AppLocalizations.of(context);
+    if (l10n == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.updateAvailable),
+        content: Text(l10n.updateMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.later),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              _launchUrl(url);
+            },
+            child: Text(l10n.updateNow),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

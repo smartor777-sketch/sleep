@@ -187,4 +187,17 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get savedSuccess => 'Сохранено';
+
+  @override
+  String get updateAvailable => 'Доступно обновление';
+
+  @override
+  String get updateMessage =>
+      'Доступна новая версия приложения. Обновите для лучшей работы.';
+
+  @override
+  String get updateNow => 'Обновить';
+
+  @override
+  String get later => 'Позже';
 }

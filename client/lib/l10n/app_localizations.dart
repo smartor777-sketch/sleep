@@ -451,6 +451,30 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сохранено'**
   String get savedSuccess;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступно обновление'**
+  String get updateAvailable;
+
+  /// No description provided for @updateMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Доступна новая версия приложения. Обновите для лучшей работы.'**
+  String get updateMessage;
+
+  /// No description provided for @updateNow.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить'**
+  String get updateNow;
+
+  /// No description provided for @later.
+  ///
+  /// In ru, this message translates to:
+  /// **'Позже'**
+  String get later;
 }
 
 class _AppLocalizationsDelegate

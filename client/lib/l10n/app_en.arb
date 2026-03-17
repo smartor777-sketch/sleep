@@ -65,5 +65,9 @@
   "delete": "Delete",
   "analyze": "Analyze",
   "save": "Save",
-  "savedSuccess": "Saved"
+  "savedSuccess": "Saved",
+  "updateAvailable": "Update available",
+  "updateMessage": "A new version of the app is available. Update for the best experience.",
+  "updateNow": "Update",
+  "later": "Later"
 }

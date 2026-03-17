@@ -93,6 +93,19 @@ async def health_check():
     }
 
 
+APP_LATEST_VERSION = "0.3.2"
+APP_DOWNLOAD_URL = "https://github.com/core-euler/sna_net/releases/latest/download/app-release.apk"
+
+
+@app.get("/api/v1/app/version")
+async def app_version():
+    """Текущая версия мобильного приложения"""
+    return {
+        "version": APP_LATEST_VERSION,
+        "download_url": APP_DOWNLOAD_URL,
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

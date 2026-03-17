@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'config.dart';
 import 'l10n/app_localizations.dart';
+import 'version.dart';
 import 'models/user_me.dart';
 import 'screens/main_chat_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -26,8 +27,6 @@ class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
 }
-
-const String _appVersion = '0.3.2';
 
 class _MyAppState extends State<MyApp> {
   bool isDarkMode = false;
@@ -206,7 +205,7 @@ class _MyAppState extends State<MyApp> {
       final latest = data['version'] as String?;
       final url = data['download_url'] as String?;
       if (latest == null || url == null) return;
-      if (_isNewer(latest, _appVersion)) {
+      if (_isNewer(latest, appVersion)) {
         _showUpdateDialog(context, url);
       }
     } catch (_) {

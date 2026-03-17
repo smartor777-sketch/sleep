@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import '../version.dart';
 import 'secure_storage_service.dart';
 
 class ApiClient {
@@ -164,7 +165,9 @@ class ApiClient {
     required bool withAuth,
     bool json = true,
   }) async {
-    final headers = <String, String>{};
+    final headers = <String, String>{
+      'X-App-Version': appVersion,
+    };
     if (json) {
       headers['Content-Type'] = 'application/json';
     }

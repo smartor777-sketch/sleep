@@ -5,6 +5,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from config import settings
 from database import init_db, close_db
@@ -56,6 +59,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# Минимальная версия клиента
+_EXEMPT_PATHS = {"/", "/health", "/api/v1/app/version"}
+
+
+def _parse_version(v: str) -> tuple[int, ...]:
+    parts = []
+    for p in v.split("."):
+        try:
+            parts.append(int(p))
+        except ValueError:
+            break
+    return tuple(parts)
+
+
+class MinVersionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path in _EXEMPT_PATHS:
+            return await call_next(request)
+
+        client_version = request.headers.get("X-App-Version")
+        if client_version is None:
+            # Старые клиенты без заголовка — блокируем
+            return JSONResponse(
+                status_code=426,
+                content={
+                    "detail": "Обновите приложение / Please update the app",
+                    "min_version": APP_MIN_VERSION,
+                    "download_url": APP_DOWNLOAD_URL,
+                },
+            )
+
+        if _parse_version(client_version) < _parse_version(APP_MIN_VERSION):
+            return JSONResponse(
+                status_code=426,
+                content={
+                    "detail": "Обновите приложение / Please update the app",
+                    "min_version": APP_MIN_VERSION,
+                    "download_url": APP_DOWNLOAD_URL,
+                },
+            )
+
+        return await call_next(request)
+
+
+app.add_middleware(MinVersionMiddleware)
+
+
 # Подключение роутеров
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(dreams.router, prefix="/api/v1")
@@ -94,6 +145,7 @@ async def health_check():
 
 
 APP_LATEST_VERSION = "0.3.2"
+APP_MIN_VERSION = "0.3.2"
 APP_DOWNLOAD_URL = "https://github.com/core-euler/sna_net/releases/latest/download/app-release.apk"
 
 

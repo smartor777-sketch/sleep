@@ -17,7 +17,7 @@ class GonkaProxyProvider:
         api_key: str,
         model: str,
         base_url: str = "https://proxy.gonka.gg/v1",
-        timeout: float = 120.0,
+        timeout: float = 30.0,
     ):
         self.api_key = api_key
         self.model = model

@@ -123,6 +123,39 @@ class _MyAppState extends State<MyApp> {
             if (auth.loading || (auth.user == null && auth.error == null)) {
               return const StartupSplashScreen();
             }
+            if (auth.upgradeRequired != null) {
+              final l10n = AppLocalizations.of(context);
+              return Scaffold(
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.system_update, size: 64),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n?.updateAvailable ?? 'Update available',
+                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          l10n?.updateMessage ?? 'Please update the app.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => _launchUrl(auth.upgradeRequired!.downloadUrl),
+                          icon: const Icon(Icons.download),
+                          label: Text(l10n?.updateNow ?? 'Update'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
             if (auth.error != null) {
               return Scaffold(
                 body: Center(child: Text(AppLocalizations.of(context)?.startupError ?? 'Startup error')),

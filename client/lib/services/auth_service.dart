@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../config.dart';
 import '../models/user_me.dart';
+import '../version.dart';
 import 'secure_storage_service.dart';
 import 'api_client.dart';
 
@@ -23,13 +24,24 @@ class AuthService {
     final uri = Uri.parse('$apiBaseUrl/api/v1/auth/anonymous');
     final response = await _httpClient.post(
       uri,
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'X-App-Version': appVersion,
+      },
       body: jsonEncode({
         'device_id': deviceId,
         'platform': null,
-        'app_version': null,
+        'app_version': appVersion,
       }),
     );
+
+    if (response.statusCode == 426) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw UpgradeRequiredException(
+        minVersion: data['min_version'] as String? ?? '',
+        downloadUrl: data['download_url'] as String? ?? '',
+      );
+    }
 
     if (response.statusCode != 200) {
       throw Exception('Anonymous auth failed');
@@ -76,4 +88,14 @@ class AuthService {
   }
 
   SecureStorageService get storage => _storage;
+}
+
+class UpgradeRequiredException implements Exception {
+  final String minVersion;
+  final String downloadUrl;
+
+  UpgradeRequiredException({required this.minVersion, required this.downloadUrl});
+
+  @override
+  String toString() => 'upgrade_required';
 }

@@ -178,7 +178,14 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 return result_text
 
             except LLMTransientError as e:
-                logger.warning("Transient LLM error for analysis %s: %s", analysis_id, e)
+                if task_instance.request.retries >= task_instance.max_retries:
+                    logger.error("Max retries exhausted for analysis %s: %s", analysis_id, e)
+                    analysis.status = AnalysisStatus.FAILED.value
+                    analysis.error_message = f"Max retries exhausted: {e}"
+                    await db.commit()
+                    raise
+                logger.warning("Transient LLM error for analysis %s (retry %s/%s): %s",
+                               analysis_id, task_instance.request.retries, task_instance.max_retries, e)
                 analysis.status = AnalysisStatus.PENDING.value
                 analysis.error_message = str(e)
                 await db.commit()
@@ -212,7 +219,15 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
             raise
 
 
-@celery_app.task(bind=True, name="tasks.reply_to_dream_chat")
+@celery_app.task(
+    bind=True,
+    name="tasks.reply_to_dream_chat",
+    autoretry_for=(LLMTransientError,),
+    retry_backoff=True,
+    retry_backoff_max=120,
+    retry_jitter=True,
+    max_retries=4,
+)
 def reply_to_dream_chat_task(self, user_id: str, dream_id: str):
     """
     Фоновая задача для ответа на follow-up сообщение в чате по сну.
@@ -264,6 +279,9 @@ async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str)
             logger.info(f"Chat reply saved for dream {dream_id}")
             return result_text
 
+        except LLMTransientError as e:
+            logger.warning("Transient LLM error for chat reply (dream %s): %s", dream_id, e)
+            raise
         except Exception as e:
             logger.error(f"Failed to reply in dream chat {dream_id}: {e}")
             raise

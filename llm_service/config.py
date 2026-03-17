@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     gonka_api_key: SecretStr
     gonka_model: str = "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8"
     
+    # CometAPI fallback (optional)
+    comet_api_key: SecretStr | None = None
+    comet_base_url: str = "https://api.cometapi.com/v1"
+    comet_model: str = "gpt-5.1"
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8001

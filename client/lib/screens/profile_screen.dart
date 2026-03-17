@@ -37,6 +37,19 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+const _archetypePieColors = [
+  Color(0xFF7E57C2), // deep purple
+  Color(0xFF26A69A), // teal
+  Color(0xFFEF5350), // red
+  Color(0xFFFF7043), // deep orange
+  Color(0xFF42A5F5), // blue
+  Color(0xFFAB47BC), // purple
+  Color(0xFF66BB6A), // green
+  Color(0xFFFFA726), // orange
+  Color(0xFF8D6E63), // brown
+  Color(0xFF78909C), // blue grey
+];
+
 class _ProfileScreenState extends State<ProfileScreen> {
   late bool _isDarkMode;
   late Color _accentColor;
@@ -305,43 +318,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
               'Архетипы',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            ...stats!.archetypesTop.map((item) {
-              final max = stats.archetypesTop.first.count == 0
-                  ? 1
-                  : stats.archetypesTop.first.count;
-              final ratio = item.count / max;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 200,
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 40,
+                  sections: stats!.archetypesTop.mapIndexed((index, item) {
+                    final total = stats.archetypesTop.fold<int>(
+                      0, (sum, e) => sum + e.count);
+                    final percent = total == 0
+                        ? 0.0
+                        : item.count / total * 100;
+                    return PieChartSectionData(
+                      value: item.count.toDouble(),
+                      title: '${percent.round()}%',
+                      titleStyle: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      radius: 50,
+                      color: _archetypePieColors[
+                          index % _archetypePieColors.length],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: stats.archetypesTop.mapIndexed((index, item) {
+                final color = _archetypePieColors[
+                    index % _archetypePieColors.length];
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Text(item.count.toString()),
-                      ],
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    LinearProgressIndicator(
-                      value: ratio.clamp(0, 1),
-                      minHeight: 8,
-                      backgroundColor: Theme.of(
-                        context,
-                      ).colorScheme.outline.withOpacity(0.2),
-                      color: _accentColor,
+                    const SizedBox(width: 4),
+                    Text(
+                      '${item.name} (${item.count})',
+                      style: const TextStyle(fontSize: 13),
                     ),
                   ],
-                ),
-              );
-            }),
+                );
+              }).toList(),
+            ),
           ],
           const SizedBox(height: 24),
           Text(

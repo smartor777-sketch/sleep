@@ -68,6 +68,9 @@ services:
       GONKA_BASE_URL: ${GONKA_BASE_URL:-https://proxy.gonka.gg/v1}
       GONKA_API_KEY: ${GONKA_API_KEY}
       GONKA_MODEL: ${GONKA_MODEL:-Qwen/Qwen3-235B-A22B-Instruct-2507-FP8}
+      COMET_API_KEY: ${COMET_API_KEY}
+      COMET_BASE_URL: ${COMET_BASE_URL:-https://api.cometapi.com/v1}
+      COMET_MODEL: ${COMET_MODEL:-gpt-5.1}
       HOST: 0.0.0.0
       PORT: 8001
       LOG_LEVEL: ${LOG_LEVEL:-INFO}

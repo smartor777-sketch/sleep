@@ -7,6 +7,7 @@ python-multipart==0.0.9
 sqlalchemy[asyncio]==2.0.27
 asyncpg==0.29.0
 psycopg2-binary==2.9.9
+alembic==1.13.1
 
 # Pydantic
 pydantic==2.6.1

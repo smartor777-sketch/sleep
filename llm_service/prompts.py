@@ -10,6 +10,7 @@ def detect_language(text: str) -> str:
 def get_analysis_prompt(
     user_description: str | None = None,
     dream_text: str | None = None,
+    user_memory_md: str | None = None,
 ) -> str:
     lang = detect_language(dream_text or "")
     parts = [
@@ -31,7 +32,13 @@ def get_analysis_prompt(
         '      "source_chunk_indexes": [0],',
         '      "related_archetypes": ["ArchetypeName"]',
         '    }',
-        '  ]',
+        '  ],',
+        '  "memory_update": {',
+        '    "recurring": {"action": "replace", "value": "themes / patterns"},',
+        '    "archetypes": {"action": "replace", "value": "dominant archetypes"},',
+        '    "emotional_shift": {"action": "replace", "value": "direction of change"},',
+        '    "phase": {"action": "replace", "value": "current psychological phase"}',
+        '  }',
         "}",
         "Rules:",
         "- analysis_text must be a full Jungian analysis formatted in clean Markdown.",
@@ -51,9 +58,31 @@ def get_analysis_prompt(
         "- forbidden examples for canonical_name/display_label: 'того', 'где', 'чуть', 'есть', 'находит', 'потом кстати'.",
         "- good examples: 'темный лес', 'черная вода', 'старый дом', 'женская фигура', 'каменный мост'.",
         "- return 8-20 symbol_entities when possible.",
+        "",
+        "memory_update rules:",
+        "- memory_update captures the evolving psychological profile of the user across all their dreams.",
+        "- 'recurring': key themes, symbols, or conflicts that appear repeatedly (e.g. 'control / chaos / water / bridges').",
+        "- 'archetypes': dominant Jungian archetypes and their trajectory (e.g. 'shadow (growing), anima (emerging)').",
+        "- 'emotional_shift': direction of emotional change over time (e.g. 'anxiety -> exploration -> acceptance').",
+        "- 'phase': current stage in individuation or life (e.g. 'transition', 'integration', 'crisis').",
+        "- Each section value should be a SHORT string (max ~100 chars). Do not write essays.",
+        "- Update based on THIS dream combined with the existing profile. Evolve, don't overwrite blindly.",
+        "- If this is the first dream (no existing profile), create the profile from scratch.",
+        "",
+        "Temporal dynamics rules:",
+        "- Past dream chunks are provided in chronological order with timestamps.",
+        "- Compare past and present: identify how symbols, emotions, and archetypes evolve over time.",
+        "- Note recurring cycles (e.g. symbols that appear, disappear, and return).",
+        "- Highlight developmental shifts: what has changed since the earliest dreams?",
+        "- Use temporal language: 'earlier dreams showed...', 'over the past weeks...', 'a new pattern emerging...'.",
     ]
     if user_description:
         parts.append(f"User context: {user_description}")
+    if user_memory_md and user_memory_md.strip():
+        parts.append("")
+        parts.append("Current user psychological profile (from previous analyses):")
+        parts.append(user_memory_md.strip())
+        parts.append("Update memory_update based on this dream AND the existing profile above.")
     return "\n".join(parts)
 
 

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../providers/profile_provider.dart';
 import '../utils/snackbar.dart';
 
@@ -81,7 +82,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Давайте познакомимся',
+                        AppLocalizations.of(context)!.onboardingTitle,
                         style: theme.textTheme.headlineSmall,
                       ),
                       const SizedBox(height: 16),
@@ -96,7 +97,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        'Шаг ${_step + 1} из $_stepCount',
+                        AppLocalizations.of(context)!.onboardingStep(_step + 1, _stepCount),
                         style: theme.textTheme.labelMedium,
                       ),
                       const SizedBox(height: 18),
@@ -118,7 +119,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 textStyle: theme.textTheme.labelMedium,
                               ),
                               onPressed: _loading ? null : _skipStep,
-                              child: const Text('Пропустить'),
+                              child: Text(AppLocalizations.of(context)!.skip),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -138,8 +139,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     )
                                   : Text(
                                       _step == _stepCount - 1
-                                          ? 'Завершить'
-                                          : 'Далее',
+                                          ? AppLocalizations.of(context)!.finish
+                                          : AppLocalizations.of(context)!.next,
                                     ),
                             ),
                           ),
@@ -157,44 +158,41 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildStepContent(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (_step) {
       case 0:
         return _buildGenderAndAge(context);
       case 1:
         return _buildTextStep(
           context,
-          title: 'Чем вы сейчас занимаетесь?',
-          subtitle:
-              'Например: студент, работа в найме, предпринимательство, творческая деятельность.',
+          title: l10n.occupationQuestion,
+          subtitle: l10n.occupationHint,
           controller: _occupationController,
-          hintText: 'Расскажите о своём занятии',
+          hintText: l10n.occupationPlaceholder,
         );
       case 2:
         return _buildTextStep(
           context,
-          title: 'Расскажите немного о семье или близких людях',
-          subtitle:
-              'Например: живёте ли вы один, есть ли партнёр, дети или важные отношения.',
+          title: l10n.familyQuestion,
+          subtitle: l10n.familyHint,
           controller: _familyController,
-          hintText: 'Ваш социальный контекст',
+          hintText: l10n.familyPlaceholder,
         );
       case 3:
         return _buildTextStep(
           context,
-          title: 'Какие у вас увлечения или интересы?',
-          subtitle:
-              'Искусство, спорт, технологии, путешествия или что-то совсем своё.',
+          title: l10n.interestsQuestion,
+          subtitle: l10n.interestsHint,
           controller: _interestsController,
-          hintText: 'Ваши интересы',
+          hintText: l10n.interestsPlaceholder,
         );
       default:
         return _buildTextStep(
           context,
-          title: 'Что сейчас особенно важно в вашей жизни?',
-          subtitle:
-              'Можно рассказать о целях, трудностях, изменениях или поисках.',
+          title: l10n.lifeContextQuestion,
+          subtitle: l10n.lifeContextHint,
           controller: _lifeContextController,
-          hintText: 'Текущий жизненный контекст',
+          hintText: l10n.lifeContextPlaceholder,
           multiline: true,
         );
     }
@@ -251,12 +249,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Чтобы лучше понимать контекст ваших снов, расскажите немного о себе.',
+          AppLocalizations.of(context)!.onboardingIntro,
           style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
         Text(
-          'Пол и возраст можно пропустить, если не хочется отвечать.',
+          AppLocalizations.of(context)!.onboardingGenderNote,
           style: theme.textTheme.bodyMedium,
         ),
         const SizedBox(height: 18),
@@ -280,7 +278,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   });
                 },
           decoration: InputDecoration(
-            labelText: 'Возраст',
+            labelText: AppLocalizations.of(context)!.ageLabel,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -370,7 +368,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (updated == null) {
-      showToast(context, 'Не удалось завершить онбординг', isError: true);
+      showToast(context, AppLocalizations.of(context)!.onboardingFailed, isError: true);
       return;
     }
     widget.onCompleted();
@@ -387,7 +385,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       parts.add(_mapGenderLabel(_gender!));
     }
     if ((_age ?? '').isNotEmpty) {
-      parts.add('$_age лет');
+      parts.add(AppLocalizations.of(context)!.ageYears(_age!));
     }
     if (occupation.isNotEmpty) {
       parts.add(occupation);
@@ -406,13 +404,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   String _mapGenderLabel(String value) {
+    final l10n = AppLocalizations.of(context)!;
     switch (value) {
       case 'female':
-        return 'Женщина';
+        return l10n.genderFemale;
       case 'male':
-        return 'Мужчина';
+        return l10n.genderMale;
       default:
-        return 'Предпочитает не указывать пол';
+        return l10n.genderUnspecified;
     }
   }
 }

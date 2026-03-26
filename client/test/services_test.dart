@@ -475,7 +475,7 @@ void main() {
         language: 'ru',
       );
 
-      expect(text, 'dream text');
+      expect(text.text, 'dream text');
     });
 
     test('throws ApiException for backend errors', () async {

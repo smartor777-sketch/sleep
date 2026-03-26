@@ -1,10 +1,12 @@
 """API эндпоинты для пользователя"""
 
 from fastapi import APIRouter
+from pydantic import BaseModel, Field
 
 from dependencies import CurrentUser, DatabaseSession
 from schemas import UserMeResponse, UserProfileResponse, UserSettingsUpdate
 from services.oauth_identity_service import get_user_identities
+from services import user_memory_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -55,4 +57,21 @@ async def update_me(
             about_me=current_user.self_description,
             onboarding_completed=current_user.onboarding_completed,
         ),
+    )
+
+
+class UserMemoryResponse(BaseModel):
+    version: int
+    updated_at: str
+    content_md: str = Field(default="")
+
+
+@router.get("/me/memory", response_model=UserMemoryResponse)
+async def get_my_memory(current_user: CurrentUser, db: DatabaseSession):
+    """Debug endpoint: view current user.md memory document."""
+    doc = await user_memory_service.get_or_create(db, current_user.id)
+    return UserMemoryResponse(
+        version=doc.version,
+        updated_at=doc.updated_at.isoformat() if doc.updated_at else "",
+        content_md=doc.content_md or "",
     )

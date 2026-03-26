@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import math
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -99,10 +101,16 @@ class RetrievalContext:
         if self.related_archetypes:
             parts.append(f"Related archetypes from memory: {', '.join(self.related_archetypes)}")
         if self.related_chunks:
-            parts.append("Relevant past chunks:")
-            for item in self.related_chunks:
+            # Sort by datetime for temporal ordering (oldest first)
+            sorted_chunks = sorted(
+                self.related_chunks,
+                key=lambda item: item.get("dream_datetime", ""),
+            )
+            parts.append("Relevant past chunks (chronological order, oldest → newest):")
+            for item in sorted_chunks:
+                dt = item.get("dream_datetime") or item["dream_date"]
                 parts.append(
-                    f"- score {item['score']:.2f}; dream {item['dream_date']}; chunk {item['chunk_index'] + 1}; "
+                    f"- [{dt}] score {item['score']:.2f}; chunk {item['chunk_index'] + 1}; "
                     f"symbols={', '.join(item['symbol_overlap']) or 'none'}; text={item['text']}"
                 )
         return "\n".join(parts)
@@ -345,6 +353,9 @@ async def rebuild_dream_memory(
                 embedding_text=serialize_embedding(chunk_embedding),
                 embedding_model=EMBEDDING_MODEL_NAME,
                 metadata_json={"symbols": extract_symbols(chunk.text, limit=5)},
+                source_recorded_at=dream.recorded_at,
+                source_created_at=dream.created_at,
+                source_order=chunk.index,
             )
         )
     db.add_all(chunk_rows)
@@ -526,6 +537,7 @@ async def build_retrieval_context(
     query_vecs: list[list[float]] = []
     for chunk in current_chunks:
         query_vecs.append(await request_embedding(chunk.text))
+    now = datetime.now(timezone.utc)
     scored: list[dict] = []
     for chunk in chunk_rows:
         chunk_vec = deserialize_embedding(chunk.embedding_text)
@@ -534,9 +546,21 @@ async def build_retrieval_context(
         embedding_score = max((cosine_similarity(query_vec, chunk_vec) for query_vec in query_vecs), default=0.0)
         symbol_overlap = sorted(current_symbol_set & symbols_by_chunk.get(chunk.id, set()))
         archetype_overlap = sorted(current_archetypes & archetypes_by_dream.get(chunk.dream_id, set()))
-        hybrid_score = embedding_score + (0.18 * len(symbol_overlap)) + (0.12 * len(archetype_overlap))
+
+        # Temporal recency bonus: 0.1 * exp(-days_ago / 30), half-life ~30 days
+        chunk_date = getattr(chunk, "source_recorded_at", None) or chunk.created_at
+        if chunk_date.tzinfo is None:
+            days_ago = (now.replace(tzinfo=None) - chunk_date).total_seconds() / 86400
+        else:
+            days_ago = (now - chunk_date).total_seconds() / 86400
+        recency_bonus = 0.1 * math.exp(-max(days_ago, 0) / 30)
+
+        hybrid_score = embedding_score + (0.18 * len(symbol_overlap)) + (0.12 * len(archetype_overlap)) + recency_bonus
         if hybrid_score <= 0:
             continue
+
+        # Store temporal info for prompt block
+        chunk_datetime = chunk_date.strftime("%Y-%m-%d %H:%M") if chunk_date else ""
         scored.append(
             {
                 "dream_id": chunk.dream_id,
@@ -546,6 +570,7 @@ async def build_retrieval_context(
                 "symbol_overlap": symbol_overlap,
                 "archetype_overlap": archetype_overlap,
                 "dream_date": dream.created_at.strftime("%d.%m.%Y"),
+                "dream_datetime": chunk_datetime,
             }
         )
 

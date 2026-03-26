@@ -52,10 +52,12 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
     """
     Асинхронная функция для анализа сна.
     Создаёт user-сообщение, собирает контекст, вызывает LLM, сохраняет assistant-сообщение.
+    Загружает user.md и обновляет его по diff из LLM-ответа.
     """
     from services.message_service import create_message, build_llm_context
     from services.archetype_service import apply_archetypes_delta
     from services.rag_service import rebuild_dream_memory
+    from services import user_memory_service
 
     async with AsyncSessionLocal() as db:
         try:
@@ -112,7 +114,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
 
             # Собираем контекст для LLM
             from prompts import get_chat_system_prompt
-            system_prompt = get_chat_system_prompt(user.self_description)
+            system_prompt = get_chat_system_prompt(user.self_description, user_memory_md)
 
             llm_messages = await build_llm_context(
                 db,
@@ -122,12 +124,18 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 include_retrieval=False,
             )
 
+            # Загружаем user.md для контекста
+            memory_doc = await user_memory_service.get_or_create(db, user.id)
+            user_memory_md = memory_doc.content_md or ""
+            memory_version = memory_doc.version
+
             # Отправляем запрос в LLM Service
             try:
                 was_completed_before = analysis.completed_at is not None
                 payload = await llm_client.analyze_dream_structured(
                     dream_text=dream.content,
                     user_description=user.self_description,
+                    user_memory_md=user_memory_md,
                 )
                 result_text = payload.analysis_text
 
@@ -154,6 +162,27 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
 
                 await db.commit()
                 logger.info("Analysis %s committed, starting background indexing", analysis_id)
+
+                # Apply user.md memory update if LLM returned one
+                if payload.memory_update:
+                    try:
+                        update_dict = {
+                            k: v.model_dump() for k, v in payload.memory_update.items()
+                        }
+                        updated_doc = await user_memory_service.apply_memory_update(
+                            db, user.id, update_dict, memory_version,
+                        )
+                        if updated_doc is None:
+                            # Optimistic lock conflict — retry once with fresh version
+                            fresh_doc = await user_memory_service.get_or_create(db, user.id)
+                            await user_memory_service.apply_memory_update(
+                                db, user.id, update_dict, fresh_doc.version,
+                            )
+                        await db.commit()
+                        logger.info("user.md updated for user %s", user.id)
+                    except Exception as mem_err:
+                        logger.warning("Failed to update user.md for user %s: %s", user.id, mem_err)
+                        await db.rollback()
 
                 try:
                     await recalculate_dream_embedding(db, dream)
@@ -241,6 +270,7 @@ def reply_to_dream_chat_task(self, user_id: str, dream_id: str):
 async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str):
     """Асинхронная реализация ответа на follow-up."""
     from services.message_service import create_message, build_llm_context
+    from services import user_memory_service
 
     async with AsyncSessionLocal() as db:
         try:
@@ -253,9 +283,13 @@ async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str)
                 logger.error(f"User {user_id} not found for chat reply")
                 return None
 
+            # Загружаем user.md (read-only for chat)
+            memory_doc = await user_memory_service.get_or_create(db, UUID(user_id))
+            user_memory_md = memory_doc.content_md or ""
+
             # Собираем контекст
             from prompts import get_chat_system_prompt
-            system_prompt = get_chat_system_prompt(user.self_description)
+            system_prompt = get_chat_system_prompt(user.self_description, user_memory_md)
 
             llm_messages = await build_llm_context(
                 db,
@@ -265,7 +299,10 @@ async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str)
             )
 
             # Вызываем LLM
-            result_text = await llm_client.chat_completion(messages=llm_messages)
+            result_text = await llm_client.chat_completion(
+                messages=llm_messages,
+                user_memory_md=user_memory_md,
+            )
 
             # Сохраняем assistant-сообщение
             await create_message(

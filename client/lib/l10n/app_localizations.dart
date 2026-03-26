@@ -176,6 +176,18 @@ abstract class AppLocalizations {
   /// **'Идёт запись...'**
   String get listeningLabel;
 
+  /// No description provided for @recordingWarning.
+  ///
+  /// In ru, this message translates to:
+  /// **'Запись идёт уже больше минуты'**
+  String get recordingWarning;
+
+  /// No description provided for @partialTranscription.
+  ///
+  /// In ru, this message translates to:
+  /// **'Часть записи не удалось распознать'**
+  String get partialTranscription;
+
   /// No description provided for @analysisFailed.
   ///
   /// In ru, this message translates to:
@@ -211,6 +223,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Не удалось отправить сообщение'**
   String get messageSendError;
+
+  /// No description provided for @retryAnalysis.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить анализ'**
+  String get retryAnalysis;
+
+  /// No description provided for @editDate.
+  ///
+  /// In ru, this message translates to:
+  /// **'Изменить дату'**
+  String get editDate;
 
   /// No description provided for @profileTitle.
   ///
@@ -253,6 +277,18 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Сны по дням недели'**
   String get dreamsByWeekday;
+
+  /// No description provided for @dreamsLast14Days.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сны за 14 дней'**
+  String get dreamsLast14Days;
+
+  /// No description provided for @archetypes.
+  ///
+  /// In ru, this message translates to:
+  /// **'Архетипы'**
+  String get archetypes;
 
   /// No description provided for @accentColorLabel.
   ///
@@ -475,6 +511,228 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Позже'**
   String get later;
+
+  /// No description provided for @dreamChat.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чат сна'**
+  String get dreamChat;
+
+  /// No description provided for @dreamChatHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выберите сон в плитке, чтобы открыть его анализ и чат.'**
+  String get dreamChatHint;
+
+  /// No description provided for @onboardingTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Давайте познакомимся'**
+  String get onboardingTitle;
+
+  /// No description provided for @onboardingStep.
+  ///
+  /// In ru, this message translates to:
+  /// **'Шаг {step} из {total}'**
+  String onboardingStep(int step, int total);
+
+  /// No description provided for @skip.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пропустить'**
+  String get skip;
+
+  /// No description provided for @finish.
+  ///
+  /// In ru, this message translates to:
+  /// **'Завершить'**
+  String get finish;
+
+  /// No description provided for @next.
+  ///
+  /// In ru, this message translates to:
+  /// **'Далее'**
+  String get next;
+
+  /// No description provided for @occupationQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чем вы сейчас занимаетесь?'**
+  String get occupationQuestion;
+
+  /// No description provided for @occupationHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например: студент, работа в найме, предпринимательство, творческая деятельность.'**
+  String get occupationHint;
+
+  /// No description provided for @occupationPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расскажите о своём занятии'**
+  String get occupationPlaceholder;
+
+  /// No description provided for @familyQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расскажите немного о семье или близких людях'**
+  String get familyQuestion;
+
+  /// No description provided for @familyHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Например: живёте ли вы один, есть ли партнёр, дети или важные отношения.'**
+  String get familyHint;
+
+  /// No description provided for @familyPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваш социальный контекст'**
+  String get familyPlaceholder;
+
+  /// No description provided for @interestsQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Какие у вас увлечения или интересы?'**
+  String get interestsQuestion;
+
+  /// No description provided for @interestsHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Искусство, спорт, технологии, путешествия или что-то совсем своё.'**
+  String get interestsHint;
+
+  /// No description provided for @interestsPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ваши интересы'**
+  String get interestsPlaceholder;
+
+  /// No description provided for @lifeContextQuestion.
+  ///
+  /// In ru, this message translates to:
+  /// **'Что сейчас особенно важно в вашей жизни?'**
+  String get lifeContextQuestion;
+
+  /// No description provided for @lifeContextHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Можно рассказать о целях, трудностях, изменениях или поисках.'**
+  String get lifeContextHint;
+
+  /// No description provided for @lifeContextPlaceholder.
+  ///
+  /// In ru, this message translates to:
+  /// **'Текущий жизненный контекст'**
+  String get lifeContextPlaceholder;
+
+  /// No description provided for @onboardingIntro.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чтобы лучше понимать контекст ваших снов, расскажите немного о себе.'**
+  String get onboardingIntro;
+
+  /// No description provided for @onboardingGenderNote.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пол и возраст можно пропустить, если не хочется отвечать.'**
+  String get onboardingGenderNote;
+
+  /// No description provided for @ageLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Возраст'**
+  String get ageLabel;
+
+  /// No description provided for @onboardingFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось завершить онбординг'**
+  String get onboardingFailed;
+
+  /// No description provided for @ageYears.
+  ///
+  /// In ru, this message translates to:
+  /// **'{age} лет'**
+  String ageYears(String age);
+
+  /// No description provided for @genderFemale.
+  ///
+  /// In ru, this message translates to:
+  /// **'Женщина'**
+  String get genderFemale;
+
+  /// No description provided for @genderMale.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мужчина'**
+  String get genderMale;
+
+  /// No description provided for @genderUnspecified.
+  ///
+  /// In ru, this message translates to:
+  /// **'Предпочитает не указывать пол'**
+  String get genderUnspecified;
+
+  /// No description provided for @mapRefresh.
+  ///
+  /// In ru, this message translates to:
+  /// **'Обновить'**
+  String get mapRefresh;
+
+  /// No description provided for @mapRefreshing.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта обновляется. Пока показываем предыдущую версию.'**
+  String get mapRefreshing;
+
+  /// No description provided for @mapAddMoreDreams.
+  ///
+  /// In ru, this message translates to:
+  /// **'Добавьте ещё {count} снов, чтобы активировать карту.'**
+  String mapAddMoreDreams(int count);
+
+  /// No description provided for @mapUnavailable.
+  ///
+  /// In ru, this message translates to:
+  /// **'Карта пока недоступна.'**
+  String get mapUnavailable;
+
+  /// No description provided for @mapSymbolLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Символ: {name}'**
+  String mapSymbolLabel(String name);
+
+  /// No description provided for @mapLastSeen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Последнее появление: {date}'**
+  String mapLastSeen(String date);
+
+  /// No description provided for @mapOccurrences.
+  ///
+  /// In ru, this message translates to:
+  /// **'{count} вхождений в {dreams} снах'**
+  String mapOccurrences(int count, int dreams);
+
+  /// No description provided for @relatedSymbols.
+  ///
+  /// In ru, this message translates to:
+  /// **'Связанные символы'**
+  String get relatedSymbols;
+
+  /// No description provided for @whereAppears.
+  ///
+  /// In ru, this message translates to:
+  /// **'Где встречается'**
+  String get whereAppears;
+
+  /// No description provided for @openLastDream.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть последний сон'**
+  String get openLastDream;
 }
 
 class _AppLocalizationsDelegate

@@ -47,12 +47,18 @@ class SymbolEntityPayload(BaseModel):
         return list(dict.fromkeys(normalized))[:6]
 
 
+class MemoryUpdateEntry(BaseModel):
+    action: str = "replace"
+    value: str = ""
+
+
 class AnalysisPayload(BaseModel):
     analysis_text: str = Field(..., min_length=1)
     title: str | None = Field(None, max_length=64)
     gradient: GradientPayload | None = None
     archetypes_delta: dict[str, int] = Field(default_factory=dict)
     symbol_entities: list[SymbolEntityPayload] = Field(default_factory=list)
+    memory_update: dict[str, MemoryUpdateEntry] | None = None
 
 
 class LLMClient:
@@ -130,6 +136,7 @@ class LLMClient:
         self,
         dream_text: str,
         user_description: str | None = None,
+        user_memory_md: str | None = None,
     ) -> AnalysisPayload:
         url = f"{self.base_url}/analyze"
         normalized_user_description = _normalize_user_description(user_description)
@@ -137,6 +144,8 @@ class LLMClient:
             "dream_text": dream_text,
             "user_description": normalized_user_description,
         }
+        if user_memory_md:
+            payload["user_memory_md"] = user_memory_md
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -144,7 +153,8 @@ class LLMClient:
                 response.raise_for_status()
                 data = response.json()
                 parsed = AnalysisPayload.model_validate(data)
-                logger.info("Structured analysis received: title=%s", bool(parsed.title))
+                logger.info("Structured analysis received: title=%s, memory_update=%s",
+                           bool(parsed.title), bool(parsed.memory_update))
                 return parsed
         except Exception as e:
             logger.warning("Structured analysis failed, fallback to text: %s", e)
@@ -157,6 +167,7 @@ class LLMClient:
     async def chat_completion(
         self,
         messages: list[dict],
+        user_memory_md: str | None = None,
     ) -> str:
         """
         Отправить массив сообщений в LLM Service /chat
@@ -173,6 +184,8 @@ class LLMClient:
         url = f"{self.base_url}/chat"
 
         payload = {"messages": messages}
+        if user_memory_md:
+            payload["user_memory_md"] = user_memory_md
 
         logger.info(f"Sending chat request to LLM Service: {url}, {len(messages)} messages")
 

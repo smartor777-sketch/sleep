@@ -48,6 +48,7 @@ class AnalyzeRequest(BaseModel):
     """Запрос на анализ сна"""
     dream_text: str = Field(..., min_length=10, max_length=10000, description="Текст сна")
     user_description: str | None = Field(None, max_length=1000, description="Описание пользователя (опционально)")
+    user_memory_md: str | None = Field(None, max_length=5000, description="User psychological profile markdown")
 
 
 class AnalyzeResponse(BaseModel):
@@ -56,6 +57,7 @@ class AnalyzeResponse(BaseModel):
     gradient: dict | None = Field(None, description="Цвета градиента: color1, color2")
     archetypes_delta: dict[str, int] = Field(default_factory=dict, description="Дельта архетипов")
     symbol_entities: list[dict] = Field(default_factory=list, description="Список symbol entities")
+    memory_update: dict | None = Field(None, description="Diff for user psychological profile")
 
 
 class ChatMessage(BaseModel):
@@ -67,6 +69,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     """Запрос на мульти-тёрн чат"""
     messages: list[ChatMessage] = Field(..., min_length=1, description="Массив сообщений")
+    user_memory_md: str | None = Field(None, max_length=5000, description="User psychological profile (read-only context)")
 
 
 class ChatResponse(BaseModel):
@@ -111,7 +114,8 @@ async def analyze_dream(request: AnalyzeRequest):
         # Получаем промпт и temperature
         system_prompt = get_analysis_prompt(
             user_description=request.user_description,
-            dream_text=request.dream_text
+            dream_text=request.dream_text,
+            user_memory_md=request.user_memory_md,
         )
         temperature = get_default_temperature()
         
@@ -168,6 +172,13 @@ async def analyze_dream(request: AnalyzeRequest):
         if not payload.get("analysis_text"):
             payload["analysis_text"] = result
         payload["symbol_entities"] = _normalize_symbol_entities(payload.get("symbol_entities"))
+
+        # Pass through memory_update if present
+        memory_update = payload.get("memory_update")
+        if isinstance(memory_update, dict):
+            payload["memory_update"] = memory_update
+        else:
+            payload["memory_update"] = None
 
         logger.info(
             "Successfully analyzed dream: text=%s title=%s archetypes=%s symbol_entities=%s",

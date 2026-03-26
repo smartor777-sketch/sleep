@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/dream_map.dart';
 import '../providers/dream_map_provider.dart';
 import '../utils/snackbar.dart';
@@ -58,7 +59,7 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
 
     setState(() {
       if (details.scale != 1.0 && _scaleAtStart != null) {
-        _zoom = (_scaleAtStart! * details.scale).clamp(0.7, 3.0);
+        _zoom = (_scaleAtStart! * details.scale).clamp(0.7, 10.0);
       }
       final delta = details.focalPoint - previous;
       _pan += delta;
@@ -196,7 +197,7 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
                     onPressed: provider.refreshing
                         ? null
                         : () => provider.load(forceRefresh: true),
-                    child: const Text('Обновить'),
+                    child: Text(AppLocalizations.of(context)!.mapRefresh),
                   ),
                 ],
               ),
@@ -243,10 +244,9 @@ class _DreamMapScreenState extends State<DreamMapScreen> {
                   _MapHudPill(label: map.meta.cached ? 'cached' : 'live'),
                   if (provider.refreshing) ...[
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: _MapHudPill(
-                        label:
-                            'Карта обновляется. Пока показываем предыдущую версию.',
+                        label: AppLocalizations.of(context)!.mapRefreshing,
                       ),
                     ),
                   ],
@@ -417,7 +417,12 @@ class _DreamMapPainter extends CustomPainter {
     final backgroundBase = brightness == Brightness.dark
         ? const Color(0xFF10141D)
         : Colors.white;
-    final cellSize = zoom >= 1.9
+    // LOD: denser grid at higher zoom reveals more labels
+    final cellSize = zoom >= 5.0
+        ? 40.0
+        : zoom >= 3.0
+        ? 56.0
+        : zoom >= 1.9
         ? 72.0
         : zoom >= 1.45
         ? 88.0
@@ -445,12 +450,26 @@ class _DreamMapPainter extends CustomPainter {
           '${(point.dx / cellSize).floor()}:${(point.dy / cellSize).floor()}';
       if (occupiedCells.contains(cellKey)) continue;
 
+      final fontSize = zoom >= 5.0
+          ? 14.0
+          : zoom >= 3.0
+          ? 13.0
+          : zoom >= 1.9
+          ? 12.0
+          : 11.0;
+      final maxLabelWidth = zoom >= 5.0
+          ? 140.0
+          : zoom >= 3.0
+          ? 120.0
+          : zoom >= 1.9
+          ? 110.0
+          : 92.0;
       final textPainter = TextPainter(
         text: TextSpan(
           text: label,
           style: TextStyle(
             color: neutralText,
-            fontSize: zoom >= 1.9 ? 12 : 11,
+            fontSize: fontSize,
             fontWeight: FontWeight.w500,
             height: 1.15,
           ),
@@ -458,7 +477,7 @@ class _DreamMapPainter extends CustomPainter {
         maxLines: 2,
         ellipsis: '…',
         textDirection: TextDirection.ltr,
-      )..layout(maxWidth: zoom >= 1.9 ? 110 : 92);
+      )..layout(maxWidth: maxLabelWidth);
 
       final padding = const EdgeInsets.symmetric(
         horizontal: 8,
@@ -562,8 +581,8 @@ class _MapEmptyState extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               missingCount > 0
-                  ? 'Добавьте ещё $missingCount снов, чтобы активировать карту.'
-                  : 'Карта пока недоступна.',
+                  ? AppLocalizations.of(context)!.mapAddMoreDreams(missingCount)
+                  : AppLocalizations.of(context)!.mapUnavailable,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
@@ -621,22 +640,22 @@ class _MapDetailSheet extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Символ: ${detail.symbolName}',
+              AppLocalizations.of(context)!.mapSymbolLabel(detail.symbolName),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 4),
             Text(
-              'Последнее появление: ${_formatDate(detail.lastSeenAt)}',
+              AppLocalizations.of(context)!.mapLastSeen(_formatDate(detail.lastSeenAt)),
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 14),
             Text(
-              '${detail.occurrenceCount} вхождений в ${detail.dreamCount} снах',
+              AppLocalizations.of(context)!.mapOccurrences(detail.occurrenceCount, detail.dreamCount),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             if (detail.relatedArchetypes.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('Архетипы', style: Theme.of(context).textTheme.titleSmall),
+              Text(AppLocalizations.of(context)!.archetypes, style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -664,7 +683,7 @@ class _MapDetailSheet extends StatelessWidget {
             if (detail.relatedSymbols.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Связанные символы',
+                AppLocalizations.of(context)!.relatedSymbols,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
@@ -683,7 +702,7 @@ class _MapDetailSheet extends StatelessWidget {
             if (detail.occurrences.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
-                'Где встречается',
+                AppLocalizations.of(context)!.whereAppears,
                 style: Theme.of(context).textTheme.titleSmall,
               ),
               const SizedBox(height: 8),
@@ -720,7 +739,7 @@ class _MapDetailSheet extends StatelessWidget {
                   foregroundColor: Colors.white,
                 ),
                 onPressed: onOpenDream,
-                child: const Text('Открыть последний сон'),
+                child: Text(AppLocalizations.of(context)!.openLastDream),
               ),
             ),
           ],

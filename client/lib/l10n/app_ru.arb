@@ -15,6 +15,8 @@
   "writeDreamHint": "Напишите сон...",
   "emptyDreamsHint": "Просто запиши свой Сон",
   "listeningLabel": "Идёт запись...",
+  "recordingWarning": "Запись идёт уже больше минуты",
+  "partialTranscription": "Часть записи не удалось распознать",
 
   "analysisFailed": "Анализ не удался",
   "analyzingLabel": "Анализ...",
@@ -22,6 +24,8 @@
   "dreamAnalysisTitle": "Анализ сна",
   "writeMessageHint": "Напишите сообщение...",
   "messageSendError": "Не удалось отправить сообщение",
+  "retryAnalysis": "Повторить анализ",
+  "editDate": "Изменить дату",
 
   "profileTitle": "Профиль",
   "aboutMeLabel": "Обо мне",
@@ -30,6 +34,8 @@
   "streak": "Streak",
   "avgTime": "Среднее время",
   "dreamsByWeekday": "Сны по дням недели",
+  "dreamsLast14Days": "Сны за 14 дней",
+  "archetypes": "Архетипы",
   "accentColorLabel": "Выберите цвет акцента:",
   "darkThemeLabel": "Темная тема",
   "fontSizeLabel": "Размер шрифта",
@@ -68,5 +74,77 @@
   "updateAvailable": "Доступно обновление",
   "updateMessage": "Доступна новая версия приложения. Обновите для лучшей работы.",
   "updateNow": "Обновить",
-  "later": "Позже"
+  "later": "Позже",
+
+  "dreamChat": "Чат сна",
+  "dreamChatHint": "Выберите сон в плитке, чтобы открыть его анализ и чат.",
+
+  "onboardingTitle": "Давайте познакомимся",
+  "onboardingStep": "Шаг {step} из {total}",
+  "@onboardingStep": {
+    "placeholders": {
+      "step": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "skip": "Пропустить",
+  "finish": "Завершить",
+  "next": "Далее",
+  "occupationQuestion": "Чем вы сейчас занимаетесь?",
+  "occupationHint": "Например: студент, работа в найме, предпринимательство, творческая деятельность.",
+  "occupationPlaceholder": "Расскажите о своём занятии",
+  "familyQuestion": "Расскажите немного о семье или близких людях",
+  "familyHint": "Например: живёте ли вы один, есть ли партнёр, дети или важные отношения.",
+  "familyPlaceholder": "Ваш социальный контекст",
+  "interestsQuestion": "Какие у вас увлечения или интересы?",
+  "interestsHint": "Искусство, спорт, технологии, путешествия или что-то совсем своё.",
+  "interestsPlaceholder": "Ваши интересы",
+  "lifeContextQuestion": "Что сейчас особенно важно в вашей жизни?",
+  "lifeContextHint": "Можно рассказать о целях, трудностях, изменениях или поисках.",
+  "lifeContextPlaceholder": "Текущий жизненный контекст",
+  "onboardingIntro": "Чтобы лучше понимать контекст ваших снов, расскажите немного о себе.",
+  "onboardingGenderNote": "Пол и возраст можно пропустить, если не хочется отвечать.",
+  "ageLabel": "Возраст",
+  "onboardingFailed": "Не удалось завершить онбординг",
+  "ageYears": "{age} лет",
+  "@ageYears": {
+    "placeholders": {
+      "age": {"type": "String"}
+    }
+  },
+  "genderFemale": "Женщина",
+  "genderMale": "Мужчина",
+  "genderUnspecified": "Предпочитает не указывать пол",
+
+  "mapRefresh": "Обновить",
+  "mapRefreshing": "Карта обновляется. Пока показываем предыдущую версию.",
+  "mapAddMoreDreams": "Добавьте ещё {count} снов, чтобы активировать карту.",
+  "@mapAddMoreDreams": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "mapUnavailable": "Карта пока недоступна.",
+  "mapSymbolLabel": "Символ: {name}",
+  "@mapSymbolLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "mapLastSeen": "Последнее появление: {date}",
+  "@mapLastSeen": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "mapOccurrences": "{count} вхождений в {dreams} снах",
+  "@mapOccurrences": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "dreams": {"type": "int"}
+    }
+  },
+  "relatedSymbols": "Связанные символы",
+  "whereAppears": "Где встречается",
+  "openLastDream": "Открыть последний сон"
 }

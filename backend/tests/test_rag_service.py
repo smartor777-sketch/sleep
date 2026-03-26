@@ -53,6 +53,8 @@ async def test_build_retrieval_context_scores_related_chunks(monkeypatch):
         chunk_index=0,
         text="House and door",
         embedding_text=serialize_embedding([1.0, 0.0]),
+        source_recorded_at=datetime(2024, 12, 31, tzinfo=timezone.utc),
+        created_at=datetime(2024, 12, 31, tzinfo=timezone.utc),
     )
     symbol_row = SimpleNamespace(chunk_id=stored_chunk.id, dream_id=other_dream_id, user_id=user_id, symbol_name="дом")
     archetype_row = SimpleNamespace(dream_id=other_dream_id, user_id=user_id, archetype_name="shadow")
@@ -94,7 +96,12 @@ async def test_rebuild_dream_memory_persists_chunks_symbols_and_archetypes(monke
     monkeypatch.setattr(rag_service, "request_embedding", fake_request_embedding)
 
     user_id = uuid4()
-    dream = SimpleNamespace(id=uuid4(), content="Дом и вода. В зеркале тень.")
+    dream = SimpleNamespace(
+        id=uuid4(),
+        content="Дом и вода. В зеркале тень.",
+        recorded_at=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2025, 1, 1, tzinfo=timezone.utc),
+    )
     db = FakeDb(execute_results=[FakeResult(), FakeResult(), FakeResult(), FakeResult()])
 
     result = await rag_service.rebuild_dream_memory(

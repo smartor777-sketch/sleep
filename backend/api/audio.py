@@ -34,14 +34,20 @@ async def create_transcription(
         )
 
     try:
-        text = await transcribe_audio(
+        result = await transcribe_audio(
             filename=file.filename or "recording.m4a",
             content=content,
             content_type=file.content_type,
             language=language,
             prompt=prompt,
         )
-        return TranscriptionResponse(text=text)
+        return TranscriptionResponse(
+            text=result.text,
+            partial=result.partial,
+            segments_total=result.segments_total,
+            segments_ok=result.segments_ok,
+            segments_failed=result.segments_failed,
+        )
     except TranscriptionPermanentError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

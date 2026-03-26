@@ -89,7 +89,7 @@ class _MenuCard extends StatelessWidget {
       _MenuItemData(0, l10n.copy, Icons.copy),
       _MenuItemData(1, l10n.edit, Icons.edit),
       _MenuItemData(2, l10n.delete, Icons.delete_outline),
-      const _MenuItemData(3, 'Изменить дату', Icons.edit_calendar_outlined),
+      _MenuItemData(3, l10n.editDate, Icons.edit_calendar_outlined),
     ];
 
     return Card(

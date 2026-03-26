@@ -37,6 +37,9 @@ class DreamChunk(Base):
     embedding_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    source_recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source_created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source_order: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     dream: Mapped["Dream"] = relationship("Dream", back_populates="chunks")

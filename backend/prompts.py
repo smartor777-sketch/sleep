@@ -1,7 +1,7 @@
 """Промпты для сборки контекста LLM (backend-side)"""
 
 
-def get_chat_system_prompt(user_description: str | None = None) -> str:
+def get_chat_system_prompt(user_description: str | None = None, user_memory_md: str | None = None) -> str:
     """Системный промпт для мульти-тёрн чата по снам."""
 
     sections: list[str] = [
@@ -26,6 +26,10 @@ def get_chat_system_prompt(user_description: str | None = None) -> str:
         "Do NOT repeat the full analysis. Reference specific parts of your previous analysis when relevant.",
         "- ALWAYS track progression and patterns across ALL dreams. Note recurring symbols, evolving themes, "
         "archetypal development, and individuation markers.",
+        "- Pay attention to TEMPORAL DYNAMICS: how symbols, emotions, and archetypes evolve over time. "
+        "Compare past and present. Note cycles, progressions, and regressions.",
+        "- Use temporal language when referencing past dreams: 'in earlier dreams...', 'over the past weeks...', "
+        "'a shift from X to Y is visible...'.",
         "- If you see connections between dreams, mention them naturally.",
         "",
         "STYLE:",
@@ -40,5 +44,15 @@ def get_chat_system_prompt(user_description: str | None = None) -> str:
     if user_description:
         sections.insert(3, f"USER CONTEXT: {user_description}")
         sections.insert(4, "")
+
+    if user_memory_md and user_memory_md.strip():
+        sections.append("")
+        sections.append("USER PSYCHOLOGICAL PROFILE (accumulated from previous analyses):")
+        sections.append(user_memory_md.strip())
+        sections.append("")
+        sections.append(
+            "Use this profile as context. Note developments, changes, and recurring patterns. "
+            "Do not repeat known conclusions — build on them."
+        )
 
     return "\n".join(sections)

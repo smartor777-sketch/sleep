@@ -7,6 +7,7 @@ from fastapi import HTTPException, UploadFile
 
 from api import audio as audio_api
 from services import transcription_service
+from services.transcription_service import TranscriptionResult
 
 
 class FakeAsyncClient:
@@ -45,6 +46,11 @@ async def test_transcribe_audio_returns_text(monkeypatch):
         "AsyncClient",
         lambda timeout: FakeAsyncClient(response=response),
     )
+    monkeypatch.setattr(
+        transcription_service,
+        "split_audio",
+        lambda content, filename: [(content, filename)],
+    )
 
     result = await transcription_service.transcribe_audio(
         filename="recording.m4a",
@@ -53,7 +59,7 @@ async def test_transcribe_audio_returns_text(monkeypatch):
         language="ru",
     )
 
-    assert result == "dream transcription"
+    assert result.text == "dream transcription"
 
 
 @pytest.mark.asyncio
@@ -76,6 +82,16 @@ async def test_transcribe_audio_raises_transient_for_503(monkeypatch):
         "AsyncClient",
         lambda timeout: FakeAsyncClient(error=error),
     )
+    monkeypatch.setattr(
+        transcription_service,
+        "split_audio",
+        lambda content, filename: [(content, filename)],
+    )
+
+    async def fake_sleep(_delay):
+        pass
+
+    monkeypatch.setattr(transcription_service.asyncio, "sleep", fake_sleep)
 
     with pytest.raises(transcription_service.TranscriptionTransientError):
         await transcription_service.transcribe_audio(filename="recording.m4a", content=b"audio")
@@ -86,7 +102,7 @@ async def test_create_transcription_endpoint_returns_schema(monkeypatch):
     async def fake_transcribe_audio(**kwargs):
         assert kwargs["filename"] == "recording.m4a"
         assert kwargs["language"] == "ru"
-        return "transcribed text"
+        return TranscriptionResult(text="transcribed text", partial=False, segments_total=1, segments_ok=1, segments_failed=0)
 
     monkeypatch.setattr(audio_api, "transcribe_audio", fake_transcribe_audio)
 

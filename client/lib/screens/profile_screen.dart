@@ -208,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           // График снов по последним 14 дням
           Text(
-            'Сны за 14 дней',
+            AppLocalizations.of(context)!.dreamsLast14Days,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
@@ -314,9 +314,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 20),
           if ((stats?.archetypesTop.isNotEmpty ?? false)) ...[
-            const Text(
-              'Архетипы',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              AppLocalizations.of(context)!.archetypes,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             SizedBox(

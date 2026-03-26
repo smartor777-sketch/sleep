@@ -20,9 +20,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копирование кода приложения
 COPY . .
 
+RUN chmod +x /app/entrypoint.sh
+
 # Открытие порта
 EXPOSE 8000
 
-# Запуск приложения
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 

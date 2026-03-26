@@ -144,7 +144,7 @@ async def health_check():
     }
 
 
-APP_LATEST_VERSION = "0.3.2"
+APP_LATEST_VERSION = "0.4.0"
 APP_MIN_VERSION = "0.3.2"
 APP_DOWNLOAD_URL = "https://github.com/core-euler/sna_net/releases/latest/download/app-release.apk"
 

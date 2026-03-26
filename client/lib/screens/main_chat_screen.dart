@@ -1,12 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:record/record.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/dream.dart';
@@ -15,7 +12,7 @@ import '../providers/analysis_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/dreams_provider.dart';
 import '../services/api_exception.dart';
-import '../services/transcription_service.dart';
+import '../services/voice_input_service.dart';
 import '../utils/snackbar.dart';
 import '../widgets/dream_card.dart';
 import '../widgets/message_menu.dart';
@@ -55,12 +52,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
 
   final TextEditingController _controller = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  final AudioRecorder _recorder = AudioRecorder();
-
-  StreamSubscription<Amplitude>? _amplitudeSubscription;
-  bool _isRecording = false;
-  bool _isTranscribing = false;
-  double _recordingLevel = 0.18;
+  late final VoiceInputService _voiceService;
 
   Dream? _editingDream;
   Dream? _selectedDream;
@@ -75,11 +67,11 @@ class _MainChatScreenState extends State<MainChatScreen> {
     if (_submittingDream) {
       return;
     }
-    if (_isRecording) {
+    if (_voiceService.isRecording) {
       await _stopRecordingAndTranscribe();
       return;
     }
-    if (_isTranscribing) {
+    if (_voiceService.isTranscribing) {
       return;
     }
 
@@ -118,6 +110,18 @@ class _MainChatScreenState extends State<MainChatScreen> {
   void initState() {
     super.initState();
     _accentColor = widget.accentColor;
+    _voiceService = VoiceInputService(
+      apiClient: context.read<AuthProvider>().apiClient,
+    );
+    _voiceService.onStateChanged = () {
+      if (mounted) setState(() {});
+    };
+    _voiceService.onRecordingWarning = () {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        showToast(context, l10n.recordingWarning);
+      }
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DreamsProvider>().loadDreams();
     });
@@ -200,112 +204,42 @@ class _MainChatScreenState extends State<MainChatScreen> {
   }
 
   Future<void> _toggleRecording() async {
-    if (_isTranscribing) {
-      return;
-    }
-    if (_isRecording) {
+    if (_voiceService.isTranscribing) return;
+    if (_voiceService.isRecording) {
       await _stopRecordingAndTranscribe();
     } else {
-      await _startRecording();
+      final ok = await _voiceService.startRecording();
+      if (!ok && mounted) {
+        _showError(AppLocalizations.of(context)!.genericError);
+      }
     }
-  }
-
-  Future<void> _startRecording() async {
-    final hasPermission = await _recorder.hasPermission();
-    if (!hasPermission) {
-      _showError(AppLocalizations.of(context)!.genericError);
-      return;
-    }
-
-    final directory = await getTemporaryDirectory();
-    final path =
-        '${directory.path}/dream_${DateTime.now().millisecondsSinceEpoch}.m4a';
-
-    await _amplitudeSubscription?.cancel();
-    _amplitudeSubscription = _recorder
-        .onAmplitudeChanged(const Duration(milliseconds: 120))
-        .listen((amplitude) {
-          if (!mounted) return;
-          final normalized = ((amplitude.current + 45) / 45)
-              .clamp(0.08, 1.0)
-              .toDouble();
-          setState(() => _recordingLevel = normalized);
-        });
-
-    await _recorder.start(
-      const RecordConfig(
-        encoder: AudioEncoder.aacLc,
-        bitRate: 128000,
-        sampleRate: 44100,
-      ),
-      path: path,
-    );
-
-    if (!mounted) return;
-    setState(() {
-      _isRecording = true;
-      _recordingLevel = 0.22;
-    });
   }
 
   Future<void> _stopRecordingAndTranscribe() async {
-    await _amplitudeSubscription?.cancel();
-    _amplitudeSubscription = null;
-
-    final path = await _recorder.stop();
-    if (!mounted) return;
-    setState(() {
-      _isRecording = false;
-      _recordingLevel = 0.18;
-    });
-
-    if (path == null || path.isEmpty) {
-      return;
-    }
-
     final l10n = AppLocalizations.of(context)!;
-    setState(() => _isTranscribing = true);
     try {
-      final service = TranscriptionService(
-        context.read<AuthProvider>().apiClient,
+      final result = await _voiceService.stopAndTranscribe(
+        languageCode: Localizations.localeOf(context).languageCode.toLowerCase(),
       );
-      final text = await service.transcribeAudioFile(
-        path,
-        language: Localizations.localeOf(context).languageCode.toLowerCase(),
-      );
-      if (!mounted) return;
+      if (!mounted || result == null) return;
       final existing = _controller.text.trim();
-      final combined = existing.isEmpty ? text : '$existing $text';
+      final combined = existing.isEmpty ? result.text : '$existing ${result.text}';
       setState(() {
         _controller.text = combined;
         _controller.selection = TextSelection.fromPosition(
           TextPosition(offset: _controller.text.length),
         );
       });
+      if (result.partial) {
+        showToast(context, l10n.partialTranscription);
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
-      _showError(_mapTranscriptionError(l10n, e));
+      _showError(e.statusCode == 503 ? l10n.networkError : l10n.genericError);
     } catch (_) {
       if (!mounted) return;
       _showError(l10n.genericError);
-    } finally {
-      try {
-        final file = File(path);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      } catch (_) {}
-      if (mounted) {
-        setState(() => _isTranscribing = false);
-      }
     }
-  }
-
-  String _mapTranscriptionError(AppLocalizations l10n, ApiException error) {
-    if (error.statusCode == 503) {
-      return l10n.networkError;
-    }
-    return l10n.genericError;
   }
 
   void _openMessageMenu(Dream dream, Offset globalPosition) {
@@ -411,9 +345,8 @@ class _MainChatScreenState extends State<MainChatScreen> {
 
   @override
   void dispose() {
-    _amplitudeSubscription?.cancel();
+    _voiceService.dispose();
     _analysisProvider?.dispose();
-    _recorder.dispose();
     _controller.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -446,8 +379,8 @@ class _MainChatScreenState extends State<MainChatScreen> {
       case _tabChat:
         if (_selectedDream == null || _analysisProvider == null) {
           return _EmptyTabState(
-            title: 'Чат сна',
-            subtitle: 'Выберите сон в плитке, чтобы открыть его анализ и чат.',
+            title: l10n.dreamChat,
+            subtitle: l10n.dreamChatHint,
           );
         }
         return ChangeNotifierProvider<AnalysisProvider>.value(
@@ -590,19 +523,19 @@ class _MainChatScreenState extends State<MainChatScreen> {
             children: [
               AnimatedSize(
                 duration: const Duration(milliseconds: 200),
-                child: _isRecording || _isTranscribing
+                child: _voiceService.isRecording || _voiceService.isTranscribing
                     ? Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _RecordingWaveform(
-                              level: _recordingLevel,
+                              level: _voiceService.recordingLevel,
                               color: _accentColor,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              _isTranscribing
+                              _voiceService.isTranscribing
                                   ? l10n.analyzingLabel
                                   : l10n.listeningLabel,
                               style: Theme.of(context).textTheme.bodySmall
@@ -621,7 +554,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
                 children: [
                   IconButton(
                     icon: Icon(
-                      _isRecording ? Icons.stop_rounded : Icons.mic,
+                      _voiceService.isRecording ? Icons.stop_rounded : Icons.mic,
                       color: _accentColor,
                     ),
                     onPressed: _submittingDream ? null : _toggleRecording,
@@ -670,7 +603,7 @@ class _MainChatScreenState extends State<MainChatScreen> {
                               color: Colors.white,
                               size: 20,
                             ),
-                      onPressed: _isTranscribing ? null : _sendMessage,
+                      onPressed: _voiceService.isTranscribing ? null : _sendMessage,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
                         minWidth: 36,

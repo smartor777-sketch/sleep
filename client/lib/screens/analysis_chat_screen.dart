@@ -4,8 +4,11 @@ import '../l10n/app_localizations.dart';
 import '../widgets/message_bubble.dart';
 import '../models/dream.dart';
 import '../providers/analysis_provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/analysis_message.dart';
 import '../providers/dreams_provider.dart';
+import '../services/api_exception.dart';
+import '../services/voice_input_service.dart';
 import '../utils/snackbar.dart';
 
 class AnalysisChatScreen extends StatefulWidget {
@@ -34,6 +37,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
   late String _dreamTitle;
   late Dream _dream;
   bool _dreamRefreshing = false;
+  late final VoiceInputService _voiceService;
 
   @override
   void initState() {
@@ -41,6 +45,18 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     _accentColor = widget.accentColor;
     _dream = widget.dream;
     _dreamTitle = _dream.title ?? '';
+    _voiceService = VoiceInputService(
+      apiClient: context.read<AuthProvider>().apiClient,
+    );
+    _voiceService.onStateChanged = () {
+      if (mounted) setState(() {});
+    };
+    _voiceService.onRecordingWarning = () {
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        showToast(context, l10n.recordingWarning);
+      }
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AnalysisProvider>().load(_dream);
       _pollDreamState();
@@ -137,9 +153,9 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                 child: Text(l10n.editTitleLabel),
               ),
               PopupMenuItem(value: 'edit_content', child: Text(l10n.edit)),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'edit_date',
-                child: Text('Изменить дату'),
+                child: Text(l10n.editDate),
               ),
               PopupMenuItem(value: 'delete_dream', child: Text(l10n.delete)),
             ];
@@ -221,7 +237,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                                   if (!mounted) return;
                                   await _pollDreamState();
                                 },
-                          child: const Text('Повторить анализ'),
+                          child: Text(l10n.retryAnalysis),
                         ),
                       ),
                     ],
@@ -252,75 +268,125 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
             }
             return Padding(
               padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.mic, color: _accentColor),
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 36,
-                      minHeight: 36,
-                    ),
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    child: _voiceService.isRecording || _voiceService.isTranscribing
+                        ? Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _RecordingWaveform(
+                                  level: _voiceService.recordingLevel,
+                                  color: _accentColor,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _voiceService.isTranscribing
+                                      ? l10n.analyzingLabel
+                                      : l10n.listeningLabel,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withOpacity(0.7),
+                                      ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox.shrink(),
                   ),
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      maxLines: null,
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: l10n.writeMessageHint,
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 8,
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          _voiceService.isRecording
+                              ? Icons.stop_rounded
+                              : Icons.mic,
+                          color: _accentColor,
+                        ),
+                        onPressed: _voiceService.isTranscribing
+                            ? null
+                            : _toggleRecording,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 36,
                         ),
                       ),
-                    ),
-                  ),
-                  provider.loading || provider.analysisInProgress
-                      ? Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: _accentColor,
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          maxLines: null,
+                          style: const TextStyle(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: l10n.writeMessageHint,
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 8,
                             ),
-                          ),
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            color: _accentColor,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.send,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 36,
-                              minHeight: 36,
-                            ),
-                            onPressed: () async {
-                              final text = _controller.text.trim();
-                              if (text.isEmpty) return;
-                              _controller.clear();
-                              await context
-                                  .read<AnalysisProvider>()
-                                  .sendMessage(_dream.id, text);
-                              if (context.read<AnalysisProvider>().error !=
-                                  null) {
-                                _showError(l10n.messageSendError);
-                              }
-                            },
                           ),
                         ),
+                      ),
+                      provider.loading || provider.analysisInProgress
+                          ? Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: _accentColor,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                color: _accentColor,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.send,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 36,
+                                  minHeight: 36,
+                                ),
+                                onPressed: _voiceService.isTranscribing
+                                    ? null
+                                    : () async {
+                                        if (_voiceService.isRecording) {
+                                          await _stopRecordingAndTranscribe();
+                                          return;
+                                        }
+                                        final text = _controller.text.trim();
+                                        if (text.isEmpty) return;
+                                        _controller.clear();
+                                        await context
+                                            .read<AnalysisProvider>()
+                                            .sendMessage(_dream.id, text);
+                                        if (context
+                                                .read<AnalysisProvider>()
+                                                .error !=
+                                            null) {
+                                          _showError(l10n.messageSendError);
+                                        }
+                                      },
+                              ),
+                            ),
+                    ],
+                  ),
                 ],
               ),
             );
@@ -339,6 +405,50 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
     }
 
     return Scaffold(appBar: appBar, body: body);
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_voiceService.isTranscribing) return;
+    if (_voiceService.isRecording) {
+      await _stopRecordingAndTranscribe();
+    } else {
+      final ok = await _voiceService.startRecording();
+      if (!ok && mounted) {
+        _showError(AppLocalizations.of(context)!.genericError);
+      }
+    }
+  }
+
+  Future<void> _stopRecordingAndTranscribe() async {
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final result = await _voiceService.stopAndTranscribe(
+        languageCode: Localizations.localeOf(context).languageCode.toLowerCase(),
+      );
+      if (!mounted || result == null) return;
+      final existing = _controller.text.trim();
+      final combined = existing.isEmpty ? result.text : '$existing ${result.text}';
+      _controller.text = combined;
+      _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length),
+      );
+      if (result.partial) {
+        showToast(context, l10n.partialTranscription);
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _showError(e.statusCode == 503 ? l10n.networkError : l10n.genericError);
+    } catch (_) {
+      if (!mounted) return;
+      _showError(l10n.genericError);
+    }
+  }
+
+  @override
+  void dispose() {
+    _voiceService.dispose();
+    _controller.dispose();
+    super.dispose();
   }
 
   String _formatDateTime(DateTime date) {
@@ -510,5 +620,43 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
       _dream = updated;
     });
     showToast(context, AppLocalizations.of(context)!.savedSuccess);
+  }
+}
+
+class _RecordingWaveform extends StatelessWidget {
+  const _RecordingWaveform({required this.level, required this.color});
+
+  final double level;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final heights = <double>[0.38, 0.62, 1.0, 0.74, 0.46]
+        .map<double>(
+          (factor) => (8 + (18 * level * factor)).clamp(6, 24).toDouble(),
+        )
+        .toList();
+
+    return SizedBox(
+      width: 34,
+      height: 22,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: heights
+            .map(
+              (height) => AnimatedContainer(
+                duration: const Duration(milliseconds: 120),
+                width: 4,
+                height: height,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
   }
 }

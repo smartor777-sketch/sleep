@@ -15,7 +15,8 @@
   "writeDreamHint": "Write a dream...",
   "emptyDreamsHint": "Just write your dream",
   "listeningLabel": "Recording...",
-  "listeningLabel": "Recording...",
+  "recordingWarning": "Recording for over a minute",
+  "partialTranscription": "Some parts could not be recognized",
 
   "analysisFailed": "Analysis failed",
   "analyzingLabel": "Analyzing...",
@@ -23,6 +24,8 @@
   "dreamAnalysisTitle": "Dream analysis",
   "writeMessageHint": "Write a message...",
   "messageSendError": "Failed to send message",
+  "retryAnalysis": "Retry analysis",
+  "editDate": "Change date",
 
   "profileTitle": "Profile",
   "aboutMeLabel": "About me",
@@ -31,6 +34,8 @@
   "streak": "Streak",
   "avgTime": "Avg time",
   "dreamsByWeekday": "Dreams by weekday",
+  "dreamsLast14Days": "Dreams over 14 days",
+  "archetypes": "Archetypes",
   "accentColorLabel": "Choose accent color:",
   "darkThemeLabel": "Dark theme",
   "fontSizeLabel": "Font size",
@@ -69,5 +74,77 @@
   "updateAvailable": "Update available",
   "updateMessage": "A new version of the app is available. Update for the best experience.",
   "updateNow": "Update",
-  "later": "Later"
+  "later": "Later",
+
+  "dreamChat": "Dream chat",
+  "dreamChatHint": "Select a dream in the grid to open its analysis and chat.",
+
+  "onboardingTitle": "Let's get to know each other",
+  "onboardingStep": "Step {step} of {total}",
+  "@onboardingStep": {
+    "placeholders": {
+      "step": {"type": "int"},
+      "total": {"type": "int"}
+    }
+  },
+  "skip": "Skip",
+  "finish": "Finish",
+  "next": "Next",
+  "occupationQuestion": "What do you do?",
+  "occupationHint": "For example: student, employment, entrepreneurship, creative work.",
+  "occupationPlaceholder": "Tell about your occupation",
+  "familyQuestion": "Tell about family or close people",
+  "familyHint": "For example: do you live alone, have a partner, children or important relationships.",
+  "familyPlaceholder": "Your social context",
+  "interestsQuestion": "What are your hobbies or interests?",
+  "interestsHint": "Art, sports, technology, travel or something unique.",
+  "interestsPlaceholder": "Your interests",
+  "lifeContextQuestion": "What is especially important in your life now?",
+  "lifeContextHint": "You can talk about goals, difficulties, changes or searches.",
+  "lifeContextPlaceholder": "Current life context",
+  "onboardingIntro": "To better understand the context of your dreams, tell us about yourself.",
+  "onboardingGenderNote": "Gender and age can be skipped if you don't want to answer.",
+  "ageLabel": "Age",
+  "onboardingFailed": "Failed to complete onboarding",
+  "ageYears": "{age} years old",
+  "@ageYears": {
+    "placeholders": {
+      "age": {"type": "String"}
+    }
+  },
+  "genderFemale": "Female",
+  "genderMale": "Male",
+  "genderUnspecified": "Prefers not to specify gender",
+
+  "mapRefresh": "Refresh",
+  "mapRefreshing": "Map is being updated. Showing previous version.",
+  "mapAddMoreDreams": "Add {count} more dreams to activate the map.",
+  "@mapAddMoreDreams": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "mapUnavailable": "Map is not available yet.",
+  "mapSymbolLabel": "Symbol: {name}",
+  "@mapSymbolLabel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "mapLastSeen": "Last seen: {date}",
+  "@mapLastSeen": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "mapOccurrences": "{count} occurrences in {dreams} dreams",
+  "@mapOccurrences": {
+    "placeholders": {
+      "count": {"type": "int"},
+      "dreams": {"type": "int"}
+    }
+  },
+  "relatedSymbols": "Related symbols",
+  "whereAppears": "Where it appears",
+  "openLastDream": "Open last dream"
 }

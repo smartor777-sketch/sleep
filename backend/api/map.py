@@ -36,9 +36,11 @@ async def get_dream_map_endpoint(
     current_user: CurrentUser,
     db: DatabaseSession,
     n_neighbors: int = Query(15, ge=2, le=50),
-    min_dist: float = Query(0.08, ge=0.0, le=0.99),
+    min_dist: float = Query(0.02, ge=0.0, le=0.99),
     cluster_method: str = Query("dbscan", pattern="^(dbscan|fallback)$"),
     force_refresh: bool = Query(False),
+    dispersion: float = Query(1.0, ge=0.1, le=5.0),
+    jitter: float = Query(0.03, ge=0.0, le=0.2),
 ):
     _ensure_same_user(user_id, current_user.id)
     return await get_dream_map(
@@ -48,6 +50,8 @@ async def get_dream_map_endpoint(
         min_dist=min_dist,
         cluster_method=cluster_method,
         force_refresh=force_refresh,
+        dispersion=dispersion,
+        jitter=jitter,
     )
 
 
@@ -73,9 +77,11 @@ async def dream_map_stream_endpoint(
     websocket: WebSocket,
     user_id: UUID,
     n_neighbors: int = Query(15, ge=2, le=50),
-    min_dist: float = Query(0.08, ge=0.0, le=0.99),
+    min_dist: float = Query(0.02, ge=0.0, le=0.99),
     cluster_method: str = Query("dbscan", pattern="^(dbscan|fallback)$"),
     force_refresh: bool = Query(False),
+    dispersion: float = Query(1.0, ge=0.1, le=5.0),
+    jitter: float = Query(0.03, ge=0.0, le=0.2),
 ):
     token = websocket.query_params.get("token")
     if not token:
@@ -108,6 +114,8 @@ async def dream_map_stream_endpoint(
                 cluster_method=cluster_method,
                 force_refresh=force_refresh,
                 batch_size=DEFAULT_STREAM_BATCH_SIZE,
+                dispersion=dispersion,
+                jitter=jitter,
             ):
                 await websocket.send_text(json.dumps(message))
     except WebSocketDisconnect:

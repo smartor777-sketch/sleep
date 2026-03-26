@@ -49,6 +49,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get listeningLabel => 'Идёт запись...';
 
   @override
+  String get recordingWarning => 'Запись идёт уже больше минуты';
+
+  @override
+  String get partialTranscription => 'Часть записи не удалось распознать';
+
+  @override
   String get analysisFailed => 'Анализ не удался';
 
   @override
@@ -65,6 +71,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get messageSendError => 'Не удалось отправить сообщение';
+
+  @override
+  String get retryAnalysis => 'Повторить анализ';
+
+  @override
+  String get editDate => 'Изменить дату';
 
   @override
   String get profileTitle => 'Профиль';
@@ -86,6 +98,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get dreamsByWeekday => 'Сны по дням недели';
+
+  @override
+  String get dreamsLast14Days => 'Сны за 14 дней';
+
+  @override
+  String get archetypes => 'Архетипы';
 
   @override
   String get accentColorLabel => 'Выберите цвет акцента:';
@@ -200,4 +218,135 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get later => 'Позже';
+
+  @override
+  String get dreamChat => 'Чат сна';
+
+  @override
+  String get dreamChatHint =>
+      'Выберите сон в плитке, чтобы открыть его анализ и чат.';
+
+  @override
+  String get onboardingTitle => 'Давайте познакомимся';
+
+  @override
+  String onboardingStep(int step, int total) {
+    return 'Шаг $step из $total';
+  }
+
+  @override
+  String get skip => 'Пропустить';
+
+  @override
+  String get finish => 'Завершить';
+
+  @override
+  String get next => 'Далее';
+
+  @override
+  String get occupationQuestion => 'Чем вы сейчас занимаетесь?';
+
+  @override
+  String get occupationHint =>
+      'Например: студент, работа в найме, предпринимательство, творческая деятельность.';
+
+  @override
+  String get occupationPlaceholder => 'Расскажите о своём занятии';
+
+  @override
+  String get familyQuestion => 'Расскажите немного о семье или близких людях';
+
+  @override
+  String get familyHint =>
+      'Например: живёте ли вы один, есть ли партнёр, дети или важные отношения.';
+
+  @override
+  String get familyPlaceholder => 'Ваш социальный контекст';
+
+  @override
+  String get interestsQuestion => 'Какие у вас увлечения или интересы?';
+
+  @override
+  String get interestsHint =>
+      'Искусство, спорт, технологии, путешествия или что-то совсем своё.';
+
+  @override
+  String get interestsPlaceholder => 'Ваши интересы';
+
+  @override
+  String get lifeContextQuestion => 'Что сейчас особенно важно в вашей жизни?';
+
+  @override
+  String get lifeContextHint =>
+      'Можно рассказать о целях, трудностях, изменениях или поисках.';
+
+  @override
+  String get lifeContextPlaceholder => 'Текущий жизненный контекст';
+
+  @override
+  String get onboardingIntro =>
+      'Чтобы лучше понимать контекст ваших снов, расскажите немного о себе.';
+
+  @override
+  String get onboardingGenderNote =>
+      'Пол и возраст можно пропустить, если не хочется отвечать.';
+
+  @override
+  String get ageLabel => 'Возраст';
+
+  @override
+  String get onboardingFailed => 'Не удалось завершить онбординг';
+
+  @override
+  String ageYears(String age) {
+    return '$age лет';
+  }
+
+  @override
+  String get genderFemale => 'Женщина';
+
+  @override
+  String get genderMale => 'Мужчина';
+
+  @override
+  String get genderUnspecified => 'Предпочитает не указывать пол';
+
+  @override
+  String get mapRefresh => 'Обновить';
+
+  @override
+  String get mapRefreshing =>
+      'Карта обновляется. Пока показываем предыдущую версию.';
+
+  @override
+  String mapAddMoreDreams(int count) {
+    return 'Добавьте ещё $count снов, чтобы активировать карту.';
+  }
+
+  @override
+  String get mapUnavailable => 'Карта пока недоступна.';
+
+  @override
+  String mapSymbolLabel(String name) {
+    return 'Символ: $name';
+  }
+
+  @override
+  String mapLastSeen(String date) {
+    return 'Последнее появление: $date';
+  }
+
+  @override
+  String mapOccurrences(int count, int dreams) {
+    return '$count вхождений в $dreams снах';
+  }
+
+  @override
+  String get relatedSymbols => 'Связанные символы';
+
+  @override
+  String get whereAppears => 'Где встречается';
+
+  @override
+  String get openLastDream => 'Открыть последний сон';
 }

@@ -220,11 +220,11 @@ class FakeUsersService extends UsersService {
 class FakeTranscriptionService extends TranscriptionService {
   FakeTranscriptionService() : super(FakeApiClient());
 
-  Future<String> Function(String filePath, {String? language, String? prompt})?
+  Future<TranscriptionResult> Function(String filePath, {String? language, String? prompt})?
   onTranscribeAudioFile;
 
   @override
-  Future<String> transcribeAudioFile(
+  Future<TranscriptionResult> transcribeAudioFile(
     String filePath, {
     String? language,
     String? prompt,

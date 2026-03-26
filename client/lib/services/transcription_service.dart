@@ -3,12 +3,28 @@ import 'dart:convert';
 import 'api_client.dart';
 import 'api_exception.dart';
 
+class TranscriptionResult {
+  final String text;
+  final bool partial;
+  final int segmentsTotal;
+  final int segmentsOk;
+  final int segmentsFailed;
+
+  TranscriptionResult({
+    required this.text,
+    this.partial = false,
+    this.segmentsTotal = 1,
+    this.segmentsOk = 1,
+    this.segmentsFailed = 0,
+  });
+}
+
 class TranscriptionService {
   TranscriptionService(this._api);
 
   final ApiClient _api;
 
-  Future<String> transcribeAudioFile(
+  Future<TranscriptionResult> transcribeAudioFile(
     String filePath, {
     String? language,
     String? prompt,
@@ -35,7 +51,13 @@ class TranscriptionService {
     if (text.isEmpty) {
       throw ApiException(500, 'empty_transcription');
     }
-    return text;
+    return TranscriptionResult(
+      text: text,
+      partial: data['partial'] as bool? ?? false,
+      segmentsTotal: data['segments_total'] as int? ?? 1,
+      segmentsOk: data['segments_ok'] as int? ?? 1,
+      segmentsFailed: data['segments_failed'] as int? ?? 0,
+    );
   }
 
   void _ensureOk(int statusCode, String body) {

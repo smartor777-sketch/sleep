@@ -13,6 +13,7 @@ from typing import Any
 from uuid import UUID
 
 import numpy as np
+from numpy.linalg import norm as np_norm
 from redis import asyncio as redis_asyncio
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +51,7 @@ except Exception:  # pragma: no cover
 
 MIN_SYMBOLS_REQUIRED = 5
 DEFAULT_STREAM_BATCH_SIZE = 20
-_CACHE_PREFIX = "dream-map:v3"
+_CACHE_PREFIX = "dream-map:v4"
 _PREVIEW_LIMIT = 80
 _WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё-]{2,}", re.UNICODE)
 _LABEL_STOPWORDS = {
@@ -215,15 +216,19 @@ async def get_dream_map(
     *,
     user_id: UUID,
     n_neighbors: int = 15,
-    min_dist: float = 0.08,
+    min_dist: float = 0.02,
     cluster_method: str = "dbscan",
     force_refresh: bool = False,
+    dispersion: float = 1.0,
+    jitter: float = 0.03,
 ) -> DreamMapResponse:
     cache_key = _build_cache_key(
         user_id=user_id,
         n_neighbors=n_neighbors,
         min_dist=min_dist,
         cluster_method=cluster_method,
+        dispersion=dispersion,
+        jitter=jitter,
     )
     if not force_refresh:
         cached = await _get_cached_map(cache_key)
@@ -256,6 +261,8 @@ async def get_dream_map(
         min_dist=min_dist,
     )
     xy = _normalize_xy(projected_3d[:, :2])
+    if jitter > 0:
+        xy = _apply_deterministic_jitter(xy, runtimes, user_id, amplitude=jitter)
     z = _normalize_axis(projected_3d[:, 2])
     labels = _cluster_points(xy, method=cluster_method)
     payloads = _build_cluster_payloads(runtimes, labels)
@@ -419,10 +426,12 @@ async def stream_dream_map(
     *,
     user_id: UUID,
     n_neighbors: int = 15,
-    min_dist: float = 0.08,
+    min_dist: float = 0.02,
     cluster_method: str = "dbscan",
     force_refresh: bool = False,
     batch_size: int = DEFAULT_STREAM_BATCH_SIZE,
+    dispersion: float = 1.0,
+    jitter: float = 0.03,
 ):
     projection = await get_dream_map(
         db,
@@ -431,6 +440,8 @@ async def stream_dream_map(
         min_dist=min_dist,
         cluster_method=cluster_method,
         force_refresh=force_refresh,
+        dispersion=dispersion,
+        jitter=jitter,
     )
     total = len(projection.nodes)
     if total == 0:
@@ -653,19 +664,27 @@ async def _load_chunk_runtimes(db: AsyncSession, user_id: UUID) -> list[_ChunkRu
     return runtimes
 
 
+def _l2_normalize(matrix: np.ndarray) -> np.ndarray:
+    """Row-wise L2 normalization. Prevents near-zero rows from exploding."""
+    norms = np_norm(matrix, axis=1, keepdims=True)
+    norms = np.where(norms < 1e-9, 1.0, norms)
+    return matrix / norms
+
+
 def _project_embeddings_3d(matrix: np.ndarray, *, n_neighbors: int, min_dist: float) -> np.ndarray:
     if len(matrix) == 1:
         return np.array([[0.0, 0.0, 0.0]], dtype=float)
-    if umap is not None and len(matrix) >= 4:
+    normed = _l2_normalize(matrix)
+    if umap is not None and len(normed) >= 4:
         reducer = umap.UMAP(
             n_components=3,
             metric="cosine",
-            n_neighbors=max(2, min(n_neighbors, len(matrix) - 1)),
+            n_neighbors=max(2, min(n_neighbors, len(normed) - 1)),
             min_dist=min_dist,
             random_state=42,
         )
-        return reducer.fit_transform(matrix)
-    return _pca_project_3d(matrix)
+        return reducer.fit_transform(normed)
+    return _pca_project_3d(normed)
 
 
 def _pca_project_3d(matrix: np.ndarray) -> np.ndarray:
@@ -678,6 +697,25 @@ def _pca_project_3d(matrix: np.ndarray) -> np.ndarray:
     if projected.shape[1] < 3:
         projected = np.pad(projected, ((0, 0), (0, 3 - projected.shape[1])))
     return projected.astype(float)
+
+
+def _apply_deterministic_jitter(
+    xy: np.ndarray,
+    runtimes: list[_SymbolRuntime],
+    user_id: UUID,
+    amplitude: float = 0.03,
+) -> np.ndarray:
+    """Deterministic jitter seeded by md5(user_id:symbol_name), amplitude ~3%."""
+    result = xy.copy()
+    for i, runtime in enumerate(runtimes):
+        seed_str = f"{user_id}:{runtime.symbol_name}"
+        seed = int(hashlib.md5(seed_str.encode()).hexdigest()[:8], 16)
+        rng = np.random.RandomState(seed)
+        dx = (rng.random() * 2 - 1) * amplitude
+        dy = (rng.random() * 2 - 1) * amplitude
+        result[i][0] = np.clip(result[i][0] + dx, 0.0, 1.0)
+        result[i][1] = np.clip(result[i][1] + dy, 0.0, 1.0)
+    return result
 
 
 def _normalize_xy(points: np.ndarray) -> np.ndarray:
@@ -903,12 +941,16 @@ def _build_cache_key(
     n_neighbors: int,
     min_dist: float,
     cluster_method: str,
+    dispersion: float = 1.0,
+    jitter: float = 0.03,
 ) -> str:
     params = json.dumps(
         {
             "n_neighbors": n_neighbors,
             "min_dist": min_dist,
             "cluster_method": cluster_method,
+            "dispersion": dispersion,
+            "jitter": jitter,
         },
         sort_keys=True,
     )

@@ -49,6 +49,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get listeningLabel => 'Recording...';
 
   @override
+  String get recordingWarning => 'Recording for over a minute';
+
+  @override
+  String get partialTranscription => 'Some parts could not be recognized';
+
+  @override
   String get analysisFailed => 'Analysis failed';
 
   @override
@@ -65,6 +71,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messageSendError => 'Failed to send message';
+
+  @override
+  String get retryAnalysis => 'Retry analysis';
+
+  @override
+  String get editDate => 'Change date';
 
   @override
   String get profileTitle => 'Profile';
@@ -86,6 +98,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dreamsByWeekday => 'Dreams by weekday';
+
+  @override
+  String get dreamsLast14Days => 'Dreams over 14 days';
+
+  @override
+  String get archetypes => 'Archetypes';
 
   @override
   String get accentColorLabel => 'Choose accent color:';
@@ -199,4 +217,135 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get later => 'Later';
+
+  @override
+  String get dreamChat => 'Dream chat';
+
+  @override
+  String get dreamChatHint =>
+      'Select a dream in the grid to open its analysis and chat.';
+
+  @override
+  String get onboardingTitle => 'Let\'s get to know each other';
+
+  @override
+  String onboardingStep(int step, int total) {
+    return 'Step $step of $total';
+  }
+
+  @override
+  String get skip => 'Skip';
+
+  @override
+  String get finish => 'Finish';
+
+  @override
+  String get next => 'Next';
+
+  @override
+  String get occupationQuestion => 'What do you do?';
+
+  @override
+  String get occupationHint =>
+      'For example: student, employment, entrepreneurship, creative work.';
+
+  @override
+  String get occupationPlaceholder => 'Tell about your occupation';
+
+  @override
+  String get familyQuestion => 'Tell about family or close people';
+
+  @override
+  String get familyHint =>
+      'For example: do you live alone, have a partner, children or important relationships.';
+
+  @override
+  String get familyPlaceholder => 'Your social context';
+
+  @override
+  String get interestsQuestion => 'What are your hobbies or interests?';
+
+  @override
+  String get interestsHint =>
+      'Art, sports, technology, travel or something unique.';
+
+  @override
+  String get interestsPlaceholder => 'Your interests';
+
+  @override
+  String get lifeContextQuestion =>
+      'What is especially important in your life now?';
+
+  @override
+  String get lifeContextHint =>
+      'You can talk about goals, difficulties, changes or searches.';
+
+  @override
+  String get lifeContextPlaceholder => 'Current life context';
+
+  @override
+  String get onboardingIntro =>
+      'To better understand the context of your dreams, tell us about yourself.';
+
+  @override
+  String get onboardingGenderNote =>
+      'Gender and age can be skipped if you don\'t want to answer.';
+
+  @override
+  String get ageLabel => 'Age';
+
+  @override
+  String get onboardingFailed => 'Failed to complete onboarding';
+
+  @override
+  String ageYears(String age) {
+    return '$age years old';
+  }
+
+  @override
+  String get genderFemale => 'Female';
+
+  @override
+  String get genderMale => 'Male';
+
+  @override
+  String get genderUnspecified => 'Prefers not to specify gender';
+
+  @override
+  String get mapRefresh => 'Refresh';
+
+  @override
+  String get mapRefreshing => 'Map is being updated. Showing previous version.';
+
+  @override
+  String mapAddMoreDreams(int count) {
+    return 'Add $count more dreams to activate the map.';
+  }
+
+  @override
+  String get mapUnavailable => 'Map is not available yet.';
+
+  @override
+  String mapSymbolLabel(String name) {
+    return 'Symbol: $name';
+  }
+
+  @override
+  String mapLastSeen(String date) {
+    return 'Last seen: $date';
+  }
+
+  @override
+  String mapOccurrences(int count, int dreams) {
+    return '$count occurrences in $dreams dreams';
+  }
+
+  @override
+  String get relatedSymbols => 'Related symbols';
+
+  @override
+  String get whereAppears => 'Where it appears';
+
+  @override
+  String get openLastDream => 'Open last dream';
 }

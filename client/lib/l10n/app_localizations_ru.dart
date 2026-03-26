@@ -9,7 +9,13 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get startupError => 'Ошибка запуска';
+  String get startupError => 'Не удалось подключиться к серверу';
+
+  @override
+  String get retry => 'Повторить';
+
+  @override
+  String get downloadLatest => 'Скачать последнюю версию';
 
   @override
   String get userLoadError => 'Не удалось загрузить пользователя';

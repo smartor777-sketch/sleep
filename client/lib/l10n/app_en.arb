@@ -1,7 +1,9 @@
 {
   "@@locale": "en",
 
-  "startupError": "Startup error",
+  "startupError": "Could not connect to server",
+  "retry": "Retry",
+  "downloadLatest": "Download latest version",
   "userLoadError": "Failed to load user",
 
   "dreamSaveError": "Failed to save dream",

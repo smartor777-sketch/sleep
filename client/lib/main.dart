@@ -157,8 +157,39 @@ class _MyAppState extends State<MyApp> {
               );
             }
             if (auth.error != null) {
+              final l10n = AppLocalizations.of(context);
               return Scaffold(
-                body: Center(child: Text(AppLocalizations.of(context)?.startupError ?? 'Startup error')),
+                body: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_off, size: 64, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        Text(
+                          l10n?.startupError ?? 'Startup error',
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            auth.bootstrap();
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: Text(l10n?.retry ?? 'Retry'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton.icon(
+                          onPressed: () => _launchUrl(appDownloadUrl),
+                          icon: const Icon(Icons.download),
+                          label: Text(l10n?.downloadLatest ?? 'Download latest version'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               );
             }
             final user = auth.user;

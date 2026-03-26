@@ -101,8 +101,20 @@ abstract class AppLocalizations {
   /// No description provided for @startupError.
   ///
   /// In ru, this message translates to:
-  /// **'Ошибка запуска'**
+  /// **'Не удалось подключиться к серверу'**
   String get startupError;
+
+  /// No description provided for @retry.
+  ///
+  /// In ru, this message translates to:
+  /// **'Повторить'**
+  String get retry;
+
+  /// No description provided for @downloadLatest.
+  ///
+  /// In ru, this message translates to:
+  /// **'Скачать последнюю версию'**
+  String get downloadLatest;
 
   /// No description provided for @userLoadError.
   ///

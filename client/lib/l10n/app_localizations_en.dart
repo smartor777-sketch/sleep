@@ -9,7 +9,13 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get startupError => 'Startup error';
+  String get startupError => 'Could not connect to server';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get downloadLatest => 'Download latest version';
 
   @override
   String get userLoadError => 'Failed to load user';

@@ -1,6 +1,6 @@
-# PATCH 0.4.1 — Auth & Billing
+# PATCH 0.4.1 — Auth, Billing & Dream UX
 
-Версия: 1.0
+Версия: 1.1
 Статус: Планирование
 Цель: Google Play
 
@@ -297,30 +297,179 @@ android/app/google-services.json  ← получить из Google Console
 
 ---
 
-## 6. Зависимости и порядок работы
+## 6. Dream UX — ручной анализ, заголовок, градиент
+
+### 6.1 Проблема
+
+Сейчас анализ запускается автоматически при сохранении сна. Это убирает у пользователя контроль: он не может сначала перечитать сон, исправить текст и только потом запросить анализ.
+
+### 6.2 Новый флоу записи сна
 
 ```
-1. Google Cloud Console — создать проект, получить google-services.json
-2. Backend: /auth/google + /auth/merge-anonymous
-3. Flutter: AuthGateScreen + EmailLogin + GoogleSignIn
-4. Google Play Console — создать продукты подписок
-5. Backend: /billing/verify-purchase + /billing/webhook
-6. Flutter: BillingService + PremiumScreen
-7. Alembic: миграция 004 (subscriptions table)
-8. Тестирование покупок через Google Play test environment
+Пользователь записывает сон → Сохраняет
+  └─ Открывается экран сна (AnalysisChatScreen)
+       ├─ [Нет анализа] → большая кнопка "Анализировать"
+       │                   вместо поля ввода сообщения
+       └─ [Анализ есть] → поле ввода сообщения для чата
+```
+
+Анализ запускается только по нажатию кнопки — не автоматически.
+
+### 6.3 Backend — убрать автозапуск анализа
+
+**Файл:** `backend/api/dreams.py` (или где сейчас вызывается `analyze_dream_task.delay()`)
+
+- Убрать вызов Celery-задачи при создании сна
+- Добавить эндпоинт для ручного запуска:
+
+```
+POST /api/v1/dreams/{dream_id}/analyze
+→ Запустить analyze_dream_task
+→ Вернуть { task_id, status: "pending" }
+```
+
+### 6.4 Flutter — кнопка «Анализировать»
+
+**Файл:** `client/lib/screens/analysis_chat_screen.dart`
+
+Логика отображения нижней панели:
+
+```dart
+// Вместо поля ввода — кнопка, если анализа нет
+if (analysis == null || analysis.status == AnalysisStatus.none) {
+  return _buildAnalyzeButton();  // большая кнопка по центру
+}
+if (analysis.status == AnalysisStatus.pending ||
+    analysis.status == AnalysisStatus.processing) {
+  return _buildAnalysisProgress();  // индикатор прогресса
+}
+// Анализ завершён — обычное поле ввода
+return _buildMessageInput();
+```
+
+Кнопка «Анализировать»:
+- Полноширинная, крупная
+- При нажатии: `POST /api/v1/dreams/{id}/analyze` → переходит в состояние `pending`
+- Пока идёт анализ — показывает пульсирующий индикатор с текстом
+
+### 6.5 Заголовок по умолчанию — первые 3 слова
+
+**Где:** клиент, при сохранении нового сна.
+
+```dart
+String _defaultTitle(String content) {
+  final words = content.trim().split(RegExp(r'\s+')).take(3);
+  return words.join(' ');
+}
+```
+
+Применяется если пользователь не ввёл title вручную.
+Записывается в `Dream.title` при создании.
+
+### 6.6 Градиент по умолчанию
+
+Все карточки снов без заданного градиента используют:
+- `gradient_color_1 = #FA9042`
+- `gradient_color_2 = #8885FF`
+
+**Где менять:** `client/lib/widgets/dream_card.dart` (или где рендерится карточка) — fallback цвета при `null`.
+
+### 6.7 LLM устанавливает Title и Gradient после анализа
+
+После завершения анализа LLM возвращает не только текст анализа, но и метаданные сна.
+
+**Промпт (добавить инструкцию):**
+
+```
+В конце ответа добавь JSON-блок:
+<dream_meta>
+{
+  "title": "Краткое поэтическое название сна (3-5 слов)",
+  "gradient_from": "#RRGGBB",
+  "gradient_to": "#RRGGBB"
+}
+</dream_meta>
+
+Цвета должны отражать эмоциональный тон сна.
+Тёплые тона (красный, оранжевый) — тревога, страсть.
+Холодные (синий, фиолетовый) — спокойствие, глубина.
+Тёмные — тяжёлые темы. Светлые — позитивные.
+```
+
+**Backend — парсинг метаданных:**
+
+```python
+# backend/services/analysis_service.py (или tasks.py)
+import re, json
+
+def extract_dream_meta(llm_response: str) -> dict | None:
+    match = re.search(r'<dream_meta>(.*?)</dream_meta>', llm_response, re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(1).strip())
+    except Exception:
+        return None
+
+# После завершения анализа:
+meta = extract_dream_meta(result_text)
+if meta:
+    dream.title = meta.get('title') or dream.title
+    dream.gradient_color_1 = meta.get('gradient_from')
+    dream.gradient_color_2 = meta.get('gradient_to')
+    # Убрать <dream_meta>...</dream_meta> из текста анализа
+    clean_result = re.sub(r'<dream_meta>.*?</dream_meta>', '', result_text, flags=re.DOTALL).strip()
 ```
 
 ---
 
-## 7. Acceptance Criteria
+## 7. Зависимости и порядок работы
 
-1. Пользователь может зарегистрироваться по email и подтвердить почту
-2. Пользователь может войти по email + пароль
-3. Пользователь может войти через Google
-4. Анонимные данные переносятся при первом входе (мерж)
-5. Сброс пароля работает через email
-6. Пользователь видит экран Premium с ценой из Google Play
-7. Покупка подписки проходит и верифицируется на бекенде
-8. После покупки `sub_type = 'premium'` и снимаются лимиты
-9. Отмена подписки обрабатывается через RTDN webhook
-10. Все строки локализованы (EN + RU)
+```
+Dream UX (независимо, можно раньше):
+  1. Backend: убрать автозапуск, добавить POST /dreams/{id}/analyze
+  2. Backend: парсинг <dream_meta> в tasks.py + обновление dream
+  3. Backend: обновить промпт с инструкцией dream_meta
+  4. Flutter: кнопка «Анализировать» в AnalysisChatScreen
+  5. Flutter: default title (первые 3 слова) при создании
+  6. Flutter: default gradient FA9042→8885FF в карточке
+
+Auth & Billing (требует внешних настроек):
+  7. Google Cloud Console — создать проект, получить google-services.json
+  8. Backend: /auth/google + /auth/merge-anonymous
+  9. Flutter: AuthGateScreen + EmailLogin + GoogleSignIn
+  10. Google Play Console — создать продукты подписок
+  11. Backend: /billing/verify-purchase + /billing/webhook
+  12. Flutter: BillingService + PremiumScreen
+  13. Alembic: миграция 004 (subscriptions table)
+  14. Тестирование покупок через Google Play test environment
+```
+
+---
+
+## 8. Acceptance Criteria
+
+**Dream UX:**
+1. Новый сон сохраняется без автоматического запуска анализа
+2. В экране сна вместо поля ввода — кнопка «Анализировать»
+3. После нажатия кнопки — индикатор прогресса
+4. После завершения анализа — поле ввода сообщений
+5. Title нового сна по умолчанию = первые 3 слова
+6. Карточка сна без градиента показывает FA9042 → 8885FF
+7. После анализа LLM заполняет title и gradient цвета
+8. Текст анализа не содержит `<dream_meta>` блок
+
+**Auth:**
+9. Регистрация и вход по email работают
+10. Вход через Google работает
+11. Анонимные данные переносятся при первом входе
+12. Сброс пароля работает через email
+
+**Billing:**
+13. Экран Premium отображает цену из Google Play
+14. Покупка верифицируется на бекенде
+15. После покупки снимаются лимиты
+16. Отмена подписки обрабатывается через RTDN webhook
+
+**Общее:**
+17. Все строки локализованы (EN + RU)

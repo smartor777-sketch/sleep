@@ -1,15 +1,15 @@
 """Add temporal fields to dream_chunks
 
-Revision ID: 003
-Revises: 002
+Revision ID: 003_temporal
+Revises: 002_user_memory
 Create Date: 2026-03-22
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
 
-revision = "003"
-down_revision = "002"
+revision = "003_temporal"
+down_revision = "002_user_memory"
 branch_labels = None
 depends_on = None
 

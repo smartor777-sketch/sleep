@@ -140,72 +140,121 @@ async def google_auth(token: GoogleTokenRequest, db: DatabaseSession):
 
 ---
 
-## 3. Google Play Billing
+## 3. Монетизация — тарифы и Paywall
 
-### 3.1 Архитектура
+### 3.1 Структура тарифов
 
 ```
-Клиент (Flutter)
-  └─ in_app_purchase
-       └─ Google Play
-            └─ Purchase token
-                 └─ POST /api/v1/billing/verify-purchase
-                      └─ Backend → Google Play Developer API
-                           └─ Обновить sub_type + sub_expires_at
+FREE → TRIAL (7 дней) → PRO
 ```
 
-### 3.2 Google Play Console
+#### FREE (по умолчанию)
+| Функция | Лимит |
+|---|---|
+| Запись снов | ∞ |
+| Анализов | 2 / неделя |
+| Чат по сну | ❌ |
+| Карта символов | ❌ |
+| user.md / долгая память | ❌ |
 
-1. Создать аккаунт разработчика Google Play ($25 разово)
+Цель FREE: сформировать привычку и накопить данные. Пользователь видит ценность, но упирается в лимит анализа.
+
+#### TRIAL
+- 7 дней полного доступа без ограничений
+- Активируется автоматически при первой регистрации (email или Google)
+- После trial → автоматически возврат в FREE, если нет покупки
+- Не требует привязки карты
+
+#### PRO — три тарифа
+
+| ID | Название | Цена | Назначение |
+|---|---|---|---|
+| `pro_weekly` | Неделя | $2.99/нед | Decoy — импульсная покупка, делает месяц дешёвым |
+| `pro_monthly` | Месяц | $6.99/мес | Основной тариф |
+| `pro_yearly` | Год | $49.99/год (~$4.16/мес) | Максимальный LTV, якорь цены |
+
+PRO даёт полный доступ: ∞ анализы, чат, карта, user.md.
+
+---
+
+### 3.2 Paywall — UX и подача
+
+**Принцип: пользователь видит не 3 варианта, а 1 решение + альтернативы.**
+
+```
+┌─────────────────────────────────────┐
+│  Разблокируйте полный анализ снов   │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │  ГОД          ★ BEST VALUE  │    │  ← выделен, выбран по умолчанию
+│  │  $49.99/год · $4.16/мес     │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  МЕСЯЦ                              │
+│  $6.99/месяц                        │
+│                                     │
+│  НЕДЕЛЯ                             │  ← мелким шрифтом
+│  $2.99/неделю                       │
+│                                     │
+│  [  Начать — 7 дней бесплатно  ]    │
+│  Отмена в любое время               │
+└─────────────────────────────────────┘
+```
+
+**Психология:**
+- **Anchoring**: сначала виден $49.99 → $6.99 кажется дёшево
+- **Decoy**: Weekly нужен не для дохода, а чтобы Monthly выглядел разумно
+- **Yearly** — основной источник дохода, помечен BEST VALUE
+
+**Триггер показа Paywall:**
+
+```
+1. После 7 дней trial (автоматически)
+2. При попытке открыть чат (FREE)
+3. При попытке открыть карту (FREE)
+4. После 2-го анализа за неделю (FREE)
+   → экран "Вы достигли лимита"
+   → "У вас ещё X снов без анализа"
+   → кнопка "Разблокировать анализ"
+```
+
+---
+
+### 3.3 Google Play Console
+
+1. Создать аккаунт разработчика ($25 разово)
 2. Добавить приложение
-3. В разделе **Monetize → Subscriptions** создать продукты:
-   - `premium_monthly` — месячная подписка
-   - `premium_annual` — годовая подписка (опционально)
-4. Подключить Google Play Developer API:
-   - Service account → JSON key → `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
+3. **Monetize → Subscriptions** — создать 3 base plan:
+   - `pro_weekly` — $2.99, биллинг каждые 7 дней
+   - `pro_monthly` — $6.99, биллинг каждые 30 дней
+   - `pro_yearly` — $49.99, биллинг каждые 365 дней
+4. Для каждого — добавить **free trial offer** на 7 дней
+5. Подключить Google Play Developer API:
+   - IAM → Service account → JSON key
+   - Env: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
 
-### 3.3 Flutter
-
-Пакет: `in_app_purchase` (добавить в pubspec.yaml)
-
-```dart
-// lib/services/billing_service.dart
-class BillingService {
-  final InAppPurchase _iap = InAppPurchase.instance;
-
-  Future<void> initialize() async {
-    _iap.purchaseStream.listen(_onPurchaseUpdate);
-  }
-
-  Future<void> buyPremiumMonthly() async {
-    const productId = 'premium_monthly';
-    final details = await _iap.queryProductDetails({productId});
-    final param = PurchaseParam(productDetails: details.productDetails.first);
-    await _iap.buyNonConsumable(purchaseParam: param);
-  }
-
-  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
-    for (final purchase in purchases) {
-      if (purchase.status == PurchaseStatus.purchased) {
-        await _verifyOnBackend(purchase.verificationData.serverVerificationData);
-        await _iap.completePurchase(purchase);
-      }
-    }
-  }
-}
-```
+---
 
 ### 3.4 Backend
+
+**Новые поля на `users`** (в существующей таблице):
+```sql
+-- уже есть: sub_type VARCHAR(16), sub_expires_at TIMESTAMPTZ
+-- добавить в миграции 004:
+ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN analyses_week_count INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN analyses_week_reset_at TIMESTAMPTZ;
+```
 
 **Новая таблица** `subscriptions`:
 ```sql
 CREATE TABLE subscriptions (
-    id UUID PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    provider VARCHAR(32) NOT NULL,       -- 'google_play'
-    product_id VARCHAR(128) NOT NULL,    -- 'premium_monthly'
-    purchase_token TEXT NOT NULL,
-    status VARCHAR(32) NOT NULL,         -- 'active' | 'expired' | 'cancelled'
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    provider VARCHAR(32) NOT NULL,          -- 'google_play'
+    product_id VARCHAR(128) NOT NULL,       -- 'pro_monthly'
+    purchase_token TEXT NOT NULL UNIQUE,
+    status VARCHAR(32) NOT NULL,            -- 'active' | 'expired' | 'cancelled'
     starts_at TIMESTAMPTZ NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -218,39 +267,108 @@ CREATE TABLE subscriptions (
 ```
 POST /api/v1/billing/verify-purchase
 Body: { purchase_token: string, product_id: string }
-→ Верифицировать через Google Play API
-→ Обновить users.sub_type = 'premium', users.sub_expires_at
-→ Сохранить в subscriptions
+→ Верифицировать через Google Play Developer API
+→ Записать в subscriptions
+→ Обновить users.sub_type = 'pro', users.sub_expires_at
 
 GET /api/v1/billing/status
-→ Вернуть текущий статус подписки
+→ { sub_type, sub_expires_at, trial_days_left, analyses_left_this_week }
 
-POST /api/v1/billing/webhook  (Google Play RTDN)
+POST /api/v1/billing/webhook   ← Google Play RTDN
 → Real-time Developer Notification
-→ Обновить статус при отмене / возобновлении
+→ Обновить статус при отмене / возобновлении / истечении
 ```
 
-**Env переменные:**
-```
-GOOGLE_PLAY_PACKAGE_NAME=com.example.jungai
-GOOGLE_PLAY_SERVICE_ACCOUNT_JSON='{...}'
+**Лимит анализов для FREE:**
+
+```python
+# backend/services/limits_service.py
+async def check_analysis_allowed(user: User, db) -> bool:
+    if user.sub_type in ('pro', 'trial'):
+        return True
+    # Сбросить счётчик если прошла неделя
+    now = datetime.now(timezone.utc)
+    if user.analyses_week_reset_at is None or \
+       (now - user.analyses_week_reset_at).days >= 7:
+        user.analyses_week_count = 0
+        user.analyses_week_reset_at = now
+    return user.analyses_week_count < 2
 ```
 
 **Python библиотека:** `google-api-python-client`
 
-### 3.5 Premium — что даёт подписка
+**Env переменные:**
+```
+GOOGLE_PLAY_PACKAGE_NAME=com.jungai.app
+GOOGLE_PLAY_SERVICE_ACCOUNT_JSON='{...}'
+```
 
-Определить логику ограничений для бесплатного тарифа:
+---
 
-| Функция | Free | Premium |
-|---|---|---|
-| Снов в день | 5 | Без лимита |
-| Анализов в день | 5 | Без лимита |
-| Карта символов | ✅ | ✅ |
-| user.md / долгая память | ❌ | ✅ |
-| Чат по сну | Ограничен | Без лимита |
+### 3.5 Flutter
 
-> Конкретные лимиты — на усмотрение.
+Пакет: `in_app_purchase` (добавить в pubspec.yaml)
+
+**Новые файлы:**
+```
+lib/services/billing_service.dart    — IAP логика
+lib/providers/billing_provider.dart  — состояние подписки
+lib/screens/paywall_screen.dart      — экран выбора тарифа
+lib/widgets/paywall_trigger.dart     — обёртка для защищённых фич
+```
+
+**BillingService:**
+```dart
+class BillingService {
+  static const _productIds = {'pro_weekly', 'pro_monthly', 'pro_yearly'};
+  final InAppPurchase _iap = InAppPurchase.instance;
+
+  Future<void> initialize() async {
+    _iap.purchaseStream.listen(_onPurchaseUpdate);
+    await _iap.restorePurchases();
+  }
+
+  Future<List<ProductDetails>> loadProducts() async {
+    final response = await _iap.queryProductDetails(_productIds);
+    return response.productDetails;
+  }
+
+  Future<void> buy(ProductDetails product) async {
+    final param = PurchaseParam(productDetails: product);
+    await _iap.buyNonConsumable(purchaseParam: param);
+  }
+
+  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
+    for (final p in purchases) {
+      if (p.status == PurchaseStatus.purchased ||
+          p.status == PurchaseStatus.restored) {
+        await _verifyOnBackend(p);
+        await _iap.completePurchase(p);
+      }
+    }
+  }
+}
+```
+
+**PaywallTrigger — защита фич:**
+```dart
+// Обёртка: при нажатии проверяет тариф, иначе открывает Paywall
+class PaywallTrigger extends StatelessWidget {
+  final Widget child;
+  final VoidCallback onAllowed;
+
+  @override
+  Widget build(BuildContext context) {
+    final billing = context.watch<BillingProvider>();
+    return GestureDetector(
+      onTap: billing.hasAccess
+          ? onAllowed
+          : () => PaywallScreen.show(context),
+      child: child,
+    );
+  }
+}
+```
 
 ---
 

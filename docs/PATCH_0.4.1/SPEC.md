@@ -1,8 +1,9 @@
 # PATCH 0.4.1 — Auth, Billing & Dream UX
 
-Версия: 1.1
+Версия: 1.2
 Статус: Планирование
 Цель: Google Play
+Package: com.okoloboga.jungai
 
 ---
 
@@ -25,7 +26,7 @@
 
 - `POST /api/v1/auth/register` — регистрация
 - `POST /api/v1/auth/login` — вход
-- `POST /api/v1/auth/verify-email` — подтверждение email
+- `POST /api/v1/auth/verify-email` — подтверждение 6-значного кода из письма
 - `POST /api/v1/auth/forgot-password` — сброс пароля
 - Таблицы `email_verifications`, `password_resets`
 - SMTP настройки в `.env`
@@ -42,7 +43,7 @@ lib/screens/auth/
   email_login_screen.dart     — вход по email
   email_register_screen.dart  — регистрация
   forgot_password_screen.dart — сброс пароля
-  verify_email_screen.dart    — ожидание подтверждения email
+  verify_email_screen.dart    — ввод 6-значного кода из письма
 ```
 
 **Флоу:**
@@ -92,8 +93,9 @@ Auth: Bearer <новый токен>
    - Scopes: `email`, `profile`, `openid`
 4. Создать OAuth credentials:
    - Тип: Android
-   - Package name: (из `android/app/build.gradle`)
-   - SHA-1: `keytool -list -v -keystore ~/.android/debug.keystore`
+   - Package name: `com.okoloboga.jungai`
+   - SHA-1 debug: `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`
+   - SHA-1 release: из `jungai-release.jks` (добавить оба fingerprint в консоли)
    - → Получить `google-services.json`
 5. Создать Web client credentials (для бекенда):
    - Тип: Web application
@@ -209,29 +211,50 @@ PRO даёт полный доступ: ∞ анализы, чат, карта, 
 **Триггер показа Paywall:**
 
 ```
-1. После 7 дней trial (автоматически)
-2. При попытке открыть чат (FREE)
-3. При попытке открыть карту (FREE)
-4. После 2-го анализа за неделю (FREE)
-   → экран "Вы достигли лимита"
-   → "У вас ещё X снов без анализа"
-   → кнопка "Разблокировать анализ"
+1. После 7 дней trial (автоматически при запуске)
+2. При нажатии на кнопку "Чат" (FREE) → открывается Paywall
+3. При нажатии на "Карта" (FREE) → открывается Paywall
+4. При нажатии "Анализировать" (FREE, лимит исчерпан) → Paywall
+   → заголовок: "Вы достигли лимита анализов"
+   → подзаголовок: "У вас X снов без анализа"
+   → далее стандартный экран выбора тарифа
 ```
+
+Фичи **видны** в интерфейсе, но при нажатии показывают Paywall (не скрыты).
+Кнопка "7 дней бесплатно" показывается только если пользователь ещё не использовал trial.
 
 ---
 
 ### 3.3 Google Play Console
 
 1. Создать аккаунт разработчика ($25 разово)
-2. Добавить приложение
+2. Добавить приложение, package: `com.okoloboga.jungai`
 3. **Monetize → Subscriptions** — создать 3 base plan:
    - `pro_weekly` — $2.99, биллинг каждые 7 дней
    - `pro_monthly` — $6.99, биллинг каждые 30 дней
    - `pro_yearly` — $49.99, биллинг каждые 365 дней
 4. Для каждого — добавить **free trial offer** на 7 дней
+   (Google Play trial = app-level TRIAL — одно и то же, не дублировать логику)
 5. Подключить Google Play Developer API:
    - IAM → Service account → JSON key
    - Env: `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`
+
+**Release keystore (создать перед сабмитом):**
+```bash
+keytool -genkey -v \
+  -keystore jungai-release.jks \
+  -alias jungai \
+  -keyalg RSA -keysize 2048 \
+  -validity 10000
+```
+Сохранить `jungai-release.jks` в безопасном месте (не в репозитории).
+Добавить в `android/key.properties`:
+```
+storePassword=<пароль>
+keyPassword=<пароль>
+keyAlias=jungai
+storeFile=../../jungai-release.jks
+```
 
 ---
 
@@ -245,6 +268,9 @@ ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMPTZ;
 ALTER TABLE users ADD COLUMN analyses_week_count INTEGER DEFAULT 0;
 ALTER TABLE users ADD COLUMN analyses_week_reset_at TIMESTAMPTZ;
 ```
+
+**Существующие пользователи** при релизе 0.4.1: остаются на FREE (trial не выдаётся задним числом).
+TRIAL выдаётся только при первой регистрации через email или Google после выхода патча.
 
 **Новая таблица** `subscriptions`:
 ```sql
@@ -299,7 +325,7 @@ async def check_analysis_allowed(user: User, db) -> bool:
 
 **Env переменные:**
 ```
-GOOGLE_PLAY_PACKAGE_NAME=com.jungai.app
+GOOGLE_PLAY_PACKAGE_NAME=com.okoloboga.jungai
 GOOGLE_PLAY_SERVICE_ACCOUNT_JSON='{...}'
 ```
 
@@ -469,6 +495,8 @@ return _buildMessageInput();
 - Полноширинная, крупная
 - При нажатии: `POST /api/v1/dreams/{id}/analyze` → переходит в состояние `pending`
 - Пока идёт анализ — показывает пульсирующий индикатор с текстом
+- Polling: использовать существующий механизм (пиктограмма загрузки на карточке сна уже работает).
+  Открытый `AnalysisChatScreen` подписывается на обновления анализа через тот же механизм.
 
 ### 6.5 Заголовок по умолчанию — первые 3 слова
 

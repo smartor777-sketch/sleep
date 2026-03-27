@@ -39,41 +39,60 @@ void main() {
     expect(provider.errorCode, 429);
   });
 
-  test('createDream inserts and polls until analyzed', () async {
+  test('createDream inserts dream with saved status and default gradient', () async {
     final created = buildDream(
-      analysisStatus: 'analyzing',
+      analysisStatus: 'saved',
       hasAnalysis: false,
+      gradientColor1: '#FA9042',
+      gradientColor2: '#8885FF',
     );
-    final refreshed = [
-      created,
-      created.copyWith(
-        hasAnalysis: true,
-        analysisStatus: 'analyzed',
-        gradientColor1: '#112233',
-        gradientColor2: '#445566',
-      ),
-    ];
-    var refreshIndex = 0;
     final service = FakeDreamsService()
       ..onCreateDream = (String content) async {
         expect(content, 'new dream');
         return created;
-      }
-      ..onGetDream = (String id) async => refreshed[refreshIndex++];
+      };
+    final provider = DreamsProvider(FakeAuthProvider(), service: service);
+
+    final dream = await provider.createDream('new dream');
+
+    expect(dream, isNotNull);
+    expect(provider.dreams.first.analysisStatus, 'saved');
+    expect(provider.dreams.first.hasAnalysis, false);
+  });
+
+  test('triggerAnalysis starts polling until analyzed', () async {
+    final initial = buildDream(analysisStatus: 'saved', hasAnalysis: false);
+    final triggeredDream = initial.copyWith(analysisStatus: 'analyzing');
+    final analyzedDream = initial.copyWith(
+      hasAnalysis: true,
+      analysisStatus: 'analyzed',
+      gradientColor1: '#112233',
+      gradientColor2: '#445566',
+    );
+    final refreshed = [triggeredDream, analyzedDream];
+    var refreshIndex = 0;
+    final service = FakeDreamsService();
+    service.onGetDreams = ({int page = 1, int pageSize = 50, String? date}) async => [initial];
+    service.onTriggerAnalysis = (String id) async {
+      expect(id, initial.id);
+      return triggeredDream;
+    };
+    service.onGetDream = (String id) async => refreshed[refreshIndex++];
     final provider = DreamsProvider(
       FakeAuthProvider(),
       service: service,
       pollInterval: Duration.zero,
       maxPollAttempts: 3,
     );
+    await provider.loadDreams();
 
-    final dream = await provider.createDream('new dream');
+    final result = await provider.triggerAnalysis(initial.id);
     await Future<void>.delayed(Duration.zero);
     await Future<void>.delayed(Duration.zero);
 
-    expect(dream, isNotNull);
+    expect(result, isNotNull);
+    expect(result!.analysisStatus, 'analyzing');
     expect(provider.dreams.first.analysisStatus, 'analyzed');
-    expect(provider.dreams.first.hasAnalysis, true);
   });
 
   test('deleteDream removes item on success', () async {

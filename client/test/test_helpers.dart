@@ -116,9 +116,13 @@ class FakeDreamsService extends DreamsService {
   Future<Dream> Function(String id, String? title)? onUpdateDreamTitle;
   Future<Dream> Function(String id, DateTime createdAt)? onUpdateDreamDate;
   Future<void> Function(String id)? onDeleteDream;
+  Future<Dream> Function(String id)? onTriggerAnalysis;
 
   @override
   Future<Dream> createDream(String content) => onCreateDream!(content);
+
+  @override
+  Future<Dream> triggerAnalysis(String id) => onTriggerAnalysis!(id);
 
   @override
   Future<void> deleteDream(String id) => onDeleteDream!(id);

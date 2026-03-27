@@ -89,6 +89,12 @@ class DreamsService {
     return Dream.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
   }
 
+  Future<Dream> triggerAnalysis(String id) async {
+    final response = await _api.post('/api/v1/dreams/$id/analyze');
+    _ensureOk(response);
+    return Dream.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  }
+
   Future<void> deleteDream(String id) async {
     final response = await _api.delete('/api/v1/dreams/$id');
     _ensureOk(response);

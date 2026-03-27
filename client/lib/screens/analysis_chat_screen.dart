@@ -91,6 +91,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
           _dream = updated;
           _dreamTitle = updated.title ?? _dreamTitle;
         });
+        if (updated.analysisStatus == 'saved') return;
         if (updated.analysisStatus == 'analyzed' ||
             updated.analysisStatus == 'analysis_failed') {
           await context.read<AnalysisProvider>().load(updated);
@@ -209,6 +210,29 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
         Consumer<AnalysisProvider>(
           builder: (context, provider, _) {
             if (!provider.analysisReady) {
+              if (_dream.analysisStatus == 'saved' && !provider.analysisInProgress) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _accentColor,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        final updated = await context
+                            .read<DreamsProvider>()
+                            .triggerAnalysis(_dream.id);
+                        if (!mounted || updated == null) return;
+                        setState(() => _dream = updated);
+                        await _pollDreamState();
+                      },
+                      child: Text(l10n.analyze),
+                    ),
+                  ),
+                );
+              }
               if (_dream.analysisStatus == 'analysis_failed' ||
                   provider.analysisFailed) {
                 return Padding(
@@ -232,8 +256,8 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                               ? null
                               : () async {
                                   await context
-                                      .read<AnalysisProvider>()
-                                      .startAnalysis();
+                                      .read<DreamsProvider>()
+                                      .triggerAnalysis(_dream.id);
                                   if (!mounted) return;
                                   await _pollDreamState();
                                 },
@@ -256,11 +280,7 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2.5),
                       ),
                       const SizedBox(height: 10),
-                      Text(
-                        provider.analysisInProgress
-                            ? l10n.analyzingLabel
-                            : l10n.analyzingLabel,
-                      ),
+                      Text(l10n.analyzingLabel),
                     ],
                   ),
                 ),

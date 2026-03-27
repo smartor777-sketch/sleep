@@ -69,23 +69,11 @@ async def create_dream_endpoint(
     """
     try:
         dream = await create_dream(db, current_user, dream_data)
-        analysis_status = "saved"
-        analysis_error_message = None
-        has_analysis = False
-
-        try:
-            analysis, _task_id = await create_analysis(db, dream, current_user, allow_retry=False)
-            has_analysis, analysis_status, analysis_error_message = _map_analysis_status_value(
-                analysis.status,
-                analysis.error_message,
-            )
-        except ValueError as e:
-            logger.warning(f"Auto-analysis skipped for dream {dream.id}: {e}")
 
         response_data = DreamResponse.model_validate(dream)
-        response_data.has_analysis = has_analysis
-        response_data.analysis_status = analysis_status
-        response_data.analysis_error_message = analysis_error_message
+        response_data.has_analysis = False
+        response_data.analysis_status = "saved"
+        response_data.analysis_error_message = None
 
         return response_data
     
@@ -100,6 +88,44 @@ async def create_dream_endpoint(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create dream"
         )
+
+
+@router.post("/{dream_id}/analyze", response_model=DreamResponse)
+async def trigger_analysis_endpoint(
+    dream_id: UUID,
+    current_user: CurrentUser,
+    db: DatabaseSession
+):
+    """
+    Запустить анализ сна вручную.
+
+    - Создаёт Analysis и запускает Celery-задачу
+    - Возвращает сон со статусом analyzing
+    """
+    dream = await get_dream_by_id(db, dream_id, current_user)
+
+    if not dream:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dream not found"
+        )
+
+    try:
+        analysis, _task_id = await create_analysis(db, dream, current_user, allow_retry=True)
+        has_analysis, analysis_status, analysis_error_message = _map_analysis_status_value(
+            analysis.status,
+            analysis.error_message,
+        )
+    except ValueError:
+        # Анализ уже существует и выполняется/завершён
+        has_analysis, analysis_status, analysis_error_message = _map_analysis_status(dream)
+
+    response_data = DreamResponse.model_validate(dream)
+    response_data.has_analysis = has_analysis
+    response_data.analysis_status = analysis_status
+    response_data.analysis_error_message = analysis_error_message
+
+    return response_data
 
 
 @router.get("", response_model=DreamListResponse)

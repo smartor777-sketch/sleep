@@ -102,7 +102,6 @@ class DreamsProvider extends ChangeNotifier {
         _dreams.insert(0, dream);
       }
       notifyListeners();
-      _pollDreamUntilSettled(dream.id);
       return dream;
     } catch (e) {
       _dreams.removeWhere((d) => d.id == optimisticDream.id);
@@ -120,12 +119,8 @@ class DreamsProvider extends ChangeNotifier {
   Dream _buildOptimisticDream(String content) {
     final now = DateTime.now().toUtc();
     final normalized = content.trim().replaceAll(RegExp(r'\s+'), ' ');
-    final title = normalized.isEmpty
-        ? null
-        : normalized.substring(
-            0,
-            normalized.length > 64 ? 64 : normalized.length,
-          );
+    final words = normalized.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+    final title = words.isEmpty ? null : words.take(3).join(' ');
     return Dream(
       id: 'local-${now.microsecondsSinceEpoch}',
       userId: _auth.user?.id ?? 'local-user',
@@ -137,10 +132,10 @@ class DreamsProvider extends ChangeNotifier {
       createdAt: now,
       updatedAt: now,
       hasAnalysis: false,
-      analysisStatus: 'analyzing',
+      analysisStatus: 'saved',
       analysisErrorMessage: null,
-      gradientColor1: null,
-      gradientColor2: null,
+      gradientColor1: '#FA9042',
+      gradientColor2: '#8885FF',
     );
   }
 
@@ -198,6 +193,28 @@ class DreamsProvider extends ChangeNotifier {
         _searchResults[searchIndex] = updated;
       }
       notifyListeners();
+      return updated;
+    } catch (e) {
+      if (e is ApiException) {
+        _error = e.message;
+        _errorCode = e.statusCode;
+      } else {
+        _error = 'network_error';
+      }
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<Dream?> triggerAnalysis(String id) async {
+    try {
+      final updated = await _service.triggerAnalysis(id);
+      final index = _dreams.indexWhere((d) => d.id == id);
+      if (index >= 0) {
+        _dreams[index] = updated;
+      }
+      notifyListeners();
+      _pollDreamUntilSettled(id);
       return updated;
     } catch (e) {
       if (e is ApiException) {

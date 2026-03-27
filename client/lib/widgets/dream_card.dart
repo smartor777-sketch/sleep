@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/dream.dart';
+import '../l10n/app_localizations.dart';
 
 class DreamCard extends StatelessWidget {
   final Dream dream;
   final Color accentColor;
   final GestureLongPressStartCallback? onLongPressStart;
   final VoidCallback? onTap;
+  final VoidCallback? onAnalyzeTap;
 
   const DreamCard({
     super.key,
@@ -13,6 +15,7 @@ class DreamCard extends StatelessWidget {
     required this.accentColor,
     this.onLongPressStart,
     this.onTap,
+    this.onAnalyzeTap,
   });
 
   String _formatDate(DateTime date) {
@@ -26,16 +29,13 @@ class DreamCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final background = theme.colorScheme.surface;
-    final color1 = _parseHexColor(dream.gradientColor1);
-    final color2 = _parseHexColor(dream.gradientColor2);
-    final hasGradient = color1 != null && color2 != null && dream.hasAnalysis;
+    final color1 = _parseHexColor(dream.gradientColor1) ?? const Color(0xFFFA9042);
+    final color2 = _parseHexColor(dream.gradientColor2) ?? const Color(0xFF8885FF);
     final titleText = (dream.title?.trim().isNotEmpty ?? false)
         ? dream.title!.trim()
         : dream.content.trim();
-    final textColor = hasGradient ? Colors.white : theme.colorScheme.onSurface;
-    final dateColor = hasGradient
-        ? Colors.white.withOpacity(0.68)
-        : theme.colorScheme.onSurface.withOpacity(0.62);
+    const textColor = Colors.white;
+    final dateColor = Colors.white.withOpacity(0.68);
 
     return GestureDetector(
       onLongPressStart: onLongPressStart,
@@ -46,34 +46,30 @@ class DreamCard extends StatelessWidget {
           width: double.infinity,
           height: double.infinity,
           decoration: BoxDecoration(
-            color: hasGradient ? null : theme.colorScheme.surfaceVariant,
-            gradient: hasGradient
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    stops: const [0.0, 0.52, 1.0],
-                    colors: [color1, color2, background],
-                  )
-                : null,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              stops: const [0.0, 0.52, 1.0],
+              colors: [color1, color2, background],
+            ),
           ),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              if (hasGradient)
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withOpacity(0.12),
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.28),
-                      ],
-                      stops: const [0.0, 0.42, 1.0],
-                    ),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.12),
+                      Colors.transparent,
+                      Colors.black.withOpacity(0.28),
+                    ],
+                    stops: const [0.0, 0.42, 1.0],
                   ),
                 ),
+              ),
               if (dream.analysisStatus == 'analyzing')
                 Container(
                   color: Colors.black.withOpacity(0.18),
@@ -107,6 +103,34 @@ class DreamCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (dream.analysisStatus == 'saved' && onAnalyzeTap != null)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GestureDetector(
+                      onTap: onAnalyzeTap,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.32),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          AppLocalizations.of(context)?.analyze ?? 'Analyze',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
                 child: Column(
@@ -119,15 +143,13 @@ class DreamCard extends StatelessWidget {
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: dateColor,
                         fontSize: 11,
-                        shadows: hasGradient
-                            ? const [
-                                Shadow(
-                                  color: Color(0x55000000),
-                                  blurRadius: 6,
-                                  offset: Offset(0, 1),
-                                ),
-                              ]
-                            : null,
+                        shadows: const [
+                          Shadow(
+                            color: Color(0x55000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                     const Spacer(),
@@ -142,15 +164,13 @@ class DreamCard extends StatelessWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                         height: 1.12,
-                        shadows: hasGradient
-                            ? const [
-                                Shadow(
-                                  color: Color(0x70000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 2),
-                                ),
-                              ]
-                            : null,
+                        shadows: const [
+                          Shadow(
+                            color: Color(0x70000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
                     ),
                   ],

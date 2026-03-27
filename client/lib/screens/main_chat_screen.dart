@@ -510,6 +510,13 @@ class _MainChatScreenState extends State<MainChatScreen> {
                     onLongPressStart: (details) =>
                         _openMessageMenu(dream, details.globalPosition),
                     onTap: () => _openDreamChat(dream),
+                    onAnalyzeTap: dream.analysisStatus == 'saved'
+                        ? () async {
+                            await context
+                                .read<DreamsProvider>()
+                                .triggerAnalysis(dream.id);
+                          }
+                        : null,
                   );
                 },
               );

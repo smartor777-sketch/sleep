@@ -44,23 +44,17 @@ def test_map_analysis_status_variants():
 
 
 @pytest.mark.asyncio
-async def test_create_dream_endpoint_auto_starts_analysis(monkeypatch):
+async def test_create_dream_endpoint_returns_saved_status(monkeypatch):
     dream = _dream_with_analysis()
     current_user = SimpleNamespace(id=uuid4())
 
     async def fake_create_dream(_db, _user, _dream_data):
         return dream
 
-    async def fake_create_analysis(_db, _dream, _user, allow_retry=False):
-        assert allow_retry is False
-        _dream.analysis = SimpleNamespace(status=AnalysisStatus.PENDING.value, error_message=None)
-        return _dream.analysis, "task-123"
-
     async def fake_refresh(_dream):
         return None
 
     monkeypatch.setattr(dreams_api, "create_dream", fake_create_dream)
-    monkeypatch.setattr(dreams_api, "create_analysis", fake_create_analysis)
 
     response = await dreams_api.create_dream_endpoint(
         DreamCreate(content="This is a long enough dream text for validation."),
@@ -68,6 +62,35 @@ async def test_create_dream_endpoint_auto_starts_analysis(monkeypatch):
         db=SimpleNamespace(refresh=fake_refresh),
     )
 
-    assert response.analysis_status == "analyzing"
+    assert response.analysis_status == "saved"
     assert response.has_analysis is False
     assert response.analysis_error_message is None
+
+
+@pytest.mark.asyncio
+async def test_trigger_analysis_endpoint_starts_analysis(monkeypatch):
+    dream = _dream_with_analysis()
+    current_user = SimpleNamespace(id=uuid4())
+
+    async def fake_get_dream_by_id(_db, _dream_id, _user):
+        return dream
+
+    async def fake_create_analysis(_db, _dream, _user, allow_retry=False):
+        assert allow_retry is True
+        _dream.analysis = SimpleNamespace(status=AnalysisStatus.PENDING.value, error_message=None)
+        return _dream.analysis, "task-123"
+
+    async def fake_refresh(_dream):
+        return None
+
+    monkeypatch.setattr(dreams_api, "get_dream_by_id", fake_get_dream_by_id)
+    monkeypatch.setattr(dreams_api, "create_analysis", fake_create_analysis)
+
+    response = await dreams_api.trigger_analysis_endpoint(
+        dream.id,
+        current_user,
+        db=SimpleNamespace(refresh=fake_refresh),
+    )
+
+    assert response.analysis_status == "analyzing"
+    assert response.has_analysis is False

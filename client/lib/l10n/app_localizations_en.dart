@@ -354,4 +354,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get openLastDream => 'Open last dream';
+
+  @override
+  String get emailLabel => 'Email';
+
+  @override
+  String get confirmPasswordLabel => 'Confirm password';
+
+  @override
+  String get passwordMismatch => 'Passwords do not match';
+
+  @override
+  String get passwordTooShort => 'Password must be at least 8 characters';
+
+  @override
+  String get registerButton => 'Create account';
+
+  @override
+  String get loginButton => 'Sign in';
+
+  @override
+  String get alreadyHaveAccount => 'Already have an account? Sign in';
+
+  @override
+  String get noAccountYet => 'No account? Register';
+
+  @override
+  String get verifyEmailTitle => 'Verify email';
+
+  @override
+  String verifyEmailHint(String email) {
+    return 'Enter the 6-digit code sent to $email';
+  }
+
+  @override
+  String get verifyButton => 'Verify';
+
+  @override
+  String get resendCode => 'Resend code';
+
+  @override
+  String get invalidCode => 'Invalid or expired code';
+
+  @override
+  String get emailNotVerified => 'Email not verified';
+
+  @override
+  String get createAccountSection => 'Create account';
+
+  @override
+  String get signInToSave =>
+      'Create an account to save your dreams and access them from other devices.';
+
+  @override
+  String get registrationFailed => 'Registration failed. Try again.';
+
+  @override
+  String get loginFailed => 'Incorrect email or password.';
+
+  @override
+  String get logoutButton => 'Sign out';
+
+  @override
+  String get logoutConfirm => 'Sign out?';
+
+  @override
+  String get logoutConfirmMessage =>
+      'You will be signed in as a guest. Your dreams will remain on this device.';
+
+  @override
+  String get forgotPassword => 'Forgot password?';
 }

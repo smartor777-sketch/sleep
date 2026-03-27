@@ -39,6 +39,11 @@ class SecureStorageService {
     return value == 'true';
   }
 
+  Future<void> clearTokens() async {
+    await _storage.delete(key: _accessTokenKey);
+    await _storage.delete(key: _refreshTokenKey);
+  }
+
   Future<void> setDarkMode(bool value) async {
     await _storage.write(key: _darkModeKey, value: value.toString());
   }

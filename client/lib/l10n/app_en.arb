@@ -148,5 +148,33 @@
   },
   "relatedSymbols": "Related symbols",
   "whereAppears": "Where it appears",
-  "openLastDream": "Open last dream"
+  "openLastDream": "Open last dream",
+
+  "emailLabel": "Email",
+  "confirmPasswordLabel": "Confirm password",
+  "passwordMismatch": "Passwords do not match",
+  "passwordTooShort": "Password must be at least 8 characters",
+  "registerButton": "Create account",
+  "loginButton": "Sign in",
+  "alreadyHaveAccount": "Already have an account? Sign in",
+  "noAccountYet": "No account? Register",
+  "verifyEmailTitle": "Verify email",
+  "verifyEmailHint": "Enter the 6-digit code sent to {email}",
+  "@verifyEmailHint": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "verifyButton": "Verify",
+  "resendCode": "Resend code",
+  "invalidCode": "Invalid or expired code",
+  "emailNotVerified": "Email not verified",
+  "createAccountSection": "Create account",
+  "signInToSave": "Create an account to save your dreams and access them from other devices.",
+  "registrationFailed": "Registration failed. Try again.",
+  "loginFailed": "Incorrect email or password.",
+  "logoutButton": "Sign out",
+  "logoutConfirm": "Sign out?",
+  "logoutConfirmMessage": "You will be signed in as a guest. Your dreams will remain on this device.",
+  "forgotPassword": "Forgot password?"
 }

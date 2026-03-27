@@ -68,6 +68,79 @@ class AuthService {
     return UserMe.fromJson(data);
   }
 
+  Future<UserMe> register({required String email, required String password}) async {
+    final response = await _api.post(
+      '/api/v1/auth/register',
+      body: {'email': email, 'password': password},
+      auth: false,
+    );
+    if (response.statusCode == 400) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'registration_failed');
+    }
+    if (response.statusCode != 201) {
+      throw Exception('registration_failed');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    await _storage.setTokens(
+      accessToken: data['access_token'] as String,
+      refreshToken: data['refresh_token'] as String,
+    );
+    return getMe();
+  }
+
+  Future<UserMe> login({required String email, required String password}) async {
+    final response = await _api.post(
+      '/api/v1/auth/login',
+      body: {'email': email, 'password': password},
+      auth: false,
+    );
+    if (response.statusCode == 401) {
+      throw Exception('invalid_credentials');
+    }
+    if (response.statusCode != 200) {
+      throw Exception('login_failed');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    await _storage.setTokens(
+      accessToken: data['access_token'] as String,
+      refreshToken: data['refresh_token'] as String,
+    );
+    return getMe();
+  }
+
+  Future<void> verifyEmailCode({required String email, required String code}) async {
+    final response = await _api.post(
+      '/api/v1/auth/verify-email-code',
+      body: {'email': email, 'code': code},
+      auth: false,
+    );
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'invalid_code');
+    }
+  }
+
+  Future<void> resendCode({required String email}) async {
+    await _api.post(
+      '/api/v1/auth/resend-code',
+      body: {'email': email},
+      auth: false,
+    );
+  }
+
+  Future<bool> mergeAnonymous({required String deviceId}) async {
+    final response = await _api.post(
+      '/api/v1/auth/merge-anonymous',
+      body: {'anonymous_device_id': deviceId},
+    );
+    return response.statusCode == 200;
+  }
+
+  Future<void> logout() async {
+    await _storage.clearTokens();
+  }
+
   Future<UserMe> linkProvider({required String provider, required String idToken}) async {
     final response = await _api.post(
       '/api/v1/auth/link',

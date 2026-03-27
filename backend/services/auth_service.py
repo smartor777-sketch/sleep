@@ -1,15 +1,19 @@
 """Сервис для аутентификации"""
 
+import logging
+import random
 import secrets
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import delete as sql_delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import User, EmailVerification, PasswordReset
+from models import User, EmailVerification, PasswordReset, Dream, AnalysisMessage
 from schemas import UserCreate
+
+logger = logging.getLogger(__name__)
 
 # Контекст для хеширования паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -254,6 +258,87 @@ async def create_password_reset_token(
     await db.commit()
     
     return token
+
+
+async def create_email_verification_code(
+    db: AsyncSession,
+    user_id: UUID,
+    expires_minutes: int = 30,
+) -> str:
+    """Создать 6-значный код подтверждения email, заменив старый при наличии."""
+    # Удаляем старые коды для этого пользователя
+    await db.execute(sql_delete(EmailVerification).where(EmailVerification.user_id == user_id))
+
+    code = f"{random.randint(0, 999999):06d}"
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+
+    verification = EmailVerification(
+        user_id=user_id,
+        token=code,
+        expires_at=expires_at,
+    )
+    db.add(verification)
+    await db.commit()
+
+    logger.info(f"[DEV] Email verification code for user {user_id}: {code}")
+    return code
+
+
+async def verify_email_code(db: AsyncSession, email: str, code: str) -> User | None:
+    """Подтвердить email по 6-значному коду."""
+    user = await get_user_by_email(db, email)
+    if not user:
+        return None
+
+    result = await db.execute(
+        select(EmailVerification).where(
+            EmailVerification.user_id == user.id,
+            EmailVerification.token == code,
+        )
+    )
+    verification = result.scalar_one_or_none()
+
+    if not verification:
+        return None
+
+    if verification.expires_at < datetime.now(timezone.utc):
+        await db.delete(verification)
+        await db.commit()
+        return None
+
+    user.email_verified = True
+    await db.delete(verification)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def merge_anonymous_user(
+    db: AsyncSession,
+    current_user: User,
+    anonymous_device_id: str,
+) -> bool:
+    """Перенести сны и сообщения из анонимного аккаунта в текущий, затем удалить анонимный."""
+    anon_user = await get_user_by_device_id(db, anonymous_device_id)
+    if not anon_user:
+        return False
+    if anon_user.id == current_user.id:
+        return False
+
+    # Переносим сны
+    await db.execute(
+        update(Dream).where(Dream.user_id == anon_user.id).values(user_id=current_user.id)
+    )
+    # Переносим сообщения чата
+    await db.execute(
+        update(AnalysisMessage)
+        .where(AnalysisMessage.user_id == anon_user.id)
+        .values(user_id=current_user.id)
+    )
+    await db.delete(anon_user)
+    await db.commit()
+    logger.info(f"Merged anonymous user {anon_user.id} into {current_user.id}")
+    return True
 
 
 async def reset_password(db: AsyncSession, token: str, new_password: str) -> User | None:

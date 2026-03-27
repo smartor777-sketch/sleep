@@ -20,6 +20,7 @@ async def get_me(current_user: CurrentUser, db: DatabaseSession):
         id=current_user.id,
         email=current_user.email,
         is_anonymous=current_user.is_anonymous,
+        email_verified=current_user.email_verified,
         linked_providers=linked,
         profile=UserProfileResponse(
             about_me=current_user.self_description,
@@ -52,6 +53,7 @@ async def update_me(
         id=current_user.id,
         email=current_user.email,
         is_anonymous=current_user.is_anonymous,
+        email_verified=current_user.email_verified,
         linked_providers=linked,
         profile=UserProfileResponse(
             about_me=current_user.self_description,

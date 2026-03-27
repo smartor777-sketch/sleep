@@ -355,4 +355,74 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get openLastDream => 'Открыть последний сон';
+
+  @override
+  String get emailLabel => 'Email';
+
+  @override
+  String get confirmPasswordLabel => 'Подтвердите пароль';
+
+  @override
+  String get passwordMismatch => 'Пароли не совпадают';
+
+  @override
+  String get passwordTooShort => 'Пароль должен быть не менее 8 символов';
+
+  @override
+  String get registerButton => 'Создать аккаунт';
+
+  @override
+  String get loginButton => 'Войти';
+
+  @override
+  String get alreadyHaveAccount => 'Уже есть аккаунт? Войти';
+
+  @override
+  String get noAccountYet => 'Нет аккаунта? Зарегистрироваться';
+
+  @override
+  String get verifyEmailTitle => 'Подтверждение email';
+
+  @override
+  String verifyEmailHint(String email) {
+    return 'Введите 6-значный код, отправленный на $email';
+  }
+
+  @override
+  String get verifyButton => 'Подтвердить';
+
+  @override
+  String get resendCode => 'Отправить код снова';
+
+  @override
+  String get invalidCode => 'Неверный или устаревший код';
+
+  @override
+  String get emailNotVerified => 'Email не подтверждён';
+
+  @override
+  String get createAccountSection => 'Создать аккаунт';
+
+  @override
+  String get signInToSave =>
+      'Создайте аккаунт, чтобы сохранить сны и получить доступ с других устройств.';
+
+  @override
+  String get registrationFailed => 'Ошибка регистрации. Попробуйте ещё раз.';
+
+  @override
+  String get loginFailed => 'Неверный email или пароль.';
+
+  @override
+  String get logoutButton => 'Выйти';
+
+  @override
+  String get logoutConfirm => 'Выйти из аккаунта?';
+
+  @override
+  String get logoutConfirmMessage =>
+      'Вы войдёте как гость. Ваши сны останутся на устройстве.';
+
+  @override
+  String get forgotPassword => 'Забыли пароль?';
 }

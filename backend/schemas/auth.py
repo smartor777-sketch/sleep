@@ -98,3 +98,14 @@ class LinkResponse(BaseModel):
     linked: bool
     user: AuthUserResponse
     provider_identity: ProviderIdentityResponse
+
+
+class VerifyEmailCodeRequest(BaseModel):
+    """Подтверждение email по 6-значному коду"""
+    email: EmailStr
+    code: str = Field(..., min_length=6, max_length=6)
+
+
+class MergeAnonymousRequest(BaseModel):
+    """Мерж анонимного аккаунта в зарегистрированный"""
+    anonymous_device_id: str = Field(..., min_length=8, max_length=128)

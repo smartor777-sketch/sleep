@@ -26,6 +26,8 @@ from schemas import (
     LinkRequest,
     LinkResponse,
     ProviderIdentityResponse,
+    VerifyEmailCodeRequest,
+    MergeAnonymousRequest,
 )
 from services.auth_service import (
     get_user_by_email,
@@ -36,6 +38,9 @@ from services.auth_service import (
     create_password_reset_token,
     reset_password,
     get_or_create_anonymous_user,
+    create_email_verification_code,
+    verify_email_code,
+    merge_anonymous_user,
 )
 from services.email_service import email_service
 from services.oauth_token_service import verify_google_id_token, verify_apple_id_token
@@ -82,19 +87,17 @@ async def register(
             detail="Failed to create user"
         )
     
-    # Создаём токен для подтверждения email
+    # Генерируем 6-значный код подтверждения (логируем для dev-тестирования)
     try:
-        verification_token = await create_email_verification_token(db, user.id)
-        email_service.send_verification_email(user.email, verification_token)
-        logger.info(f"Verification email sent to {user.email}")
+        await create_email_verification_code(db, user.id)
     except Exception as e:
-        logger.error(f"Failed to send verification email: {e}")
-        # Не прерываем регистрацию, если email не отправился
-    
+        logger.error(f"Failed to create verification code: {e}")
+        # Не прерываем регистрацию
+
     # Создаём JWT токены
     access_token = create_access_token(data={"sub": str(user.id)})
     refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -409,6 +412,54 @@ async def reset_password_endpoint(
     logger.info(f"Password reset for user: {user.email}")
     
     return {"message": "Password successfully reset"}
+
+
+@router.post("/verify-email-code", response_model=MessageResponse)
+async def verify_email_code_endpoint(
+    request: VerifyEmailCodeRequest,
+    db: DatabaseSession,
+):
+    """Подтвердить email по 6-значному коду."""
+    user = await verify_email_code(db, request.email, request.code)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="invalid_or_expired_code",
+        )
+    logger.info(f"Email verified via code for user: {user.email}")
+    return {"message": "Email verified"}
+
+
+@router.post("/resend-code", response_model=MessageResponse)
+async def resend_code_endpoint(
+    request: ResendVerificationRequest,
+    db: DatabaseSession,
+):
+    """Переслать 6-значный код подтверждения email."""
+    user = await get_user_by_email(db, request.email)
+    if not user:
+        return {"message": "If the email exists, a code has been sent"}
+    if user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="email_already_verified",
+        )
+    await create_email_verification_code(db, user.id)
+    return {"message": "Code sent"}
+
+
+@router.post("/merge-anonymous", response_model=MessageResponse)
+async def merge_anonymous_endpoint(
+    request: MergeAnonymousRequest,
+    current_user: CurrentUser,
+    db: DatabaseSession,
+):
+    """Перенести данные из анонимного аккаунта в текущий зарегистрированный."""
+    merged = await merge_anonymous_user(db, current_user, request.anonymous_device_id)
+    if not merged:
+        # Не бросаем ошибку — возможно, анонимный аккаунт уже удалён
+        return {"message": "No anonymous account found"}
+    return {"message": "Anonymous data merged"}
 
 
 @router.delete("/account", response_model=MessageResponse)

@@ -10,6 +10,9 @@ import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import '../providers/profile_provider.dart';
 import '../utils/snackbar.dart';
+import 'email_login_screen.dart';
+import 'email_register_screen.dart';
+import 'verify_email_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final bool isDarkMode; // текущий режим
@@ -531,23 +534,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!isGuest) ...[
+        if (isGuest) ...[
           Text(
-            l10n.accountLinked,
+            l10n.createAccountSection,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 12),
-        ],
-        if (Platform.isIOS)
+          const SizedBox(height: 8),
+          Text(
+            l10n.signInToSave,
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _linking ? null : _linkWithApple,
-              child: const Text('Sign in with Apple'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EmailRegisterScreen()),
+              ),
+              child: Text(l10n.createAccount),
             ),
           ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EmailLoginScreen()),
+              ),
+              child: Text(l10n.signIn),
+            ),
+          ),
+        ] else ...[
+          if (auth.user?.email != null && !(auth.user!.emailVerified)) ...[
+            const SizedBox(height: 8),
+            OutlinedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VerifyEmailScreen(email: auth.user!.email!),
+                ),
+              ),
+              child: Text(l10n.emailNotVerified),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (Platform.isIOS)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _linking ? null : _linkWithApple,
+                child: const Text('Sign in with Apple'),
+              ),
+            ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () => _confirmLogout(context),
+              child: Text(l10n.logoutButton),
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.logoutConfirm),
+        content: Text(l10n.logoutConfirmMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.logoutButton),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true && context.mounted) {
+      await context.read<AuthProvider>().logout();
+    }
   }
 
   Future<void> _linkWithApple() async {

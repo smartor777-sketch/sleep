@@ -148,5 +148,33 @@
   },
   "relatedSymbols": "Связанные символы",
   "whereAppears": "Где встречается",
-  "openLastDream": "Открыть последний сон"
+  "openLastDream": "Открыть последний сон",
+
+  "emailLabel": "Email",
+  "confirmPasswordLabel": "Подтвердите пароль",
+  "passwordMismatch": "Пароли не совпадают",
+  "passwordTooShort": "Пароль должен быть не менее 8 символов",
+  "registerButton": "Создать аккаунт",
+  "loginButton": "Войти",
+  "alreadyHaveAccount": "Уже есть аккаунт? Войти",
+  "noAccountYet": "Нет аккаунта? Зарегистрироваться",
+  "verifyEmailTitle": "Подтверждение email",
+  "verifyEmailHint": "Введите 6-значный код, отправленный на {email}",
+  "@verifyEmailHint": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "verifyButton": "Подтвердить",
+  "resendCode": "Отправить код снова",
+  "invalidCode": "Неверный или устаревший код",
+  "emailNotVerified": "Email не подтверждён",
+  "createAccountSection": "Создать аккаунт",
+  "signInToSave": "Создайте аккаунт, чтобы сохранить сны и получить доступ с других устройств.",
+  "registrationFailed": "Ошибка регистрации. Попробуйте ещё раз.",
+  "loginFailed": "Неверный email или пароль.",
+  "logoutButton": "Выйти",
+  "logoutConfirm": "Выйти из аккаунта?",
+  "logoutConfirmMessage": "Вы войдёте как гость. Ваши сны останутся на устройстве.",
+  "forgotPassword": "Забыли пароль?"
 }

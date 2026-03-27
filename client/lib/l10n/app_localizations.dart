@@ -745,6 +745,138 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Открыть последний сон'**
   String get openLastDream;
+
+  /// No description provided for @emailLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Email'**
+  String get emailLabel;
+
+  /// No description provided for @confirmPasswordLabel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердите пароль'**
+  String get confirmPasswordLabel;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароли не совпадают'**
+  String get passwordMismatch;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In ru, this message translates to:
+  /// **'Пароль должен быть не менее 8 символов'**
+  String get passwordTooShort;
+
+  /// No description provided for @registerButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать аккаунт'**
+  String get registerButton;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти'**
+  String get loginButton;
+
+  /// No description provided for @alreadyHaveAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Уже есть аккаунт? Войти'**
+  String get alreadyHaveAccount;
+
+  /// No description provided for @noAccountYet.
+  ///
+  /// In ru, this message translates to:
+  /// **'Нет аккаунта? Зарегистрироваться'**
+  String get noAccountYet;
+
+  /// No description provided for @verifyEmailTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтверждение email'**
+  String get verifyEmailTitle;
+
+  /// No description provided for @verifyEmailHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Введите 6-значный код, отправленный на {email}'**
+  String verifyEmailHint(String email);
+
+  /// No description provided for @verifyButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подтвердить'**
+  String get verifyButton;
+
+  /// No description provided for @resendCode.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить код снова'**
+  String get resendCode;
+
+  /// No description provided for @invalidCode.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неверный или устаревший код'**
+  String get invalidCode;
+
+  /// No description provided for @emailNotVerified.
+  ///
+  /// In ru, this message translates to:
+  /// **'Email не подтверждён'**
+  String get emailNotVerified;
+
+  /// No description provided for @createAccountSection.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создать аккаунт'**
+  String get createAccountSection;
+
+  /// No description provided for @signInToSave.
+  ///
+  /// In ru, this message translates to:
+  /// **'Создайте аккаунт, чтобы сохранить сны и получить доступ с других устройств.'**
+  String get signInToSave;
+
+  /// No description provided for @registrationFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Ошибка регистрации. Попробуйте ещё раз.'**
+  String get registrationFailed;
+
+  /// No description provided for @loginFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неверный email или пароль.'**
+  String get loginFailed;
+
+  /// No description provided for @logoutButton.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти'**
+  String get logoutButton;
+
+  /// No description provided for @logoutConfirm.
+  ///
+  /// In ru, this message translates to:
+  /// **'Выйти из аккаунта?'**
+  String get logoutConfirm;
+
+  /// No description provided for @logoutConfirmMessage.
+  ///
+  /// In ru, this message translates to:
+  /// **'Вы войдёте как гость. Ваши сны останутся на устройстве.'**
+  String get logoutConfirmMessage;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In ru, this message translates to:
+  /// **'Забыли пароль?'**
+  String get forgotPassword;
 }
 
 class _AppLocalizationsDelegate

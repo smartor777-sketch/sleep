@@ -40,6 +40,16 @@ class AuthProvider extends ChangeNotifier {
     // async work completes.
 
     try {
+      // Try existing token first
+      final existingToken = await _authService.storage.getAccessToken();
+      if (existingToken != null) {
+        try {
+          _user = await _authService.getMe();
+          return;
+        } catch (_) {
+          // Token expired or invalid — fall through to anonymous auth
+        }
+      }
       final deviceId = await _authService.storage.getOrCreateDeviceId();
       _user = await _authService.anonymousAuth(deviceId: deviceId);
     } on UpgradeRequiredException catch (e) {
@@ -51,6 +61,54 @@ class AuthProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  /// Register with email/password. Returns the new user.
+  /// Caller should then navigate to verify-email screen.
+  Future<UserMe> registerWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final user = await _authService.register(email: email, password: password);
+    _user = user;
+    notifyListeners();
+    return user;
+  }
+
+  /// Login with email/password.
+  Future<UserMe> loginWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final user = await _authService.login(email: email, password: password);
+    _user = user;
+    notifyListeners();
+    return user;
+  }
+
+  /// Verify email with 6-digit code.
+  Future<void> verifyEmail({required String email, required String code}) async {
+    await _authService.verifyEmailCode(email: email, code: code);
+    if (_user != null) {
+      _user = _user!.copyWith(emailVerified: true);
+      notifyListeners();
+    }
+  }
+
+  /// Merge anonymous account data into the current registered account.
+  Future<void> mergeAnonymous() async {
+    final deviceId = await _authService.storage.getOrCreateDeviceId();
+    await _authService.mergeAnonymous(deviceId: deviceId);
+  }
+
+  /// Logout — clear tokens and bootstrap anonymously.
+  Future<void> logout() async {
+    await _authService.logout();
+    _user = null;
+    _loading = false;
+    _error = null;
+    notifyListeners();
+    await bootstrap();
   }
 
   void updateUser(UserMe user) {

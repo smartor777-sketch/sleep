@@ -425,4 +425,68 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get forgotPassword => 'Забыли пароль?';
+
+  @override
+  String get premiumTitle => 'InnerCore Pro';
+
+  @override
+  String get premiumSubtitle => 'Раскройте весь потенциал анализа снов';
+
+  @override
+  String get premiumFeature1 => 'Безлимитные анализы снов';
+
+  @override
+  String get premiumFeature2 => 'Приоритетная обработка ИИ';
+
+  @override
+  String get premiumFeature3 => 'Расширенная карта снов';
+
+  @override
+  String get premiumWeekly => 'Неделя';
+
+  @override
+  String get premiumMonthly => 'Месяц';
+
+  @override
+  String get premiumYearly => 'Год';
+
+  @override
+  String get premiumYearlySave => 'Экономия 40%';
+
+  @override
+  String get premiumSubscribe => 'Подписаться';
+
+  @override
+  String get premiumRestore => 'Восстановить покупки';
+
+  @override
+  String get premiumActive => 'Pro активен';
+
+  @override
+  String premiumExpiresAt(String date) {
+    return 'Действует до: $date';
+  }
+
+  @override
+  String premiumTrialDaysLeft(int days) {
+    return 'Осталось $days дн. пробного периода';
+  }
+
+  @override
+  String analysesLeftThisWeek(int count) {
+    return 'Анализов на этой неделе: $count';
+  }
+
+  @override
+  String get analysisLimitReached =>
+      'Лимит анализов на неделю исчерпан. Перейдите на Pro для безлимитного доступа.';
+
+  @override
+  String get upgradeToPro => 'Перейти на Pro';
+
+  @override
+  String get freeAccount => 'Бесплатный';
+
+  @override
+  String get manageSubscription => 'Управление подпиской';
 }

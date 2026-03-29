@@ -61,6 +61,11 @@ from .auth import (
     MergeAnonymousRequest,
     GoogleSignInRequest,
 )
+from .billing import (
+    VerifyPurchaseRequest,
+    VerifyPurchaseResponse,
+    BillingStatusResponse,
+)
 from .stats import StatsResponse
 
 __all__ = [
@@ -118,5 +123,9 @@ __all__ = [
     "VerifyEmailCodeRequest",
     "MergeAnonymousRequest",
     "GoogleSignInRequest",
+    # Billing
+    "VerifyPurchaseRequest",
+    "VerifyPurchaseResponse",
+    "BillingStatusResponse",
     "StatsResponse",
 ]

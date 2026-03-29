@@ -8,10 +8,12 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
+import '../providers/billing_provider.dart';
 import '../providers/profile_provider.dart';
 import '../utils/snackbar.dart';
 import 'email_login_screen.dart';
 import 'email_register_screen.dart';
+import 'paywall_screen.dart';
 import 'verify_email_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -471,6 +473,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          _buildSubscriptionSection(context),
+          const SizedBox(height: 24),
           _buildLinkSection(context),
         ],
       ),
@@ -521,6 +525,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(title, style: const TextStyle(fontSize: 14)),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionSection(BuildContext context) {
+    final billing = context.watch<BillingProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final user = context.read<AuthProvider>().user;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  billing.hasFullAccess ? Icons.workspace_premium : Icons.star_border,
+                  color: billing.hasFullAccess
+                      ? Colors.amber
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  billing.hasFullAccess ? l10n.premiumActive : l10n.freeAccount,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (billing.status?.isTrial == true && billing.status!.trialDaysLeft > 0)
+              Text(l10n.premiumTrialDaysLeft(billing.status!.trialDaysLeft)),
+            if (billing.status?.isPro == true && user?.subType == 'pro')
+              Text(l10n.manageSubscription,
+                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+            if (billing.isFree) ...[
+              if (billing.analysesLeft != null)
+                Text(l10n.analysesLeftThisWeek(billing.analysesLeft!)),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => PaywallScreen.show(context),
+                  icon: const Icon(Icons.auto_awesome),
+                  label: Text(l10n.upgradeToPro),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

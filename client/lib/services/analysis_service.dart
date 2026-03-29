@@ -55,6 +55,9 @@ class AnalysisService {
       '/api/v1/analyses',
       body: {'dream_id': dreamId},
     );
+    if (response.statusCode == 402) {
+      throw AnalysisLimitException();
+    }
     if (response.statusCode != 202) {
       _throwApi(response);
     }

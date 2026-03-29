@@ -6,6 +6,7 @@ from .analysis import Analysis, AnalysisStatus
 from .analysis_message import AnalysisMessage, MessageRole
 from .oauth import OAuthIdentity, EmailVerification, PasswordReset
 from .rag import DreamChunk, DreamSymbol, DreamArchetype, DreamSymbolEntity
+from .subscription import Subscription
 from .user_memory import UserMemoryDoc
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     "OAuthIdentity",
     "EmailVerification",
     "PasswordReset",
+    "Subscription",
     "UserMemoryDoc",
 ]

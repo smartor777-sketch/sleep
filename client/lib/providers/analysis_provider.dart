@@ -126,6 +126,10 @@ class AnalysisProvider extends ChangeNotifier {
       final task = await _analysisService.createAnalysis(_dream!.id);
       await _pollAnalysis(task.taskId);
       await refreshMessages(_dream!.id);
+    } on AnalysisLimitException {
+      _error = 'analysis_limit_reached';
+      _errorCode = 402;
+      _analysisFailed = true;
     } catch (e) {
       if (e is ApiException) {
         _error = e.message;
@@ -133,6 +137,7 @@ class AnalysisProvider extends ChangeNotifier {
       } else {
         _error = 'network_error';
       }
+      _analysisFailed = true;
     } finally {
       _analysisInProgress = false;
       notifyListeners();

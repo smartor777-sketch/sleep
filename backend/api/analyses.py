@@ -21,6 +21,7 @@ from services.analysis_service import (
     get_user_analyses,
 )
 from services.dream_service import get_dream_by_id
+from services.limits_service import check_analysis_allowed, increment_analysis_count
 
 router = APIRouter(prefix="/analyses", tags=["Analyses"])
 logger = logging.getLogger(__name__)
@@ -39,19 +40,27 @@ async def create_analysis_endpoint(
     - Один сон может иметь только один анализ
     - Возвращает task_id для проверки статуса
     """
+    # Проверяем лимит анализов
+    if not await check_analysis_allowed(db, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="analysis_limit_reached",
+        )
+
     # Получаем сон
     dream = await get_dream_by_id(db, analysis_data.dream_id, current_user)
-    
+
     if not dream:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Dream not found"
         )
-    
+
     try:
         # Создаём анализ (или сбрасываем существующий) и запускаем задачу
         analysis, task_id = await create_analysis(db, dream, current_user, allow_retry=True)
-        
+        await increment_analysis_count(db, current_user)
+
         return {
             "analysis_id": analysis.id,
             "task_id": task_id,

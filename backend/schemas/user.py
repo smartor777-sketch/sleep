@@ -69,6 +69,7 @@ class UserMeResponse(BaseModel):
     email: EmailStr | None = None
     is_anonymous: bool
     email_verified: bool = False
+    sub_type: str = "free"
     linked_providers: list[str]
     profile: UserProfileResponse
 

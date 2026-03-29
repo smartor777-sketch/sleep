@@ -13,8 +13,10 @@ import 'screens/main_chat_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/startup_splash_screen.dart';
 import 'providers/auth_provider.dart';
+import 'providers/billing_provider.dart';
 import 'providers/dreams_provider.dart';
 import 'providers/profile_provider.dart';
+import 'services/billing_service.dart';
 import 'services/secure_storage_service.dart';
 
 void main() {
@@ -75,6 +77,15 @@ class _MyAppState extends State<MyApp> {
         ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>(
           create: (context) => ProfileProvider(context.read<AuthProvider>()),
           update: (context, auth, previous) => previous ?? ProfileProvider(auth),
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, BillingProvider>(
+          create: (context) {
+            final auth = context.read<AuthProvider>();
+            final provider = BillingProvider(BillingService(auth.apiClient));
+            provider.initialize();
+            return provider;
+          },
+          update: (context, auth, previous) => previous!,
         ),
       ],
       child: MaterialApp(
@@ -222,14 +233,7 @@ class _MyAppState extends State<MyApp> {
                     final current = auth.user;
                     if (current == null) return;
                     auth.updateUser(
-                      UserMe(
-                        id: current.id,
-                        email: current.email,
-                        isAnonymous: current.isAnonymous,
-                        linkedProviders: current.linkedProviders,
-                        aboutMe: current.aboutMe,
-                        onboardingCompleted: true,
-                      ),
+                      current.copyWith(onboardingCompleted: true),
                     );
                   },
                 ),

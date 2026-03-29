@@ -33,6 +33,9 @@ httpx==0.26.0
 boto3==1.34.37
 minio==7.2.3
 
+# Google Play Billing verification
+google-api-python-client==2.114.0
+
 # Google Speech-to-Text (для голосовых сообщений)
 google-cloud-speech==2.24.0
 SpeechRecognition==3.10.1

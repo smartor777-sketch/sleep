@@ -80,6 +80,10 @@ class Settings(BaseSettings):
     transcriptions_api_key: SecretStr | None = None
     transcriptions_model: str = "whisper-1"
     
+    # Google Play Billing
+    google_play_package_name: str = "art.innercore.app"
+    google_play_service_account_json: str | None = None
+
     # Google Speech-to-Text
     google_application_credentials: str | None = None
     

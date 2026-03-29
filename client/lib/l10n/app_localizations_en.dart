@@ -424,4 +424,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get forgotPassword => 'Forgot password?';
+
+  @override
+  String get premiumTitle => 'InnerCore Pro';
+
+  @override
+  String get premiumSubtitle => 'Unlock the full potential of dream analysis';
+
+  @override
+  String get premiumFeature1 => 'Unlimited dream analyses';
+
+  @override
+  String get premiumFeature2 => 'Priority AI processing';
+
+  @override
+  String get premiumFeature3 => 'Advanced dream map';
+
+  @override
+  String get premiumWeekly => 'Weekly';
+
+  @override
+  String get premiumMonthly => 'Monthly';
+
+  @override
+  String get premiumYearly => 'Yearly';
+
+  @override
+  String get premiumYearlySave => 'Save 40%';
+
+  @override
+  String get premiumSubscribe => 'Subscribe';
+
+  @override
+  String get premiumRestore => 'Restore purchases';
+
+  @override
+  String get premiumActive => 'Pro active';
+
+  @override
+  String premiumExpiresAt(String date) {
+    return 'Expires: $date';
+  }
+
+  @override
+  String premiumTrialDaysLeft(int days) {
+    return '$days trial days left';
+  }
+
+  @override
+  String analysesLeftThisWeek(int count) {
+    return '$count analyses left this week';
+  }
+
+  @override
+  String get analysisLimitReached =>
+      'Weekly analysis limit reached. Upgrade to Pro for unlimited access.';
+
+  @override
+  String get upgradeToPro => 'Upgrade to Pro';
+
+  @override
+  String get freeAccount => 'Free';
+
+  @override
+  String get manageSubscription => 'Manage subscription';
 }

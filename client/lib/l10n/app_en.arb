@@ -176,5 +176,40 @@
   "logoutButton": "Sign out",
   "logoutConfirm": "Sign out?",
   "logoutConfirmMessage": "You will be signed in as a guest. Your dreams will remain on this device.",
-  "forgotPassword": "Forgot password?"
+  "forgotPassword": "Forgot password?",
+
+  "premiumTitle": "InnerCore Pro",
+  "premiumSubtitle": "Unlock the full potential of dream analysis",
+  "premiumFeature1": "Unlimited dream analyses",
+  "premiumFeature2": "Priority AI processing",
+  "premiumFeature3": "Advanced dream map",
+  "premiumWeekly": "Weekly",
+  "premiumMonthly": "Monthly",
+  "premiumYearly": "Yearly",
+  "premiumYearlySave": "Save 40%",
+  "premiumSubscribe": "Subscribe",
+  "premiumRestore": "Restore purchases",
+  "premiumActive": "Pro active",
+  "premiumExpiresAt": "Expires: {date}",
+  "@premiumExpiresAt": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "premiumTrialDaysLeft": "{days} trial days left",
+  "@premiumTrialDaysLeft": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "analysesLeftThisWeek": "{count} analyses left this week",
+  "@analysesLeftThisWeek": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "analysisLimitReached": "Weekly analysis limit reached. Upgrade to Pro for unlimited access.",
+  "upgradeToPro": "Upgrade to Pro",
+  "freeAccount": "Free",
+  "manageSubscription": "Manage subscription"
 }

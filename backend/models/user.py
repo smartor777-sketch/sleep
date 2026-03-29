@@ -62,6 +62,9 @@ class User(Base):
     # Подписка
     sub_type: Mapped[str] = mapped_column(String(16), default="free", nullable=False)
     sub_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    trial_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    analyses_week_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
+    analyses_week_reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     
     # Настройки анализа
     self_description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -82,6 +85,11 @@ class User(Base):
     )
     archetypes: Mapped[list["UserArchetype"]] = relationship(
         "UserArchetype",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    subscriptions: Mapped[list["Subscription"]] = relationship(
+        "Subscription",
         back_populates="user",
         cascade="all, delete-orphan"
     )

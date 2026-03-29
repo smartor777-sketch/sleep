@@ -3,6 +3,7 @@ class UserMe {
   final String? email;
   final bool isAnonymous;
   final bool emailVerified;
+  final String subType;
   final List<String> linkedProviders;
   final String? aboutMe;
   final bool onboardingCompleted;
@@ -12,10 +13,16 @@ class UserMe {
     required this.email,
     required this.isAnonymous,
     this.emailVerified = false,
+    this.subType = 'free',
     required this.linkedProviders,
     required this.aboutMe,
     required this.onboardingCompleted,
   });
+
+  bool get isPro => subType == 'pro';
+  bool get isTrial => subType == 'trial';
+  bool get isFree => subType == 'free';
+  bool get hasFullAccess => isPro || isTrial;
 
   factory UserMe.fromJson(Map<String, dynamic> json) {
     final profile = json['profile'] as Map<String, dynamic>?;
@@ -24,6 +31,7 @@ class UserMe {
       email: json['email'] as String?,
       isAnonymous: json['is_anonymous'] as bool? ?? true,
       emailVerified: json['email_verified'] as bool? ?? false,
+      subType: json['sub_type'] as String? ?? 'free',
       linkedProviders: (json['linked_providers'] as List<dynamic>? ?? [])
           .map((e) => e as String)
           .toList(),
@@ -37,6 +45,7 @@ class UserMe {
     String? email,
     bool? isAnonymous,
     bool? emailVerified,
+    String? subType,
     List<String>? linkedProviders,
     String? aboutMe,
     bool? onboardingCompleted,
@@ -46,6 +55,7 @@ class UserMe {
       email: email ?? this.email,
       isAnonymous: isAnonymous ?? this.isAnonymous,
       emailVerified: emailVerified ?? this.emailVerified,
+      subType: subType ?? this.subType,
       linkedProviders: linkedProviders ?? this.linkedProviders,
       aboutMe: aboutMe ?? this.aboutMe,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,

@@ -133,6 +133,10 @@ services:
       # CORS
       CORS_ORIGINS: ${CORS_ORIGINS}
       
+      # Google Play Billing
+      GOOGLE_PLAY_PACKAGE_NAME: ${GOOGLE_PLAY_PACKAGE_NAME:-art.innercore.app}
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON}
+
       # Лимиты
       DREAMS_PER_DAY_LIMIT: ${DREAMS_PER_DAY_LIMIT}
     depends_on:

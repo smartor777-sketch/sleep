@@ -877,6 +877,120 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Забыли пароль?'**
   String get forgotPassword;
+
+  /// No description provided for @premiumTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'InnerCore Pro'**
+  String get premiumTitle;
+
+  /// No description provided for @premiumSubtitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Раскройте весь потенциал анализа снов'**
+  String get premiumSubtitle;
+
+  /// No description provided for @premiumFeature1.
+  ///
+  /// In ru, this message translates to:
+  /// **'Безлимитные анализы снов'**
+  String get premiumFeature1;
+
+  /// No description provided for @premiumFeature2.
+  ///
+  /// In ru, this message translates to:
+  /// **'Приоритетная обработка ИИ'**
+  String get premiumFeature2;
+
+  /// No description provided for @premiumFeature3.
+  ///
+  /// In ru, this message translates to:
+  /// **'Расширенная карта снов'**
+  String get premiumFeature3;
+
+  /// No description provided for @premiumWeekly.
+  ///
+  /// In ru, this message translates to:
+  /// **'Неделя'**
+  String get premiumWeekly;
+
+  /// No description provided for @premiumMonthly.
+  ///
+  /// In ru, this message translates to:
+  /// **'Месяц'**
+  String get premiumMonthly;
+
+  /// No description provided for @premiumYearly.
+  ///
+  /// In ru, this message translates to:
+  /// **'Год'**
+  String get premiumYearly;
+
+  /// No description provided for @premiumYearlySave.
+  ///
+  /// In ru, this message translates to:
+  /// **'Экономия 40%'**
+  String get premiumYearlySave;
+
+  /// No description provided for @premiumSubscribe.
+  ///
+  /// In ru, this message translates to:
+  /// **'Подписаться'**
+  String get premiumSubscribe;
+
+  /// No description provided for @premiumRestore.
+  ///
+  /// In ru, this message translates to:
+  /// **'Восстановить покупки'**
+  String get premiumRestore;
+
+  /// No description provided for @premiumActive.
+  ///
+  /// In ru, this message translates to:
+  /// **'Pro активен'**
+  String get premiumActive;
+
+  /// No description provided for @premiumExpiresAt.
+  ///
+  /// In ru, this message translates to:
+  /// **'Действует до: {date}'**
+  String premiumExpiresAt(String date);
+
+  /// No description provided for @premiumTrialDaysLeft.
+  ///
+  /// In ru, this message translates to:
+  /// **'Осталось {days} дн. пробного периода'**
+  String premiumTrialDaysLeft(int days);
+
+  /// No description provided for @analysesLeftThisWeek.
+  ///
+  /// In ru, this message translates to:
+  /// **'Анализов на этой неделе: {count}'**
+  String analysesLeftThisWeek(int count);
+
+  /// No description provided for @analysisLimitReached.
+  ///
+  /// In ru, this message translates to:
+  /// **'Лимит анализов на неделю исчерпан. Перейдите на Pro для безлимитного доступа.'**
+  String get analysisLimitReached;
+
+  /// No description provided for @upgradeToPro.
+  ///
+  /// In ru, this message translates to:
+  /// **'Перейти на Pro'**
+  String get upgradeToPro;
+
+  /// No description provided for @freeAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Бесплатный'**
+  String get freeAccount;
+
+  /// No description provided for @manageSubscription.
+  ///
+  /// In ru, this message translates to:
+  /// **'Управление подпиской'**
+  String get manageSubscription;
 }
 
 class _AppLocalizationsDelegate

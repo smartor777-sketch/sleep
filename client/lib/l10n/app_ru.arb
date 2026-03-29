@@ -176,5 +176,40 @@
   "logoutButton": "Выйти",
   "logoutConfirm": "Выйти из аккаунта?",
   "logoutConfirmMessage": "Вы войдёте как гость. Ваши сны останутся на устройстве.",
-  "forgotPassword": "Забыли пароль?"
+  "forgotPassword": "Забыли пароль?",
+
+  "premiumTitle": "InnerCore Pro",
+  "premiumSubtitle": "Раскройте весь потенциал анализа снов",
+  "premiumFeature1": "Безлимитные анализы снов",
+  "premiumFeature2": "Приоритетная обработка ИИ",
+  "premiumFeature3": "Расширенная карта снов",
+  "premiumWeekly": "Неделя",
+  "premiumMonthly": "Месяц",
+  "premiumYearly": "Год",
+  "premiumYearlySave": "Экономия 40%",
+  "premiumSubscribe": "Подписаться",
+  "premiumRestore": "Восстановить покупки",
+  "premiumActive": "Pro активен",
+  "premiumExpiresAt": "Действует до: {date}",
+  "@premiumExpiresAt": {
+    "placeholders": {
+      "date": {"type": "String"}
+    }
+  },
+  "premiumTrialDaysLeft": "Осталось {days} дн. пробного периода",
+  "@premiumTrialDaysLeft": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "analysesLeftThisWeek": "Анализов на этой неделе: {count}",
+  "@analysesLeftThisWeek": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "analysisLimitReached": "Лимит анализов на неделю исчерпан. Перейдите на Pro для безлимитного доступа.",
+  "upgradeToPro": "Перейти на Pro",
+  "freeAccount": "Бесплатный",
+  "manageSubscription": "Управление подпиской"
 }

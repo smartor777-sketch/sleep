@@ -10,6 +10,7 @@ import '../providers/dreams_provider.dart';
 import '../services/api_exception.dart';
 import '../services/voice_input_service.dart';
 import '../utils/snackbar.dart';
+import 'paywall_screen.dart';
 
 class AnalysisChatScreen extends StatefulWidget {
   final Dream dream;
@@ -230,6 +231,33 @@ class _AnalysisChatScreenState extends State<AnalysisChatScreen> {
                       },
                       child: Text(l10n.analyze),
                     ),
+                  ),
+                );
+              }
+              if (provider.errorCode == 402) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.analysisLimitReached,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _accentColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: () => PaywallScreen.show(context),
+                          icon: const Icon(Icons.auto_awesome),
+                          label: Text(l10n.upgradeToPro),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }

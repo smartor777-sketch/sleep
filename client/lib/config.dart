@@ -9,4 +9,4 @@ const String googleWebClientId = String.fromEnvironment(
 );
 
 const String appDownloadUrl =
-    'https://github.com/core-euler/sna_net/releases/latest/download/app-release.apk';
+    'https://github.com/core-euler/sna_net/releases/latest';

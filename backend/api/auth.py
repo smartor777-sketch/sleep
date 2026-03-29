@@ -2,7 +2,8 @@
 
 import logging
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status, Depends, Query
+from fastapi import APIRouter, HTTPException, status, Depends, Query, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from dependencies import (
     DatabaseSession,
@@ -11,6 +12,8 @@ from dependencies import (
     create_refresh_token,
     verify_token,
 )
+from uuid import UUID
+
 from schemas import (
     RegisterRequest,
     LoginRequest,
@@ -28,6 +31,7 @@ from schemas import (
     ProviderIdentityResponse,
     VerifyEmailCodeRequest,
     MergeAnonymousRequest,
+    GoogleSignInRequest,
 )
 from services.auth_service import (
     get_user_by_email,
@@ -446,6 +450,79 @@ async def resend_code_endpoint(
         )
     await create_email_verification_code(db, user.id)
     return {"message": "Code sent"}
+
+
+_optional_bearer = HTTPBearer(auto_error=False)
+
+
+@router.post("/google", response_model=TokenResponse)
+async def google_signin(
+    data: GoogleSignInRequest,
+    db: DatabaseSession,
+    credentials: HTTPAuthorizationCredentials | None = Security(_optional_bearer),
+):
+    """
+    Google Sign-In.
+
+    - Если Google-аккаунт уже привязан → возвращает токены существующего пользователя.
+    - Если нет → привязывает к текущему анонимному (по JWT в заголовке) или создаёт нового.
+    """
+    try:
+        claims = await verify_google_id_token(data.id_token)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    provider_subject = claims["sub"]
+    email = claims.get("email")
+
+    # Проверяем, есть ли уже привязанный аккаунт с этим Google ID
+    existing_identity = await get_identity(db, "google", provider_subject)
+    if existing_identity:
+        from sqlalchemy import select as sa_select
+        from models import User as UserModel
+        result = await db.execute(sa_select(UserModel).where(UserModel.id == existing_identity.user_id))
+        user = result.scalar_one_or_none()
+        if not user or not user.is_active:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user_not_found")
+        logger.info(f"Google Sign-In: existing user {user.id}")
+    else:
+        # Пытаемся получить текущего анонимного пользователя из JWT
+        user = None
+        if credentials:
+            try:
+                payload = verify_token(credentials.credentials, token_type="access")
+                uid = payload.get("sub")
+                if uid:
+                    from sqlalchemy import select as sa_select
+                    from models import User as UserModel
+                    result = await db.execute(sa_select(UserModel).where(UserModel.id == UUID(uid)))
+                    user = result.scalar_one_or_none()
+            except Exception:
+                pass
+
+        if user is None:
+            user = User(
+                email=email,
+                is_anonymous=False,
+                email_verified=bool(email),
+                timezone="UTC",
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+
+        await create_identity(db, user, "google", provider_subject, email)
+        if user.is_anonymous:
+            user.is_anonymous = False
+        if not user.email and email:
+            user.email = email
+            user.email_verified = True
+        await db.commit()
+        logger.info(f"Google Sign-In: linked new Google identity to user {user.id}")
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
 @router.post("/merge-anonymous", response_model=MessageResponse)

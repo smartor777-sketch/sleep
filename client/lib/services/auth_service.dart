@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
@@ -139,6 +140,33 @@ class AuthService {
 
   Future<void> logout() async {
     await _storage.clearTokens();
+  }
+
+  Future<UserMe> signInWithGoogle() async {
+    final googleSignIn = GoogleSignIn(
+      serverClientId: googleWebClientId.isNotEmpty ? googleWebClientId : null,
+    );
+    final account = await googleSignIn.signIn();
+    if (account == null) throw Exception('google_sign_in_cancelled');
+
+    final auth = await account.authentication;
+    final idToken = auth.idToken;
+    if (idToken == null) throw Exception('google_id_token_null');
+
+    final response = await _api.post(
+      '/api/v1/auth/google',
+      body: {'id_token': idToken},
+    );
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'google_signin_failed');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    await _storage.setTokens(
+      accessToken: data['access_token'] as String,
+      refreshToken: data['refresh_token'] as String,
+    );
+    return getMe();
   }
 
   Future<UserMe> linkProvider({required String provider, required String idToken}) async {

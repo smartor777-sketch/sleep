@@ -101,6 +101,15 @@ class AuthProvider extends ChangeNotifier {
     await _authService.mergeAnonymous(deviceId: deviceId);
   }
 
+  /// Sign in with Google.
+  Future<UserMe> signInWithGoogle() async {
+    await mergeAnonymous();
+    final user = await _authService.signInWithGoogle();
+    _user = user;
+    notifyListeners();
+    return user;
+  }
+
   /// Logout — clear tokens and bootstrap anonymously.
   Future<void> logout() async {
     await _authService.logout();

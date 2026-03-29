@@ -566,6 +566,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Text(l10n.signIn),
             ),
           ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _linking ? null : _signInWithGoogle,
+              icon: const Icon(Icons.login),
+              label: const Text('Sign in with Google'),
+            ),
+          ),
         ] else ...[
           if (auth.user?.email != null && !(auth.user!.emailVerified)) ...[
             const SizedBox(height: 8),
@@ -599,6 +608,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ],
     );
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _linking = true);
+    try {
+      await context.read<AuthProvider>().signInWithGoogle();
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString();
+      if (!msg.contains('cancelled')) {
+        showToast(context, AppLocalizations.of(context)!.linkFailed, isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _linking = false);
+    }
   }
 
   Future<void> _confirmLogout(BuildContext context) async {

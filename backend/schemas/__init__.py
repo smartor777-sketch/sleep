@@ -59,6 +59,7 @@ from .auth import (
     ProviderIdentityResponse,
     VerifyEmailCodeRequest,
     MergeAnonymousRequest,
+    GoogleSignInRequest,
 )
 from .stats import StatsResponse
 
@@ -116,5 +117,6 @@ __all__ = [
     "ProviderIdentityResponse",
     "VerifyEmailCodeRequest",
     "MergeAnonymousRequest",
+    "GoogleSignInRequest",
     "StatsResponse",
 ]

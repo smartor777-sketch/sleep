@@ -109,3 +109,8 @@ class VerifyEmailCodeRequest(BaseModel):
 class MergeAnonymousRequest(BaseModel):
     """Мерж анонимного аккаунта в зарегистрированный"""
     anonymous_device_id: str = Field(..., min_length=8, max_length=128)
+
+
+class GoogleSignInRequest(BaseModel):
+    """Google Sign-In: ID token от клиента"""
+    id_token: str

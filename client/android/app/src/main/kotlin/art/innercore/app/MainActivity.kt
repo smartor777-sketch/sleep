@@ -1,4 +1,4 @@
-package com.okoloboga.innercore
+package art.innercore.app
 
 import io.flutter.embedding.android.FlutterActivity
 

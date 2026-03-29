@@ -110,6 +110,7 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
       
       # S3/MinIO
       S3_ENDPOINT: ${S3_ENDPOINT}

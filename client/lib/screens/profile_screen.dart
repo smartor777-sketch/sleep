@@ -626,6 +626,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _confirmLogout(BuildContext context) async {
+    final auth = context.read<AuthProvider>(); // захватываем до async
     final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
@@ -644,8 +645,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
-    if (confirm == true && context.mounted) {
-      await context.read<AuthProvider>().logout();
+    if (confirm == true) {
+      await auth.logout();
     }
   }
 

@@ -1,4 +1,4 @@
-# JungAI Backend API
+# InnerCore Backend API
 
 > **Статус документа:** Актуализирован. Добавлен план адаптации бэкенда под требования фронтенда.
 >
@@ -27,7 +27,7 @@
 **Пример ответа 200**
 ```json
 {
-  "service": "JungAI Backend API",
+  "service": "InnerCore Backend API",
   "version": "1.0.0",
   "status": "running"
 }

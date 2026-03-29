@@ -1,4 +1,4 @@
-# JungAI — Patch Spec: Automatic Dream Analysis After Save
+# InnerCore — Patch Spec: Automatic Dream Analysis After Save
 
 Версия: 1.0
 Статус: ТЗ для патча

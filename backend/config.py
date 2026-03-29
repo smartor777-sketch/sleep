@@ -57,12 +57,13 @@ class Settings(BaseSettings):
     smtp_user: str | None = None
     smtp_password: SecretStr | None = None
     smtp_from: str | None = None
+    smtp_use_ssl: bool = False
     
     # S3/MinIO
     s3_endpoint: str = "http://minio:9000"
     s3_access_key: str = "minioadmin"
     s3_secret_key: SecretStr = SecretStr("minioadmin")
-    s3_bucket: str = "jungai-covers"
+    s3_bucket: str = "innercore-covers"
     s3_region: str = "us-east-1"
     s3_use_ssl: bool = False
     

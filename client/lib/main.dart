@@ -78,7 +78,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ],
       child: MaterialApp(
-        title: 'JungAI',
+        title: 'InnerCore',
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         locale: _locale,

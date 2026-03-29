@@ -4,7 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15
-    container_name: jungai_postgres
+    container_name: innercore_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -19,12 +19,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - jungai_network
+      - innercore_network
 
   # Redis (Cache + Celery Broker)
   redis:
     image: redis:7-alpine
-    container_name: jungai_redis
+    container_name: innercore_redis
     ports:
       - "6379:6379"
     volumes:
@@ -35,12 +35,12 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - jungai_network
+      - innercore_network
 
   # MinIO (S3-совместимое хранилище для изображений)
   minio:
     image: minio/minio:latest
-    container_name: jungai_minio
+    container_name: innercore_minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -56,14 +56,14 @@ services:
       timeout: 20s
       retries: 3
     networks:
-      - jungai_network
+      - innercore_network
 
   # LLM Service (Gonka Proxy)
   llm_service:
     build:
       context: ./llm_service
       dockerfile: Dockerfile
-    container_name: jungai_llm_service
+    container_name: innercore_llm_service
     environment:
       GONKA_BASE_URL: ${GONKA_BASE_URL:-https://proxy.gonka.gg/v1}
       GONKA_API_KEY: ${GONKA_API_KEY}
@@ -82,7 +82,7 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - jungai_network
+      - innercore_network
     restart: unless-stopped
 
   # Backend (FastAPI)
@@ -90,7 +90,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: jungai_backend
+    container_name: innercore_backend
     environment:
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
@@ -152,7 +152,7 @@ services:
       timeout: 10s
       retries: 3
     networks:
-      - jungai_network
+      - innercore_network
     restart: unless-stopped
 
   # Celery Worker (для фоновых задач)
@@ -160,7 +160,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: jungai_celery_worker
+    container_name: innercore_celery_worker
     command: celery -A celery_app worker --loglevel=info
     environment:
       PYTHONPATH: /app
@@ -189,7 +189,7 @@ services:
       llm_service:
         condition: service_started
     networks:
-      - jungai_network
+      - innercore_network
     restart: unless-stopped
 
   # Celery Beat (опционально, для периодических задач)
@@ -197,19 +197,19 @@ services:
   #   build:
   #     context: ./backend
   #     dockerfile: Dockerfile
-  #   container_name: jungai_celery_beat
+  #   container_name: innercore_celery_beat
   #   command: celery -A celery_app beat --loglevel=info
   #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-jungai}:${POSTGRES_PASSWORD:-jungai_password}@postgres:5432/${POSTGRES_DB:-jungai_db}
+  #     DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-innercore}:${POSTGRES_PASSWORD:-innercore_password}@postgres:5432/${POSTGRES_DB:-innercore_db}
   #     REDIS_URL: redis://redis:6379/0
   #   depends_on:
   #     - redis
   #   networks:
-  #     - jungai_network
+  #     - innercore_network
   #   restart: unless-stopped
 
 networks:
-  jungai_network:
+  innercore_network:
     driver: bridge
 
 volumes:

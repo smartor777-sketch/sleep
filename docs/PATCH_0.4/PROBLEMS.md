@@ -1,4 +1,4 @@
-JungAI — Deep System Improvements Patch
+InnerCore — Deep System Improvements Patch
 
 Версия: 1.0
 Статус: ТЗ нового патча

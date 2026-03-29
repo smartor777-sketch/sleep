@@ -1,4 +1,4 @@
-# JungAI PATCH 0.3 — Итоговая сводка реализации
+# InnerCore PATCH 0.3 — Итоговая сводка реализации
 
 Дата: 2026-03-13  
 Статус: consolidated release notes  

@@ -1,4 +1,4 @@
-"""Alembic env.py — async migration runner for JungAI backend."""
+"""Alembic env.py — async migration runner for InnerCore backend."""
 
 import asyncio
 from logging.config import fileConfig

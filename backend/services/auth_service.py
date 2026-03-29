@@ -11,6 +11,7 @@ from sqlalchemy import delete as sql_delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User, EmailVerification, PasswordReset, Dream, AnalysisMessage
+from services.email_service import email_service
 from schemas import UserCreate
 
 logger = logging.getLogger(__name__)
@@ -281,6 +282,16 @@ async def create_email_verification_code(
     await db.commit()
 
     logger.info(f"[DEV] Email verification code for user {user_id}: {code}")
+
+    # Отправляем код по email, если есть user с этим id
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user and user.email:
+        try:
+            email_service.send_verification_code(user.email, code)
+        except Exception as e:
+            logger.error(f"Failed to send verification code email: {e}")
+
     return code
 
 

@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const SizedBox(height: 100), // для отступа сверху
             const Text(
-              'JungAI',
+              'InnerCore',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
             ),

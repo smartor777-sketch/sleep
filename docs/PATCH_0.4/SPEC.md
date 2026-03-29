@@ -1,4 +1,4 @@
-# JungAI — PATCH 0.4 SPEC (Implementation Plan)
+# InnerCore — PATCH 0.4 SPEC (Implementation Plan)
 
 Версия: 2.0
 Статус: финальная спецификация

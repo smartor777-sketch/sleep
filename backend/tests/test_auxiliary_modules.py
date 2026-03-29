@@ -59,7 +59,7 @@ async def test_main_endpoints_and_lifespan(monkeypatch):
     monkeypatch.setattr(main, "init_db", fake_init_db)
     monkeypatch.setattr(main, "close_db", fake_close_db)
 
-    assert await main.root() == {"service": "JungAI Backend API", "version": "1.0.0", "status": "running"}
+    assert await main.root() == {"service": "InnerCore Backend API", "version": "1.0.0", "status": "running"}
     assert await main.health_check() == {"status": "ok", "service": "backend", "version": "1.0.0"}
     async with main.lifespan(main.app):
         pass

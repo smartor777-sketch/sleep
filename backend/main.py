@@ -1,4 +1,4 @@
-"""Backend приложение JungAI"""
+"""Backend приложение InnerCore"""
 
 import logging
 from contextlib import asynccontextmanager
@@ -32,20 +32,20 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifecycle manager для инициализации и закрытия ресурсов"""
     # Startup
-    logger.info("Starting JungAI Backend...")
+    logger.info("Starting InnerCore Backend...")
     await init_db()
     logger.info("Database initialized")
     yield
     # Shutdown
-    logger.info("Shutting down JungAI Backend...")
+    logger.info("Shutting down InnerCore Backend...")
     await close_db()
     logger.info("Database connection closed")
 
 
 # Создание приложения FastAPI
 app = FastAPI(
-    title="JungAI Backend API",
-    description="Backend API для мобильного приложения JungAI - запись и анализ снов",
+    title="InnerCore Backend API",
+    description="Backend API для мобильного приложения InnerCore - запись и анализ снов",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -128,7 +128,7 @@ app.include_router(stats.router, prefix="/api/v1")
 async def root():
     """Корневой эндпоинт"""
     return {
-        "service": "JungAI Backend API",
+        "service": "InnerCore Backend API",
         "version": "1.0.0",
         "status": "running"
     }

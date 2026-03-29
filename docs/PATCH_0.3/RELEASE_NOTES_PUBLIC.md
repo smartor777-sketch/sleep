@@ -1,4 +1,4 @@
-# JungAI v0.3 — Public Release Notes
+# InnerCore v0.3 — Public Release Notes
 
 Date: 2026-03-13
 

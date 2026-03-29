@@ -1,4 +1,4 @@
-# JungAI — Patch Spec v1 (Client UI + Search + Archetypes + Dream metadata)
+# InnerCore — Patch Spec v1 (Client UI + Search + Archetypes + Dream metadata)
 Дата: 2026-02-26  
 Область: Flutter client + Backend (FastAPI)  
 Цель: доработки по фидбэку тестеров. Документ для реализации патча.

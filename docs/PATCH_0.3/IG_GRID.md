@@ -1,4 +1,4 @@
-# JungAI — UI Redesign Patch: Instagram-style Grid
+# InnerCore — UI Redesign Patch: Instagram-style Grid
 
 Версия: 1.0
 Статус: ТЗ на редизайн клиентской части

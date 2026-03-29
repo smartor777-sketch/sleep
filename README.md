@@ -1,4 +1,4 @@
-# JungAI
+# InnerCore
 
 AI-powered mobile dream journal with Jungian-style analysis, contextual dream chat, and a symbolic Dream Map.
 

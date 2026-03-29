@@ -1,4 +1,4 @@
-# JungAI v0.2 — Public Patch Notes
+# InnerCore v0.2 — Public Patch Notes
 
 Date: 2026-02-26
 

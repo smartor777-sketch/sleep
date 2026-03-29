@@ -1,4 +1,4 @@
-package com.okoloboga.jungai
+package com.okoloboga.innercore
 
 import io.flutter.embedding.android.FlutterActivity
 

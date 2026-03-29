@@ -3,7 +3,7 @@
 Версия: 1.2
 Статус: Планирование
 Цель: Google Play
-Package: com.okoloboga.jungai
+Package: com.okoloboga.innercore
 
 ---
 
@@ -88,14 +88,14 @@ Auth: Bearer <новый токен>
 2. Включить **Google Sign-In API**
 3. OAuth consent screen:
    - User type: External
-   - App name: JungAI
+   - App name: InnerCore
    - Support email: (ваш gmail)
    - Scopes: `email`, `profile`, `openid`
 4. Создать OAuth credentials:
    - Тип: Android
-   - Package name: `com.okoloboga.jungai`
+   - Package name: `com.okoloboga.innercore`
    - SHA-1 debug: `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android`
-   - SHA-1 release: из `jungai-release.jks` (добавить оба fingerprint в консоли)
+   - SHA-1 release: из `innercore-release.jks` (добавить оба fingerprint в консоли)
    - → Получить `google-services.json`
 5. Создать Web client credentials (для бекенда):
    - Тип: Web application
@@ -228,7 +228,7 @@ PRO даёт полный доступ: ∞ анализы, чат, карта, 
 ### 3.3 Google Play Console
 
 1. Создать аккаунт разработчика ($25 разово)
-2. Добавить приложение, package: `com.okoloboga.jungai`
+2. Добавить приложение, package: `com.okoloboga.innercore`
 3. **Monetize → Subscriptions** — создать 3 base plan:
    - `pro_weekly` — $2.99, биллинг каждые 7 дней
    - `pro_monthly` — $6.99, биллинг каждые 30 дней
@@ -242,18 +242,18 @@ PRO даёт полный доступ: ∞ анализы, чат, карта, 
 **Release keystore (создать перед сабмитом):**
 ```bash
 keytool -genkey -v \
-  -keystore jungai-release.jks \
-  -alias jungai \
+  -keystore innercore-release.jks \
+  -alias innercore \
   -keyalg RSA -keysize 2048 \
   -validity 10000
 ```
-Сохранить `jungai-release.jks` в безопасном месте (не в репозитории).
+Сохранить `innercore-release.jks` в безопасном месте (не в репозитории).
 Добавить в `android/key.properties`:
 ```
 storePassword=<пароль>
 keyPassword=<пароль>
-keyAlias=jungai
-storeFile=../../jungai-release.jks
+keyAlias=innercore
+storeFile=../../innercore-release.jks
 ```
 
 ---
@@ -325,7 +325,7 @@ async def check_analysis_allowed(user: User, db) -> bool:
 
 **Env переменные:**
 ```
-GOOGLE_PLAY_PACKAGE_NAME=com.okoloboga.jungai
+GOOGLE_PLAY_PACKAGE_NAME=com.okoloboga.innercore
 GOOGLE_PLAY_SERVICE_ACCOUNT_JSON='{...}'
 ```
 

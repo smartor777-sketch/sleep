@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Инициализация FastAPI
 app = FastAPI(
-    title="JungAI LLM Service",
+    title="InnerCore LLM Service",
     description="Сервис для анализа снов с помощью нейросетей",
     version="1.0.0"
 )

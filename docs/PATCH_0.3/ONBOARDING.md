@@ -1,4 +1,4 @@
-JungAI — User Onboarding Modal Specification
+InnerCore — User Onboarding Modal Specification
 
 Версия: 1.0
 Статус: ТЗ для новой функции

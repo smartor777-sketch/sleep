@@ -5,7 +5,7 @@ from config import settings
 
 # Создание Celery приложения
 celery_app = Celery(
-    "jungai",
+    "innercore",
     broker=settings.redis_url,
     backend=settings.redis_url,
     include=["tasks"]  # Импортируем модуль с задачами

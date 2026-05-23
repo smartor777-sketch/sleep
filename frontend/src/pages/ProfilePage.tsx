@@ -5,6 +5,7 @@ import { t } from '../lib/i18n';
 import { ACCENTS, FontSize, Lang, ThemeMode } from '../lib/settings';
 import { Check, LogOut, Sparkles, Trash2, UserPlus, LogIn, Apple, Smartphone } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
+import { DreamsBarChart, ArchetypesDonut } from '../components/Charts';
 
 export default function ProfilePage() {
   const lang = useApp((s) => s.lang);
@@ -169,30 +170,25 @@ export default function ProfilePage() {
 
           {stats.dreams_last_14_days?.length > 0 && (
             <div className="card-surface rounded-3xl p-5">
-              <div className="font-display text-lg mb-3">{t('profile.last14', lang)}</div>
-              <BarChart data={stats.dreams_last_14_days} />
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="font-display text-lg">{t('profile.last14', lang)}</div>
+                <span className="muted-text text-xs">
+                  {lang === 'ru' ? 'количество снов в день' : 'dreams per day'}
+                </span>
+              </div>
+              <DreamsBarChart data={stats.dreams_last_14_days} lang={lang} />
             </div>
           )}
 
           {stats.archetypes_top?.length > 0 && (
             <div className="card-surface rounded-3xl p-5">
-              <div className="font-display text-lg mb-3">{t('profile.topArch', lang)}</div>
-              <div className="space-y-2">
-                {stats.archetypes_top.slice(0, 6).map((a) => {
-                  const max = stats.archetypes_top[0].count || 1;
-                  return (
-                    <div key={a.name}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>{a.name}</span>
-                        <span className="muted-text">{a.count}</span>
-                      </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-                        <div className="h-full accent-bg rounded-full" style={{ width: `${(a.count / max) * 100}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex items-baseline justify-between mb-4">
+                <div className="font-display text-lg">{t('profile.topArch', lang)}</div>
+                <span className="muted-text text-xs">
+                  {lang === 'ru' ? 'распределение во снах' : 'distribution in dreams'}
+                </span>
               </div>
+              <ArchetypesDonut data={stats.archetypes_top} lang={lang} />
             </div>
           )}
         </section>
@@ -335,24 +331,6 @@ function StatCard({ label, value, accent }: { label: string; value: number | str
     <div className="card-surface rounded-3xl p-5">
       <div className={'font-display text-3xl mb-1 ' + (accent ? 'accent-text' : '')}>{value}</div>
       <div className="muted-text text-sm">{label}</div>
-    </div>
-  );
-}
-
-function BarChart({ data }: { data: { date: string; count: number }[] }) {
-  const max = Math.max(1, ...data.map(d => d.count));
-  return (
-    <div className="flex items-end gap-1.5 h-32">
-      {data.map((d, i) => {
-        const h = (d.count / max) * 100;
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <div className="w-full rounded-t-md accent-bg transition-all"
-                 style={{ height: `${Math.max(h, d.count > 0 ? 6 : 2)}%`, opacity: d.count === 0 ? 0.18 : 1 }} />
-            <span className="text-[10px] muted-text">{d.date.slice(8, 10)}</span>
-          </div>
-        );
-      })}
     </div>
   );
 }

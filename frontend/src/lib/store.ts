@@ -181,3 +181,8 @@ export const useApp = create<AppState>((set, get) => ({
 export function currentAccent(): AccentSwatch {
   return ACCENTS.find((a) => a.id === useApp.getState().accentId) ?? ACCENTS[0];
 }
+
+// Expose the store on window for E2E/preview demos (dev only).
+if (typeof window !== 'undefined' && (import.meta as any).env?.DEV) {
+  (window as any).__innercore = { useApp };
+}

@@ -3,7 +3,7 @@ import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { t } from '../lib/i18n';
 import { ACCENTS, FontSize, Lang, ThemeMode } from '../lib/settings';
-import { Check, LogOut, Sparkles, Trash2, UserPlus, LogIn } from 'lucide-react';
+import { Check, LogOut, Sparkles, Trash2, UserPlus, LogIn, Apple, Smartphone } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 
 export default function ProfilePage() {
@@ -231,6 +231,49 @@ export default function ProfilePage() {
             </button>
           </div>
         )}
+      </section>
+
+      {/* Mobile app */}
+      <section className="card-surface rounded-3xl p-5" data-testid="mobile-app-section">
+        <div className="flex items-start gap-4">
+          <span className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shrink-0"
+                style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
+            <Smartphone className="w-5 h-5" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="font-display text-lg mb-1">
+              {lang === 'ru' ? 'Мобильное приложение' : 'Mobile app'}
+            </div>
+            <p className="muted-text text-sm mb-4">
+              {lang === 'ru'
+                ? 'Записывайте сны утром, прямо в постели. Один аккаунт — все ваши сны на любом устройстве.'
+                : 'Capture dreams the moment you wake. One account — same dreams on every device.'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => alert(lang === 'ru' ? 'Ссылка появится скоро' : 'Link coming soon')}
+                className="btn-pill btn-soft !py-2"
+                data-testid="download-ios-btn"
+              >
+                <Apple className="w-4 h-4" />
+                {lang === 'ru' ? 'Скачать для iOS' : 'Download for iOS'}
+              </button>
+              <button
+                type="button"
+                onClick={() => alert(lang === 'ru' ? 'Ссылка появится скоро' : 'Link coming soon')}
+                className="btn-pill btn-soft !py-2"
+                data-testid="download-android-btn"
+              >
+                <Smartphone className="w-4 h-4" />
+                {lang === 'ru' ? 'Скачать для Android' : 'Download for Android'}
+              </button>
+            </div>
+            <div className="muted-text text-xs mt-3">
+              {lang === 'ru' ? 'Скоро в App Store и Google Play' : 'Coming to App Store and Google Play'}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Danger zone */}

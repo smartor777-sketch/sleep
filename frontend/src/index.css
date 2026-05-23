@@ -159,6 +159,29 @@ body {
   background: linear-gradient(135deg, var(--g1, #FA9042) 0%, var(--g2, #8885FF) 100%);
 }
 
+/* Sidebar nav-link hover that respects theme */
+.nav-link-hover {
+  color: rgba(236, 239, 244, 0.62);
+  transition: color 180ms ease, background-color 180ms ease;
+}
+.nav-link-hover:hover {
+  color: rgba(236, 239, 244, 0.96);
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-theme='light'] .nav-link-hover {
+  color: rgba(27, 26, 42, 0.62);
+}
+:root[data-theme='light'] .nav-link-hover:hover {
+  color: rgba(27, 26, 42, 0.96);
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Small icon-pill background that adapts to theme */
+.icon-pill { background: rgba(255, 255, 255, 0.05); transition: background-color 180ms ease; }
+.group:hover .icon-pill { background: rgba(255, 255, 255, 0.10); }
+:root[data-theme='light'] .icon-pill { background: rgba(0, 0, 0, 0.05); }
+:root[data-theme='light'] .group:hover .icon-pill { background: rgba(0, 0, 0, 0.09); }
+
 .no-tap { -webkit-tap-highlight-color: transparent; }
 
 /* Subtle grain */

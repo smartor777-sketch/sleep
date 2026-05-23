@@ -111,9 +111,7 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
               className={({ isActive }) =>
                 clsx(
                   'group flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm no-tap relative',
-                  isActive
-                    ? 'accent-text'
-                    : 'muted-text hover:!text-white hover:bg-white/[0.04]'
+                  isActive ? 'accent-text' : 'nav-link-hover'
                 )
               }
             >
@@ -127,8 +125,8 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
                   )}
                   <span
                     className={clsx(
-                      'w-8 h-8 rounded-xl flex items-center justify-center transition-colors',
-                      isActive ? 'accent-bg text-white' : 'bg-white/[0.04] group-hover:bg-white/[0.08]'
+                      'w-8 h-8 rounded-xl flex items-center justify-center',
+                      isActive ? 'accent-bg text-white' : 'icon-pill'
                     )}
                   >
                     <it.icon className="w-4 h-4" strokeWidth={2.2} />

@@ -2,7 +2,7 @@ name: client
 description: "A new Flutter project."
 publish_to: 'none' 
 
-version: 0.4.0+5
+version: 0.4.2+6
 
 environment:
   sdk: ^3.9.2
@@ -27,7 +27,8 @@ dependencies:
   record: ^6.1.1
   url_launcher: ^6.2.5
   web_socket_channel: ^3.0.2
-  in_app_purchase: ^3.2.0
+  # --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
+  # in_app_purchase: ^3.2.0
 
 dev_dependencies:
   flutter_test:

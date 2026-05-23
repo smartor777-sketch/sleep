@@ -459,6 +459,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumRestore => 'Restore purchases';
 
   @override
+  String get premiumComingSoon => 'Payments will be available soon';
+
+  @override
   String get premiumActive => 'Pro active';
 
   @override

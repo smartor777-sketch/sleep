@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:provider/provider.dart';
+
+// --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
+// import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/billing_provider.dart';
@@ -58,30 +60,45 @@ class PaywallScreen extends StatelessWidget {
                   _FeatureRow(icon: Icons.hub, text: l10n.premiumFeature3),
                   const SizedBox(height: 32),
 
-                  // Products
-                  if (billing.products.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Text(
-                        'Products loading...',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                  // --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
+                  // Product cards, purchase and restore are disabled while the
+                  // Google Play Billing integration is turned off. The plan
+                  // tiers/limits still work; only the purchase flow is hidden.
+                  // if (billing.products.isEmpty)
+                  //   Padding(
+                  //     padding: const EdgeInsets.symmetric(vertical: 24),
+                  //     child: Text(
+                  //       'Products loading...',
+                  //       style: theme.textTheme.bodyMedium?.copyWith(
+                  //         color: theme.colorScheme.onSurfaceVariant,
+                  //       ),
+                  //     ),
+                  //   )
+                  // else
+                  //   ...billing.products.map((product) => _ProductCard(
+                  //         product: product,
+                  //         billing: billing,
+                  //         l10n: l10n,
+                  //       )),
+                  //
+                  // const SizedBox(height: 16),
+                  //
+                  // // Restore
+                  // TextButton(
+                  //   onPressed: billing.purchasing ? null : () => billing.restorePurchases(),
+                  //   child: Text(l10n.premiumRestore),
+                  // ),
+
+                  // Placeholder shown while purchases are unavailable.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      l10n.premiumComingSoon,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-                    )
-                  else
-                    ...billing.products.map((product) => _ProductCard(
-                          product: product,
-                          billing: billing,
-                          l10n: l10n,
-                        )),
-
-                  const SizedBox(height: 16),
-
-                  // Restore
-                  TextButton(
-                    onPressed: billing.purchasing ? null : () => billing.restorePurchases(),
-                    child: Text(l10n.premiumRestore),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
 
                   if (billing.error != null)
@@ -120,98 +137,99 @@ class _FeatureRow extends StatelessWidget {
   }
 }
 
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({
-    required this.product,
-    required this.billing,
-    required this.l10n,
-  });
-  final ProductDetails product;
-  final BillingProvider billing;
-  final AppLocalizations l10n;
-
-  String _label() {
-    if (product.id.contains('weekly')) return l10n.premiumWeekly;
-    if (product.id.contains('yearly')) return l10n.premiumYearly;
-    return l10n.premiumMonthly;
-  }
-
-  bool get _isYearly => product.id.contains('yearly');
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: _isYearly
-            ? BorderSide(color: theme.colorScheme.primary, width: 2)
-            : BorderSide.none,
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: billing.purchasing ? null : () => billing.buy(product),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          _label(),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        if (_isYearly) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              l10n.premiumYearlySave,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                product.price,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              if (billing.purchasing)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+// --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
+// class _ProductCard extends StatelessWidget {
+//   const _ProductCard({
+//     required this.product,
+//     required this.billing,
+//     required this.l10n,
+//   });
+//   final ProductDetails product;
+//   final BillingProvider billing;
+//   final AppLocalizations l10n;
+//
+//   String _label() {
+//     if (product.id.contains('weekly')) return l10n.premiumWeekly;
+//     if (product.id.contains('yearly')) return l10n.premiumYearly;
+//     return l10n.premiumMonthly;
+//   }
+//
+//   bool get _isYearly => product.id.contains('yearly');
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     final theme = Theme.of(context);
+//     return Card(
+//       margin: const EdgeInsets.only(bottom: 12),
+//       shape: RoundedRectangleBorder(
+//         borderRadius: BorderRadius.circular(12),
+//         side: _isYearly
+//             ? BorderSide(color: theme.colorScheme.primary, width: 2)
+//             : BorderSide.none,
+//       ),
+//       child: InkWell(
+//         borderRadius: BorderRadius.circular(12),
+//         onTap: billing.purchasing ? null : () => billing.buy(product),
+//         child: Padding(
+//           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+//           child: Row(
+//             children: [
+//               Expanded(
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Row(
+//                       children: [
+//                         Text(
+//                           _label(),
+//                           style: theme.textTheme.titleMedium?.copyWith(
+//                             fontWeight: FontWeight.w600,
+//                           ),
+//                         ),
+//                         if (_isYearly) ...[
+//                           const SizedBox(width: 8),
+//                           Container(
+//                             padding: const EdgeInsets.symmetric(
+//                               horizontal: 8,
+//                               vertical: 2,
+//                             ),
+//                             decoration: BoxDecoration(
+//                               color: theme.colorScheme.primaryContainer,
+//                               borderRadius: BorderRadius.circular(8),
+//                             ),
+//                             child: Text(
+//                               l10n.premiumYearlySave,
+//                               style: theme.textTheme.labelSmall?.copyWith(
+//                                 color: theme.colorScheme.onPrimaryContainer,
+//                               ),
+//                             ),
+//                           ),
+//                         ],
+//                       ],
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//               Text(
+//                 product.price,
+//                 style: theme.textTheme.titleMedium?.copyWith(
+//                   fontWeight: FontWeight.bold,
+//                   color: theme.colorScheme.primary,
+//                 ),
+//               ),
+//               if (billing.purchasing)
+//                 const Padding(
+//                   padding: EdgeInsets.only(left: 8),
+//                   child: SizedBox(
+//                     width: 16,
+//                     height: 16,
+//                     child: CircularProgressIndicator(strokeWidth: 2),
+//                   ),
+//                 ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

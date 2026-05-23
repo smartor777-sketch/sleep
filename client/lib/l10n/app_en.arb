@@ -189,6 +189,7 @@
   "premiumYearlySave": "Save 40%",
   "premiumSubscribe": "Subscribe",
   "premiumRestore": "Restore purchases",
+  "premiumComingSoon": "Payments will be available soon",
   "premiumActive": "Pro active",
   "premiumExpiresAt": "Expires: {date}",
   "@premiumExpiresAt": {

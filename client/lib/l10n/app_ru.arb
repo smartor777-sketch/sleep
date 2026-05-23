@@ -189,6 +189,7 @@
   "premiumYearlySave": "Экономия 40%",
   "premiumSubscribe": "Подписаться",
   "premiumRestore": "Восстановить покупки",
+  "premiumComingSoon": "Оплата скоро будет доступна",
   "premiumActive": "Pro активен",
   "premiumExpiresAt": "Действует до: {date}",
   "@premiumExpiresAt": {

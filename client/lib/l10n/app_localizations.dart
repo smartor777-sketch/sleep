@@ -944,6 +944,12 @@ abstract class AppLocalizations {
   /// **'Восстановить покупки'**
   String get premiumRestore;
 
+  /// No description provided for @premiumComingSoon.
+  ///
+  /// In ru, this message translates to:
+  /// **'Оплата скоро будет доступна'**
+  String get premiumComingSoon;
+
   /// No description provided for @premiumActive.
   ///
   /// In ru, this message translates to:

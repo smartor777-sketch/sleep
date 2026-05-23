@@ -460,6 +460,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get premiumRestore => 'Восстановить покупки';
 
   @override
+  String get premiumComingSoon => 'Оплата скоро будет доступна';
+
+  @override
   String get premiumActive => 'Pro активен';
 
   @override

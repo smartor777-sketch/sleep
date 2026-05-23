@@ -23,7 +23,7 @@ export default {
       },
       fontFamily: {
         sans: ['"Manrope"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-        display: ['"Fraunces"', '"Cormorant Garamond"', 'serif'],
+        display: ['"Plus Jakarta Sans"', '"Manrope"', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         '3xl': '1.75rem',

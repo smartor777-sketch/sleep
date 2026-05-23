@@ -81,7 +81,7 @@ body {
 
 /* Markdown content */
 .md-content p { line-height: 1.7; margin: 0.6em 0; }
-.md-content h1, .md-content h2, .md-content h3 { font-family: 'Fraunces', serif; font-weight: 600; line-height: 1.25; margin-top: 1.4em; }
+.md-content h1, .md-content h2, .md-content h3 { font-family: 'Plus Jakarta Sans', 'Manrope', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; margin-top: 1.4em; }
 .md-content h1 { font-size: 1.7em; }
 .md-content h2 { font-size: 1.35em; }
 .md-content h3 { font-size: 1.15em; }

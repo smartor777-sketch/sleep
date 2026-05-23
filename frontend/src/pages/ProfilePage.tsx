@@ -53,29 +53,26 @@ export default function ProfilePage() {
   const tierLabel = tier === 'pro' ? t('profile.pro', lang) : tier === 'trial' ? t('profile.trial', lang) : t('profile.free', lang);
 
   return (
-    <div className="space-y-6" data-testid="profile-page">
-      <h1 className="font-display text-3xl sm:text-4xl">{t('profile.title', lang)}</h1>
-
-      {/* Accent swatches */}
-      <section>
-        <div className="muted-text text-xs uppercase tracking-wider mb-3">{t('profile.accent', lang)}</div>
-        <div className="flex gap-3 flex-wrap">
-          {ACCENTS.map((a) => (
-            <button
-              key={a.id}
-              data-testid={`accent-${a.id}`}
-              onClick={() => setAccent(a.id)}
-              className="w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-105"
-              style={{ background: a.hex, boxShadow: accentId === a.id ? `0 0 0 3px rgba(255,255,255,0.10), 0 0 0 5px ${a.hex}80` : undefined }}
-            >
-              {accentId === a.id && <Check className="w-5 h-5 text-white" />}
-            </button>
-          ))}
+    <div className="space-y-6 max-w-5xl" data-testid="profile-page">
+      {/* Accent swatches + theme card */}
+      <section className="card-surface rounded-3xl p-5 space-y-5">
+        <div>
+          <div className="muted-text text-xs uppercase tracking-wider mb-3">{t('profile.accent', lang)}</div>
+          <div className="flex gap-3 flex-wrap">
+            {ACCENTS.map((a) => (
+              <button
+                key={a.id}
+                data-testid={`accent-${a.id}`}
+                onClick={() => setAccent(a.id)}
+                className="w-11 h-11 rounded-full flex items-center justify-center transition-transform hover:scale-105"
+                style={{ background: a.hex, boxShadow: accentId === a.id ? `0 0 0 3px rgba(255,255,255,0.10), 0 0 0 5px ${a.hex}80` : undefined }}
+              >
+                {accentId === a.id && <Check className="w-5 h-5 text-white" />}
+              </button>
+            ))}
+          </div>
         </div>
-      </section>
-
-      {/* Theme + font + lang */}
-      <section className="card-surface rounded-3xl p-5 space-y-4">
+        <div className="h-px divider border-t" />
         <Row label={t('profile.theme', lang)}>
           <Toggle
             on={theme === 'dark'}

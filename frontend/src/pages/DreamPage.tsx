@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api';
 import { Analysis, Dream, Message } from '../lib/types';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
-import { ArrowLeft, Sparkles, Send, Loader2, Trash2, AlertCircle, Lock } from 'lucide-react';
+import { Sparkles, Send, Loader2, Trash2, AlertCircle, Lock } from 'lucide-react';
 import Markdown from '../components/Markdown';
 
 export default function DreamPage() {
@@ -181,12 +181,9 @@ export default function DreamPage() {
   }
 
   return (
-    <div className="space-y-5 animate-fade-up" data-testid="dream-page">
-      {/* Top bar */}
-      <div className="flex items-center justify-between gap-4">
-        <Link to="/" className="btn-pill btn-ghost !px-3" data-testid="dream-back-btn">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
+    <div className="space-y-5 animate-fade-up max-w-4xl" data-testid="dream-page">
+      {/* Delete button row (top-right of content) */}
+      <div className="flex items-center justify-end">
         <button
           onClick={() => setConfirmDel(true)}
           className="btn-pill btn-ghost !px-3 text-red-300 hover:!bg-red-500/15"

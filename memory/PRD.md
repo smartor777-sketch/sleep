@@ -18,6 +18,20 @@
 - Хранение: `device_id`, `access_token`, `refresh_token` в `localStorage`.
 - Маршруты: `/`, `/dream/:id`, `/map`, `/search`, `/profile`.
 
+## Веб-адаптация UI (после итерации 2)
+- **Layout современного AI-SaaS**: постоянный левый sidebar (272px) + sticky topbar.
+- **Sidebar**: бренд-лого с фирменным градиентом, крупный pill-CTA «Новый сон» (⌘N) с shortcut hint,
+  workspace-секция с навигацией (icon-pill каждая, активный пункт = вертикальный accent-bar +
+  тонированная подсветка пилюли), снизу — plan-widget с аватаром, тарифом и кнопкой апгрейда.
+- **Topbar**: page-title + subtitle, theme-toggle, аватар-линк на профиль. На /dream/:id показывает
+  back-arrow вместо гамбургера. Глобальный 426-баннер встроен сверху.
+- **Mobile (lg-)**: sidebar превращается в drawer (slide-in слева), открывается гамбургером;
+  оверлей + Esc для закрытия.
+- **Композер**: крупный textarea-блок с поэтическим placeholder, char-counter, audio-кнопкой,
+  send-pill и подсказкой шортката ⌘↵.
+- **Грид снов**: auto-fill minmax(220px, 1fr) — на 1440px ≈5 колонок, на 1024 — 4, на 768 — 3,
+  на мобиле — 2; нет растяжения карточек.
+
 ### Прокси-шлюз (dev convenience)
 `/app/backend/server.py` — простой httpx-proxy. Пробрасывает `/api/*` на внешний backend, чтобы
 preview-домен (HTTPS) мог демонстрироваться с HTTP-бэкендом, обходя Mixed Content/CORS.

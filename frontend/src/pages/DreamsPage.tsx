@@ -4,7 +4,8 @@ import { api, ApiError } from '../lib/api';
 import { t } from '../lib/i18n';
 import DreamCard from '../components/DreamCard';
 import AudioButton from '../components/AudioButton';
-import { Send, Loader2, Sparkles } from 'lucide-react';
+import { Send, Loader2, Sparkles, BookOpen } from 'lucide-react';
+import { onNewDreamRequest } from '../components/Layout';
 
 export default function DreamsPage() {
   const lang = useApp((s) => s.lang);
@@ -24,12 +25,18 @@ export default function DreamsPage() {
     loadDreams(true).catch(() => {});
   }, [loadDreams]);
 
+  // External focus trigger (sidebar "New dream" / cmd+N)
+  useEffect(() => onNewDreamRequest(() => {
+    composeRef.current?.focus();
+    composeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }), []);
+
   // Auto-grow textarea
   function adjust() {
     const el = composeRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 220) + 'px';
+    el.style.height = Math.min(el.scrollHeight, 260) + 'px';
   }
   useEffect(() => { adjust(); }, [text]);
 
@@ -76,7 +83,6 @@ export default function DreamsPage() {
       const dream = await api.createDream({ content });
       addDream(dream);
       setText('');
-      // start analysis automatically? No — spec says manual. But create only.
     } catch (e) {
       const ae = e as ApiError;
       if (ae.status === 429) setErr(t('compose.dailyLimitReached', lang));
@@ -87,28 +93,21 @@ export default function DreamsPage() {
   }
 
   const hasDreams = dreams.length > 0;
+  const charCount = text.length;
 
   return (
-    <div className="space-y-6" data-testid="dreams-page">
-      {/* Header */}
-      <div className="flex items-end justify-between gap-4 pt-2">
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl tracking-tight">
-            {lang === 'ru' ? 'Дневник снов' : 'Dream journal'}
-          </h1>
-          <p className="muted-text mt-1 text-sm">{t('app.tagline', lang)}</p>
-        </div>
-        {dreamsLoaded && (
-          <div className="hidden sm:block muted-text text-sm">
-            {dreams.length} {lang === 'ru' ? 'снов' : 'dreams'}
-          </div>
-        )}
-      </div>
-
-      {/* Compose */}
-      <div className="glass rounded-[28px] p-3 sm:p-4">
-        <div className="flex items-end gap-3">
-          <AudioButton onText={(s) => setText((prev) => (prev ? prev + ' ' + s : s))} />
+    <div className="space-y-8" data-testid="dreams-page">
+      {/* Hero compose */}
+      <section className="relative animate-fade-up">
+        <div
+          className="absolute -top-6 -left-10 -right-10 h-44 pointer-events-none opacity-50 blur-3xl"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(250,144,66,0.35), rgba(136,133,255,0.30) 40%, transparent 70%)' }}
+        />
+        <div className="relative card-surface rounded-[28px] p-5 sm:p-6">
+          <label className="flex items-center gap-2 muted-text text-xs uppercase tracking-[0.18em] mb-3">
+            <BookOpen className="w-3.5 h-3.5" />
+            {lang === 'ru' ? 'Запишите сон' : 'Write a dream'}
+          </label>
           <textarea
             ref={composeRef}
             value={text}
@@ -116,24 +115,52 @@ export default function DreamsPage() {
             onKeyDown={(e) => {
               if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit();
             }}
-            placeholder={t('compose.placeholder', lang)}
+            placeholder={lang === 'ru'
+              ? 'Я шёл по тёмному лесу, между деревьями мерцал свет…'
+              : 'I was walking through a dark forest, light flickering between the trees…'}
             rows={1}
             maxLength={10000}
             data-testid="dream-compose-input"
-            className="input-base resize-none flex-1 !rounded-2xl !py-3"
+            className="w-full bg-transparent border-0 outline-none resize-none text-base sm:text-lg leading-relaxed placeholder:muted-text"
+            style={{ minHeight: 56 }}
           />
-          <button
-            onClick={submit}
-            disabled={sending || text.trim().length < 10}
-            className="w-11 h-11 rounded-full accent-bg text-white flex items-center justify-center disabled:opacity-50"
-            title={t('compose.send', lang)}
-            data-testid="dream-compose-send-btn"
-          >
-            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center justify-between mt-3 pt-3 border-t divider gap-3">
+            <div className="flex items-center gap-2 muted-text text-xs">
+              <AudioButton onText={(s) => setText((p) => (p ? p + ' ' + s : s))} />
+              <span className="hidden sm:inline">
+                {lang === 'ru' ? 'Текст или голос. ⌘↵ — сохранить' : 'Type or speak. ⌘↵ to save'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={'text-xs ' + (charCount > 9000 ? 'text-amber-300' : 'muted-text')}>
+                {charCount}/10000
+              </span>
+              <button
+                onClick={submit}
+                disabled={sending || text.trim().length < 10}
+                data-testid="dream-compose-send-btn"
+                className="btn-pill btn-primary !px-5"
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                <span>{lang === 'ru' ? 'Сохранить' : 'Save'}</span>
+              </button>
+            </div>
+          </div>
+          {err && <div className="mt-3 text-sm text-red-400">{err}</div>}
         </div>
-        {err && <div className="mt-2 text-sm text-red-400 px-2">{err}</div>}
-      </div>
+      </section>
+
+      {/* Section header */}
+      {hasDreams && (
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-xl sm:text-2xl">
+            {lang === 'ru' ? 'Ваши сны' : 'Your dreams'}
+          </h2>
+          <span className="muted-text text-sm">
+            {dreams.length} {lang === 'ru' ? 'записей' : 'entries'}
+          </span>
+        </div>
+      )}
 
       {/* Grid */}
       {!dreamsLoaded ? (
@@ -141,7 +168,11 @@ export default function DreamsPage() {
       ) : !hasDreams ? (
         <EmptyState />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4" data-testid="dreams-grid">
+        <div
+          className="grid gap-3 sm:gap-4"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+          data-testid="dreams-grid"
+        >
           {dreams.map((d) => <DreamCard key={d.id} dream={d} />)}
         </div>
       )}
@@ -151,7 +182,7 @@ export default function DreamsPage() {
 
 function GridSkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="aspect-[4/5] rounded-[28px] overflow-hidden"
              style={{ background: 'linear-gradient(110deg, rgba(255,255,255,0.04), rgba(255,255,255,0.10), rgba(255,255,255,0.04))',
@@ -166,12 +197,12 @@ function GridSkeleton() {
 function EmptyState() {
   const lang = useApp((s) => s.lang);
   return (
-    <div className="text-center py-12 px-6 animate-fade-up" data-testid="dreams-empty">
+    <div className="text-center py-16 px-6 animate-fade-up" data-testid="dreams-empty">
       <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-5"
            style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
         <Sparkles className="w-8 h-8 text-white" />
       </div>
-      <h3 className="font-display text-xl mb-2">{t('dreams.empty.title', lang)}</h3>
+      <h3 className="font-display text-2xl mb-2">{t('dreams.empty.title', lang)}</h3>
       <p className="muted-text max-w-md mx-auto">{t('dreams.empty.sub', lang)}</p>
     </div>
   );

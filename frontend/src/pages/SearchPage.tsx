@@ -27,9 +27,7 @@ export default function SearchPage() {
   }, [q, mode]);
 
   return (
-    <div className="space-y-5" data-testid="search-page">
-      <h1 className="font-display text-2xl sm:text-3xl">{t('search.title', lang)}</h1>
-
+    <div className="space-y-5 max-w-5xl" data-testid="search-page">
       <div className="glass rounded-[24px] p-3 flex items-center gap-3">
         <SearchIcon className="w-5 h-5 muted-text ml-2" />
         <input

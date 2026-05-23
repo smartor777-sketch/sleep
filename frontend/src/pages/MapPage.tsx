@@ -79,12 +79,9 @@ export default function MapPage() {
   return (
     <div className="space-y-4" data-testid="map-page">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl">{t('map.title', lang)}</h1>
-          <p className="muted-text text-sm">
-            {map ? `${map.nodes.length} ${t('map.nodes', lang)} · zoom ${zoom.toFixed(2)}x${map.meta.cached ? ' · cached' : ''}` : ''}
-          </p>
-        </div>
+        <p className="muted-text text-sm">
+          {map ? `${map.nodes.length} ${t('map.nodes', lang)} · zoom ${zoom.toFixed(2)}x${map.meta.cached ? ' · cached' : ''}` : ''}
+        </p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); setFilter('__all__'); }}

@@ -1,70 +1,54 @@
-import { ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutGrid, MessageCircle, Search, MapPin, User as UserIcon, AlertTriangle } from 'lucide-react';
-import { useApp } from '../lib/store';
-import { t } from '../lib/i18n';
-import clsx from 'clsx';
+import { ReactNode, useEffect, useState } from 'react';
+import Sidebar from './Sidebar';
+import Topbar from './Topbar';
 
-export default function Layout({ children }: { children: ReactNode }) {
-  const lang = useApp((s) => s.lang);
-  const upgrade = useApp((s) => s.upgradeBanner);
-  const loc = useLocation();
-  const isDreamRoute = loc.pathname.startsWith('/dream/');
+const NEW_DREAM_EVENT = 'innercore:new-dream';
 
-  return (
-    <div className="grain min-h-screen flex flex-col relative">
-      {upgrade && (
-        <div className="sticky top-0 z-40 px-4 py-2 text-sm flex items-center gap-2 justify-center"
-             style={{ background: 'rgb(var(--accent))', color: '#fff' }}>
-          <AlertTriangle className="w-4 h-4" />
-          <span>{t('common.upgradeRequired', lang)}</span>
-        </div>
-      )}
-
-      <main className={clsx(
-        'flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 pt-6 relative z-10',
-        isDreamRoute ? 'pb-6' : 'pb-28'
-      )}>
-        {children}
-      </main>
-
-      {!isDreamRoute && <BottomNav />}
-    </div>
-  );
+export function emitNewDreamRequest() {
+  window.dispatchEvent(new CustomEvent(NEW_DREAM_EVENT));
 }
 
-function BottomNav() {
-  const lang = useApp((s) => s.lang);
-  const items = [
-    { to: '/', icon: LayoutGrid, label: t('nav.grid', lang), id: 'nav-grid' },
-    { to: '/search', icon: Search, label: t('nav.search', lang), id: 'nav-search' },
-    { to: '/map', icon: MapPin, label: t('nav.map', lang), id: 'nav-map' },
-    { to: '/profile', icon: UserIcon, label: t('nav.profile', lang), id: 'nav-profile' },
-  ];
+export function onNewDreamRequest(handler: () => void) {
+  const wrapped = () => handler();
+  window.addEventListener(NEW_DREAM_EVENT, wrapped);
+  return () => window.removeEventListener(NEW_DREAM_EVENT, wrapped);
+}
+
+export default function Layout({ children }: { children: ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close drawer on Esc
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSidebarOpen(false);
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        emitNewDreamRequest();
+        if (location.pathname !== '/') {
+          // SPA-friendly nav
+          history.pushState({}, '', '/');
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-30 glass border-t divider"
-      data-testid="bottom-nav"
-    >
-      <div className="max-w-6xl mx-auto flex items-stretch justify-around px-4 py-2 safe-bottom">
-        {items.map((it) => (
-          <NavLink
-            key={it.to}
-            to={it.to}
-            end={it.to === '/'}
-            data-testid={it.id}
-            className={({ isActive }) =>
-              clsx(
-                'flex-1 max-w-[120px] flex flex-col items-center justify-center gap-1 py-2 rounded-2xl no-tap',
-                isActive ? 'accent-text' : 'muted-text'
-              )
-            }
-          >
-            <it.icon className="w-6 h-6" strokeWidth={2.1} />
-            <span className="text-[11px]">{it.label}</span>
-          </NavLink>
-        ))}
+    <div className="grain min-h-screen flex relative">
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onNewDream={() => emitNewDreamRequest()}
+      />
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 pb-12 w-full max-w-[1280px] mx-auto relative z-10">
+          {children}
+        </main>
       </div>
-    </nav>
+    </div>
   );
 }

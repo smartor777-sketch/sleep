@@ -26,3 +26,8 @@ coverage.xml
 # OS specific
 .DS_Store
 
+*.env
+credentials.json
+*.pem
+*.key
+.credentials

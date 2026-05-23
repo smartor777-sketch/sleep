@@ -182,6 +182,12 @@ body {
 :root[data-theme='light'] .icon-pill { background: rgba(0, 0, 0, 0.05); }
 :root[data-theme='light'] .group:hover .icon-pill { background: rgba(0, 0, 0, 0.09); }
 
+/* Theme-aware toggle switch */
+.tgl-track { background: rgba(255, 255, 255, 0.14); transition: background-color 180ms ease; }
+:root[data-theme='light'] .tgl-track { background: rgba(0, 0, 0, 0.14); }
+.tgl-knob { background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 180ms ease; }
+:root[data-theme='light'] .tgl-knob { background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
+
 .no-tap { -webkit-tap-highlight-color: transparent; }
 
 /* Subtle grain */

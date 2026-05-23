@@ -317,11 +317,12 @@ function Toggle({ on, onChange, testId }: { on: boolean; onChange: (v: boolean) 
     <button
       onClick={() => onChange(!on)}
       data-testid={testId}
-      className="w-12 h-7 rounded-full relative transition-colors"
-      style={{ background: on ? 'rgb(var(--accent))' : 'rgba(255,255,255,0.12)' }}
+      className={'w-12 h-7 rounded-full relative ' + (on ? 'accent-bg' : 'tgl-track')}
     >
-      <span className="absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white transition-transform"
-            style={{ transform: on ? 'translateX(20px)' : 'translateX(0)' }} />
+      <span
+        className="tgl-knob absolute top-0.5 left-0.5 w-6 h-6 rounded-full"
+        style={{ transform: on ? 'translateX(20px)' : 'translateX(0)' }}
+      />
     </button>
   );
 }

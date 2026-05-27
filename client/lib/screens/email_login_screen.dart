@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import 'email_register_screen.dart';
+import 'forgot_password_screen.dart';
 import 'verify_email_screen.dart';
 
 class EmailLoginScreen extends StatefulWidget {
@@ -117,7 +118,21 @@ class _EmailLoginScreenState extends State<EmailLoginScreen> {
                     : Text(l10n.loginButton),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ForgotPasswordScreen(
+                    initialEmail: _emailController.text.trim().isEmpty
+                        ? null
+                        : _emailController.text.trim(),
+                  ),
+                ),
+              ),
+              child: Text(l10n.forgotPassword),
+            ),
+            const SizedBox(height: 8),
             TextButton(
               onPressed: () => Navigator.pushReplacement(
                 context,

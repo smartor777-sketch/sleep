@@ -139,6 +139,52 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    try {
+      await _api.post('/api/v1/auth/logout', body: const {});
+    } catch (_) {
+      // logout всегда успешен с точки зрения клиента — токены чистим в любом случае
+    }
+    await _storage.clearTokens();
+  }
+
+  Future<void> forgotPassword({required String email}) async {
+    final response = await _api.post(
+      '/api/v1/auth/forgot-password',
+      body: {'email': email},
+      auth: false,
+    );
+    if (response.statusCode == 400) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'oauth_account_no_password');
+    }
+    if (response.statusCode != 200) {
+      throw Exception('forgot_password_failed');
+    }
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    final response = await _api.post(
+      '/api/v1/auth/reset-password',
+      body: {'token': token, 'new_password': newPassword},
+      auth: false,
+    );
+    if (response.statusCode == 400) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(data['detail'] ?? 'invalid_or_expired_token');
+    }
+    if (response.statusCode != 200) {
+      throw Exception('reset_password_failed');
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    final response = await _api.delete('/api/v1/auth/account');
+    if (response.statusCode != 200) {
+      throw Exception('delete_account_failed');
+    }
     await _storage.clearTokens();
   }
 

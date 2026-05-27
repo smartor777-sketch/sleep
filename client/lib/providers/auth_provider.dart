@@ -120,6 +120,47 @@ class AuthProvider extends ChangeNotifier {
     await bootstrap();
   }
 
+  /// Request a password reset email. Returns true on success.
+  Future<bool> forgotPassword(String email) async {
+    try {
+      await _authService.forgotPassword(email: email);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Submit a new password using the reset token from the email link.
+  Future<bool> resetPassword(String token, String newPassword) async {
+    try {
+      await _authService.resetPassword(token: token, newPassword: newPassword);
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Delete the current user account on the backend and reset to anonymous.
+  Future<bool> deleteAccount() async {
+    try {
+      await _authService.deleteAccount();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+    _user = null;
+    _loading = false;
+    _error = null;
+    notifyListeners();
+    await bootstrap();
+    return true;
+  }
+
   void updateUser(UserMe user) {
     _user = user;
     notifyListeners();

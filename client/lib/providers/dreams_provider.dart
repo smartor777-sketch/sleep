@@ -215,17 +215,8 @@ class DreamsProvider extends ChangeNotifier {
     _errorCode = null;
     try {
       await _analysisService.createAnalysis(id);
-      final index = _dreams.indexWhere((d) => d.id == id);
-      if (index >= 0) {
-        _dreams[index] = _dreams[index].copyWith(
-          analysisStatus: 'analyzing',
-          hasAnalysis: true,
-        );
-        notifyListeners();
-        _pollDreamUntilSettled(id);
-        return _dreams[index];
-      }
-      return null;
+    } on AnalysisAlreadyRunningException {
+      // Analysis already in flight for this dream — fall through to polling.
     } on AnalysisLimitException {
       _error = 'analysis_limit_reached';
       _errorCode = 402;
@@ -241,6 +232,18 @@ class DreamsProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+
+    final index = _dreams.indexWhere((d) => d.id == id);
+    if (index >= 0) {
+      _dreams[index] = _dreams[index].copyWith(
+        analysisStatus: 'analyzing',
+        hasAnalysis: true,
+      );
+      notifyListeners();
+      _pollDreamUntilSettled(id);
+      return _dreams[index];
+    }
+    return null;
   }
 
   Future<bool> deleteDream(String id) async {

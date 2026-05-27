@@ -105,6 +105,38 @@ void main() {
     expect(provider.dreams.first.analysisStatus, 'analyzed');
   });
 
+  test('triggerAnalysis treats 409 as already-running and polls', () async {
+    final initial = buildDream(analysisStatus: 'saved', hasAnalysis: false);
+    final analyzedDream = initial.copyWith(
+      hasAnalysis: true,
+      analysisStatus: 'analyzed',
+    );
+    final service = FakeDreamsService();
+    service.onGetDreams = ({int page = 1, int pageSize = 50, String? date}) async => [initial];
+    service.onGetDream = (String id) async => analyzedDream;
+    final analysisService = FakeAnalysisService();
+    analysisService.onCreateAnalysis = (String dreamId) async {
+      throw AnalysisAlreadyRunningException();
+    };
+    final provider = DreamsProvider(
+      FakeAuthProvider(),
+      service: service,
+      analysisService: analysisService,
+      pollInterval: Duration.zero,
+      maxPollAttempts: 2,
+    );
+    await provider.loadDreams();
+
+    final result = await provider.triggerAnalysis(initial.id);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(result, isNotNull);
+    expect(result!.analysisStatus, 'analyzing');
+    expect(provider.error, isNull);
+    expect(provider.errorCode, isNull);
+    expect(provider.dreams.first.analysisStatus, 'analyzed');
+  });
+
   test('triggerAnalysis surfaces 402 paywall on limit exceeded', () async {
     final initial = buildDream(analysisStatus: 'saved', hasAnalysis: false);
     final service = FakeDreamsService();

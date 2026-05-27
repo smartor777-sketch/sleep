@@ -58,6 +58,9 @@ class AnalysisService {
     if (response.statusCode == 402) {
       throw AnalysisLimitException();
     }
+    if (response.statusCode == 409) {
+      throw AnalysisAlreadyRunningException();
+    }
     if (response.statusCode != 202) {
       _throwApi(response);
     }

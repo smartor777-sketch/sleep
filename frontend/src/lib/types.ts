@@ -1,4 +1,23 @@
 // Domain types matching backend contracts.
+
+export interface AuthUser {
+  id: string;
+  is_anonymous: boolean;
+  email: string | null;
+}
+
+export interface ProviderIdentity {
+  provider: string;
+  provider_subject: string;
+  email: string | null;
+}
+
+export interface LinkResponse {
+  linked: boolean;
+  user: AuthUser;
+  provider_identity: ProviderIdentity;
+}
+
 export interface User {
   id: string;
   email: string | null;

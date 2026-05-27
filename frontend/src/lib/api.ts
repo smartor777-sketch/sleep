@@ -158,7 +158,7 @@ async function del<T>(url: string) {
 // ===== Endpoints =====
 import {
   User, Dream, DreamListResponse, Analysis, Message,
-  DreamMap, SymbolDetail, BillingStatus, UserStats,
+  DreamMap, SymbolDetail, BillingStatus, UserStats, LinkResponse,
 } from './types';
 
 export const api = {
@@ -203,6 +203,25 @@ export const api = {
 
   forgotPassword: (email: string) =>
     post<{ message: string }>('/api/v1/auth/forgot-password', { email }, { __skipAuth: true } as any),
+
+  resetPassword: (token: string, new_password: string) =>
+    post<{ message: string }>(
+      '/api/v1/auth/reset-password',
+      { token, new_password },
+      { __skipAuth: true } as any
+    ),
+
+  signInGoogle: async (id_token: string) => {
+    const data = await post<{ access_token: string; refresh_token: string; token_type: string }>(
+      '/api/v1/auth/google',
+      { id_token }
+    );
+    setTokens(data.access_token, data.refresh_token);
+    return data;
+  },
+
+  linkProvider: (provider: 'google' | 'apple', id_token: string) =>
+    post<LinkResponse>('/api/v1/auth/link', { provider, id_token }),
 
   mergeAnonymous: (anonymous_device_id: string) =>
     post<{ message: string }>('/api/v1/auth/merge-anonymous', { anonymous_device_id }),
@@ -256,8 +275,15 @@ export const api = {
     ),
 
   // ---- Map ----
-  getMap: (user_id: string, params?: Record<string, any>) =>
-    get<DreamMap>(`/api/v1/map/${user_id}`, params),
+  getMap: (
+    user_id: string,
+    params?: {
+      n_neighbors?: number;
+      min_dist?: number;
+      cluster_method?: string;
+      force_refresh?: boolean;
+    }
+  ) => get<DreamMap>(`/api/v1/map/${user_id}`, params),
   getSymbol: (user_id: string, symbol_id: string) =>
     get<SymbolDetail>(`/api/v1/map/${user_id}/symbol/${symbol_id}`),
 

@@ -103,8 +103,8 @@ export default function DreamsPage() {
           className="absolute -top-6 -left-10 -right-10 h-44 pointer-events-none opacity-50 blur-3xl"
           style={{ background: 'radial-gradient(ellipse at center, rgba(250,144,66,0.35), rgba(136,133,255,0.30) 40%, transparent 70%)' }}
         />
-        <div className="relative card-surface rounded-[28px] p-5 sm:p-6">
-          <label className="flex items-center gap-2 muted-text text-xs uppercase tracking-[0.18em] mb-3">
+        <div className="relative card-surface rounded-[28px] p-4 sm:p-6">
+          <label className="flex items-center gap-2 muted-text text-[10px] sm:text-xs uppercase tracking-[0.18em] mb-2 sm:mb-3">
             <BookOpen className="w-3.5 h-3.5" />
             {lang === 'ru' ? 'Запишите сон' : 'Write a dream'}
           </label>
@@ -169,8 +169,7 @@ export default function DreamsPage() {
         <EmptyState />
       ) : (
         <div
-          className="grid gap-3 sm:gap-4"
-          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4"
           data-testid="dreams-grid"
         >
           {dreams.map((d) => <DreamCard key={d.id} dream={d} />)}
@@ -182,7 +181,7 @@ export default function DreamsPage() {
 
 function GridSkeleton() {
   return (
-    <div className="grid gap-3 sm:gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="aspect-[4/5] rounded-[28px] overflow-hidden"
              style={{ background: 'linear-gradient(110deg, rgba(255,255,255,0.04), rgba(255,255,255,0.10), rgba(255,255,255,0.04))',

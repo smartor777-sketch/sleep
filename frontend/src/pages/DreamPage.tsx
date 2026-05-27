@@ -196,17 +196,17 @@ export default function DreamPage() {
 
       {/* Dream hero card */}
       <div
-        className="rounded-[28px] p-5 sm:p-7 relative overflow-hidden text-white"
+        className="rounded-[28px] p-4 sm:p-6 lg:p-7 relative overflow-hidden text-white"
         style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}
       >
         <div className="absolute inset-0 opacity-50 mix-blend-overlay"
              style={{ background: 'linear-gradient(120deg, rgba(255,255,255,0.25), transparent 40%, rgba(0,0,0,0.35))' }} />
         <div className="relative">
-          <div className="text-xs sm:text-sm opacity-80 mb-2">{date}</div>
-          <h1 className="font-display text-2xl sm:text-3xl leading-tight mb-3">
+          <div className="text-xs opacity-80 mb-2">{date}</div>
+          <h1 className="font-display text-xl sm:text-2xl lg:text-3xl leading-tight mb-3 font-semibold">
             {dream.title || dream.content.trim().split(/\s+/).slice(0, 5).join(' ')}
           </h1>
-          <p className="whitespace-pre-wrap text-base sm:text-[17px] leading-relaxed opacity-95">
+          <p className="whitespace-pre-wrap text-[15px] sm:text-base lg:text-[17px] leading-relaxed opacity-95">
             {dream.content}
           </p>
         </div>
@@ -250,7 +250,7 @@ export default function DreamPage() {
 
       {dream.analysis_status === 'analyzed' && analysis && (
         <>
-          <section className="card-surface rounded-[24px] p-5 sm:p-7" data-testid="dream-analysis-section">
+          <section className="card-surface rounded-[24px] p-4 sm:p-6 lg:p-7" data-testid="dream-analysis-section">
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-full accent-bg" />
               <h2 className="font-display text-lg accent-text">

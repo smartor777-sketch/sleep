@@ -67,7 +67,7 @@ export default function SearchPage() {
         <div className="text-center muted-text py-12">{t('search.nothing', lang)}</div>
       )}
       {results && results.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {results.map((d) => <DreamCard key={d.id} dream={d} />)}
         </div>
       )}

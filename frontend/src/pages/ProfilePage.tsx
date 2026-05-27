@@ -54,9 +54,9 @@ export default function ProfilePage() {
   const tierLabel = tier === 'pro' ? t('profile.pro', lang) : tier === 'trial' ? t('profile.trial', lang) : t('profile.free', lang);
 
   return (
-    <div className="space-y-6 max-w-5xl" data-testid="profile-page">
+    <div className="space-y-5 sm:space-y-6 max-w-5xl" data-testid="profile-page">
       {/* Accent swatches + theme card */}
-      <section className="card-surface rounded-3xl p-5 space-y-5">
+      <section className="card-surface rounded-3xl p-4 sm:p-5 space-y-4 sm:space-y-5">
         <div>
           <div className="muted-text text-xs uppercase tracking-wider mb-3">{t('profile.accent', lang)}</div>
           <div className="flex gap-3 flex-wrap">
@@ -110,7 +110,7 @@ export default function ProfilePage() {
       </section>
 
       {/* Tier card */}
-      <section className="card-surface rounded-3xl p-5" data-testid="tier-card">
+      <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="tier-card">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl accent-bg flex items-center justify-center text-white">
             <Sparkles className="w-5 h-5" />
@@ -138,7 +138,7 @@ export default function ProfilePage() {
       </section>
 
       {/* About me */}
-      <section className="card-surface rounded-3xl p-5" data-testid="about-section">
+      <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="about-section">
         <div className="font-display text-lg mb-2">{t('profile.about', lang)}</div>
         <p className="muted-text text-sm mb-3">{t('profile.aboutHint', lang)}</p>
         <textarea
@@ -169,10 +169,10 @@ export default function ProfilePage() {
           </div>
 
           {stats.dreams_last_14_days?.length > 0 && (
-            <div className="card-surface rounded-3xl p-5">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="font-display text-lg">{t('profile.last14', lang)}</div>
-                <span className="muted-text text-xs">
+            <div className="card-surface rounded-3xl p-4 sm:p-5">
+              <div className="flex items-baseline justify-between mb-3 sm:mb-4 gap-3">
+                <div className="font-display text-base sm:text-lg">{t('profile.last14', lang)}</div>
+                <span className="muted-text text-[10px] sm:text-xs text-right">
                   {lang === 'ru' ? 'количество снов в день' : 'dreams per day'}
                 </span>
               </div>
@@ -181,10 +181,10 @@ export default function ProfilePage() {
           )}
 
           {stats.archetypes_top?.length > 0 && (
-            <div className="card-surface rounded-3xl p-5">
-              <div className="flex items-baseline justify-between mb-4">
-                <div className="font-display text-lg">{t('profile.topArch', lang)}</div>
-                <span className="muted-text text-xs">
+            <div className="card-surface rounded-3xl p-4 sm:p-5">
+              <div className="flex items-baseline justify-between mb-3 sm:mb-4 gap-3">
+                <div className="font-display text-base sm:text-lg">{t('profile.topArch', lang)}</div>
+                <span className="muted-text text-[10px] sm:text-xs text-right">
                   {lang === 'ru' ? 'распределение во снах' : 'distribution in dreams'}
                 </span>
               </div>
@@ -230,7 +230,7 @@ export default function ProfilePage() {
       </section>
 
       {/* Mobile app */}
-      <section className="card-surface rounded-3xl p-5" data-testid="mobile-app-section">
+      <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="mobile-app-section">
         <div className="flex items-start gap-4">
           <span className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shrink-0"
                 style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
@@ -245,11 +245,11 @@ export default function ProfilePage() {
                 ? 'Записывайте сны утром, прямо в постели. Один аккаунт — все ваши сны на любом устройстве.'
                 : 'Capture dreams the moment you wake. One account — same dreams on every device.'}
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => alert(lang === 'ru' ? 'Ссылка появится скоро' : 'Link coming soon')}
-                className="btn-pill btn-soft !py-2"
+                className="btn-pill btn-soft !py-2 w-full sm:w-auto justify-center sm:justify-start"
                 data-testid="download-ios-btn"
               >
                 <Apple className="w-4 h-4" />
@@ -258,7 +258,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => alert(lang === 'ru' ? 'Ссылка появится скоро' : 'Link coming soon')}
-                className="btn-pill btn-soft !py-2"
+                className="btn-pill btn-soft !py-2 w-full sm:w-auto justify-center sm:justify-start"
                 data-testid="download-android-btn"
               >
                 <Smartphone className="w-4 h-4" />
@@ -329,9 +329,9 @@ function Toggle({ on, onChange, testId }: { on: boolean; onChange: (v: boolean) 
 
 function StatCard({ label, value, accent }: { label: string; value: number | string; accent?: boolean }) {
   return (
-    <div className="card-surface rounded-3xl p-5">
-      <div className={'font-display text-3xl mb-1 ' + (accent ? 'accent-text' : '')}>{value}</div>
-      <div className="muted-text text-sm">{label}</div>
+    <div className="card-surface rounded-3xl p-4 sm:p-5">
+      <div className={'font-display text-2xl sm:text-3xl mb-1 ' + (accent ? 'accent-text' : '')}>{value}</div>
+      <div className="muted-text text-xs sm:text-sm">{label}</div>
     </div>
   );
 }

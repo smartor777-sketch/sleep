@@ -45,7 +45,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 pt-6 pb-12 w-full max-w-[1280px] mx-auto relative z-10">
+        <main className="flex-1 px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 w-full max-w-[1280px] mx-auto relative z-10">
           {children}
         </main>
       </div>

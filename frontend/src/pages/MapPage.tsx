@@ -77,19 +77,19 @@ export default function MapPage() {
   }
 
   return (
-    <div className="space-y-4" data-testid="map-page">
-      <div className="flex items-center justify-between gap-4">
-        <p className="muted-text text-sm">
+    <div className="space-y-3 sm:space-y-4" data-testid="map-page">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="muted-text text-xs sm:text-sm">
           {map ? `${map.nodes.length} ${t('map.nodes', lang)} · zoom ${zoom.toFixed(2)}x${map.meta.cached ? ' · cached' : ''}` : ''}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <button
             onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); setFilter('__all__'); }}
-            className="btn-pill btn-ghost text-sm" data-testid="map-reset-btn">
+            className="btn-pill btn-ghost text-sm !py-1.5" data-testid="map-reset-btn">
             {t('map.reset', lang)}
           </button>
           <button onClick={() => load(true)} disabled={loading}
-                  className="btn-pill btn-soft text-sm" data-testid="map-refresh-btn">
+                  className="btn-pill btn-soft text-sm !py-1.5" data-testid="map-refresh-btn">
             <RefreshCw className={'w-4 h-4 ' + (loading ? 'animate-spin' : '')} />
             {t('map.refresh', lang)}
           </button>
@@ -108,7 +108,7 @@ export default function MapPage() {
 
       {/* Canvas */}
       <div
-        className="relative rounded-[28px] overflow-hidden card-surface"
+        className="relative rounded-[24px] sm:rounded-[28px] overflow-hidden card-surface touch-none"
         style={{ height: 'min(72vh, 720px)' }}
         onWheel={(e) => {
           e.preventDefault();

@@ -48,7 +48,7 @@ export default function Topbar({ onOpenSidebar, rightSlot }: Props) {
       )}
 
       <header className="glass border-b divider">
-        <div className="px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-3">
+        <div className="px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center gap-2 sm:gap-3">
           {/* Mobile menu OR back-arrow for dream route */}
           {isDreamRoute ? (
             <button

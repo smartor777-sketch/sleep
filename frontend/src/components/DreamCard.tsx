@@ -47,12 +47,12 @@ export default function DreamCard({ dream }: Props) {
            style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.45) 100%)' }} />
 
       <div className="relative h-full p-3 sm:p-4 flex flex-col justify-between text-white">
-        <div className="text-xs sm:text-sm opacity-90 font-medium tracking-wide">{date}</div>
+        <div className="text-[11px] sm:text-xs opacity-90 font-medium tracking-wide">{date}</div>
         <div>
-          <div className="text-base sm:text-lg leading-tight line-clamp-3 font-semibold drop-shadow">
+          <div className="text-sm sm:text-base lg:text-lg leading-tight line-clamp-3 font-semibold drop-shadow">
             {title}
           </div>
-          {dream.emoji && <div className="mt-1 text-lg">{dream.emoji}</div>}
+          {dream.emoji && <div className="mt-1 text-base sm:text-lg">{dream.emoji}</div>}
         </div>
       </div>
 

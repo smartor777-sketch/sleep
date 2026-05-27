@@ -90,18 +90,32 @@ async def create_dream_endpoint(
         )
 
 
-@router.post("/{dream_id}/analyze", response_model=DreamResponse)
+@router.post(
+    "/{dream_id}/analyze",
+    response_model=DreamResponse,
+    deprecated=True,
+    summary="DEPRECATED — use POST /analyses instead",
+)
 async def trigger_analysis_endpoint(
     dream_id: UUID,
     current_user: CurrentUser,
-    db: DatabaseSession
+    db: DatabaseSession,
 ):
     """
-    Запустить анализ сна вручную.
+    DEPRECATED. Use `POST /api/v1/analyses` (returns 202 + task_id).
 
-    - Создаёт Analysis и запускает Celery-задачу
-    - Возвращает сон со статусом analyzing
+    Этот эндпоинт **не проверяет лимит анализов** и не инкрементит
+    счётчик `analyses_this_week` — клиенты должны быть мигрированы
+    на `POST /analyses`. Будет удалён, когда телеметрия покажет
+    отсутствие трафика.
     """
+    logger.warning(
+        "deprecated_endpoint_hit path=/dreams/%s/analyze user=%s — "
+        "client should use POST /analyses",
+        dream_id,
+        current_user.id,
+    )
+
     dream = await get_dream_by_id(db, dream_id, current_user)
 
     if not dream:

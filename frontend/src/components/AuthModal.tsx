@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import Modal from './Modal';
 import { api, ApiError, getDeviceId } from '../lib/api';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import { Loader2 } from 'lucide-react';
+import GoogleSignInButton from './GoogleSignInButton';
 
 type Mode = 'register' | 'login' | 'verify' | 'forgot';
 
@@ -92,6 +93,23 @@ export default function AuthModal({ open, onClose, initialMode = 'register' }: P
     finally { setBusy(false); }
   }
 
+  const onGoogleCredential = useCallback(async (idToken: string) => {
+    setErr(null); setBusy(true);
+    const anonDevice = getDeviceId();
+    try {
+      await api.signInGoogle(idToken);
+      try { await api.mergeAnonymous(anonDevice); } catch {}
+      await refreshUser();
+      refreshBilling().catch(() => {});
+      onClose(); reset();
+    } catch (e) {
+      const ae = e as ApiError;
+      setErr(ae.detail || ae.message || 'google_signin_failed');
+    } finally {
+      setBusy(false);
+    }
+  }, [onClose, refreshUser, refreshBilling]);
+
   const title =
     mode === 'register' ? t('auth.register', lang) :
     mode === 'login' ? t('auth.login', lang) :
@@ -146,6 +164,13 @@ export default function AuthModal({ open, onClose, initialMode = 'register' }: P
             mode === 'login' ? t('auth.login', lang) :
             mode === 'verify' ? t('auth.verify', lang) : t('common.tryAgain', lang)}
         </button>
+
+        {(mode === 'register' || mode === 'login') && (
+          <div className="flex flex-col items-center gap-2 pt-2">
+            <div className="text-xs muted-text">{t('auth.or', lang)}</div>
+            <GoogleSignInButton onCredential={onGoogleCredential} locale={lang} disabled={busy} />
+          </div>
+        )}
 
         <div className="text-center text-sm muted-text flex flex-col gap-2 pt-2">
           {mode === 'register' && (

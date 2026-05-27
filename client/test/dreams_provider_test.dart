@@ -1,4 +1,5 @@
 import 'package:client/providers/dreams_provider.dart';
+import 'package:client/services/analysis_service.dart';
 import 'package:client/services/api_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -62,25 +63,34 @@ void main() {
 
   test('triggerAnalysis starts polling until analyzed', () async {
     final initial = buildDream(analysisStatus: 'saved', hasAnalysis: false);
-    final triggeredDream = initial.copyWith(analysisStatus: 'analyzing');
+    final analyzingDream = initial.copyWith(
+      analysisStatus: 'analyzing',
+      hasAnalysis: true,
+    );
     final analyzedDream = initial.copyWith(
       hasAnalysis: true,
       analysisStatus: 'analyzed',
       gradientColor1: '#112233',
       gradientColor2: '#445566',
     );
-    final refreshed = [triggeredDream, analyzedDream];
+    final refreshed = [analyzingDream, analyzedDream];
     var refreshIndex = 0;
     final service = FakeDreamsService();
     service.onGetDreams = ({int page = 1, int pageSize = 50, String? date}) async => [initial];
-    service.onTriggerAnalysis = (String id) async {
-      expect(id, initial.id);
-      return triggeredDream;
-    };
     service.onGetDream = (String id) async => refreshed[refreshIndex++];
+    final analysisService = FakeAnalysisService();
+    analysisService.onCreateAnalysis = (String dreamId) async {
+      expect(dreamId, initial.id);
+      return AnalysisTask(
+        analysisId: 'a-1',
+        taskId: 't-1',
+        status: 'pending',
+      );
+    };
     final provider = DreamsProvider(
       FakeAuthProvider(),
       service: service,
+      analysisService: analysisService,
       pollInterval: Duration.zero,
       maxPollAttempts: 3,
     );
@@ -93,6 +103,30 @@ void main() {
     expect(result, isNotNull);
     expect(result!.analysisStatus, 'analyzing');
     expect(provider.dreams.first.analysisStatus, 'analyzed');
+  });
+
+  test('triggerAnalysis surfaces 402 paywall on limit exceeded', () async {
+    final initial = buildDream(analysisStatus: 'saved', hasAnalysis: false);
+    final service = FakeDreamsService();
+    service.onGetDreams = ({int page = 1, int pageSize = 50, String? date}) async => [initial];
+    final analysisService = FakeAnalysisService();
+    analysisService.onCreateAnalysis = (String dreamId) async {
+      throw AnalysisLimitException();
+    };
+    final provider = DreamsProvider(
+      FakeAuthProvider(),
+      service: service,
+      analysisService: analysisService,
+      pollInterval: Duration.zero,
+      maxPollAttempts: 1,
+    );
+    await provider.loadDreams();
+
+    final result = await provider.triggerAnalysis(initial.id);
+
+    expect(result, isNull);
+    expect(provider.errorCode, 402);
+    expect(provider.error, 'analysis_limit_reached');
   });
 
   test('deleteDream removes item on success', () async {

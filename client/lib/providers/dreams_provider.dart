@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/dream.dart';
+import '../services/analysis_service.dart';
 import '../services/dreams_service.dart';
 import 'auth_provider.dart';
 import '../services/api_exception.dart';
@@ -9,17 +10,20 @@ class DreamsProvider extends ChangeNotifier {
   DreamsProvider(
     this._auth, {
     DreamsService? service,
+    AnalysisService? analysisService,
     Duration pollInterval = const Duration(seconds: 2),
     int maxPollAttempts = 60,
   }) : _pollInterval = pollInterval,
        _maxPollAttempts = maxPollAttempts {
     _service = service ?? DreamsService(_auth.apiClient);
+    _analysisService = analysisService ?? AnalysisService(_auth.apiClient);
   }
 
   final AuthProvider _auth;
   final Duration _pollInterval;
   final int _maxPollAttempts;
   late final DreamsService _service;
+  late final AnalysisService _analysisService;
 
   final List<Dream> _dreams = [];
   final List<Dream> _searchResults = [];
@@ -207,15 +211,26 @@ class DreamsProvider extends ChangeNotifier {
   }
 
   Future<Dream?> triggerAnalysis(String id) async {
+    _error = null;
+    _errorCode = null;
     try {
-      final updated = await _service.triggerAnalysis(id);
+      await _analysisService.createAnalysis(id);
       final index = _dreams.indexWhere((d) => d.id == id);
       if (index >= 0) {
-        _dreams[index] = updated;
+        _dreams[index] = _dreams[index].copyWith(
+          analysisStatus: 'analyzing',
+          hasAnalysis: true,
+        );
+        notifyListeners();
+        _pollDreamUntilSettled(id);
+        return _dreams[index];
       }
+      return null;
+    } on AnalysisLimitException {
+      _error = 'analysis_limit_reached';
+      _errorCode = 402;
       notifyListeners();
-      _pollDreamUntilSettled(id);
-      return updated;
+      return null;
     } catch (e) {
       if (e is ApiException) {
         _error = e.message;

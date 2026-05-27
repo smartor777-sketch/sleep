@@ -61,6 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _aboutController;
   String _aboutText = '';
   bool _linking = false;
+  bool _deleting = false;
 
   @override
   void initState() {
@@ -664,9 +665,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Text(l10n.logoutButton),
             ),
           ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+                side: BorderSide(color: Theme.of(context).colorScheme.error),
+              ),
+              onPressed: _deleting ? null : () => _confirmDeleteAccount(context),
+              child: _deleting
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(l10n.deleteAccount),
+            ),
+          ),
         ],
       ],
     );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final auth = context.read<AuthProvider>();
+    final l10n = AppLocalizations.of(context)!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteAccountConfirmTitle),
+        content: Text(l10n.deleteAccountConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.deleteAccountCancel),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.deleteAccountConfirmAction),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    setState(() => _deleting = true);
+    final ok = await auth.deleteAccount();
+    if (!mounted) return;
+    setState(() => _deleting = false);
+    if (!ok) {
+      showToast(context, l10n.deleteAccountFailed, isError: true);
+    }
   }
 
   Future<void> _signInWithGoogle() async {

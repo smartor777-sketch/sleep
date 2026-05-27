@@ -427,6 +427,44 @@ class AppLocalizationsRu extends AppLocalizations {
   String get forgotPassword => 'Забыли пароль?';
 
   @override
+  String get forgotPasswordTitle => 'Сброс пароля';
+
+  @override
+  String get forgotPasswordHelper =>
+      'Мы отправим ссылку для сброса пароля на ваш email.';
+
+  @override
+  String get forgotPasswordSubmit => 'Отправить ссылку';
+
+  @override
+  String get forgotPasswordSent =>
+      'Если такой email зарегистрирован, мы отправили на него ссылку.';
+
+  @override
+  String get forgotPasswordOauthError =>
+      'Этот аккаунт использует вход через Google, у него нет пароля для сброса.';
+
+  @override
+  String get deleteAccount => 'Удалить аккаунт';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Удалить аккаунт?';
+
+  @override
+  String get deleteAccountConfirmBody =>
+      'Это навсегда удалит все ваши сны, анализы и переписки. Действие необратимо.';
+
+  @override
+  String get deleteAccountConfirmAction => 'Удалить навсегда';
+
+  @override
+  String get deleteAccountCancel => 'Отмена';
+
+  @override
+  String get deleteAccountFailed =>
+      'Не удалось удалить аккаунт. Попробуйте позже.';
+
+  @override
   String get premiumTitle => 'InnerCore Pro';
 
   @override

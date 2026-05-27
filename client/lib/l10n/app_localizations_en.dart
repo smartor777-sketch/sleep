@@ -426,6 +426,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get forgotPassword => 'Forgot password?';
 
   @override
+  String get forgotPasswordTitle => 'Reset your password';
+
+  @override
+  String get forgotPasswordHelper =>
+      'We\'ll email you a link to reset your password.';
+
+  @override
+  String get forgotPasswordSubmit => 'Send link';
+
+  @override
+  String get forgotPasswordSent =>
+      'If this email is registered, a reset link has been sent.';
+
+  @override
+  String get forgotPasswordOauthError =>
+      'This account uses Google sign-in and has no password to reset.';
+
+  @override
+  String get deleteAccount => 'Delete account';
+
+  @override
+  String get deleteAccountConfirmTitle => 'Delete account?';
+
+  @override
+  String get deleteAccountConfirmBody =>
+      'This will permanently delete all your dreams, analyses, and chat history. This cannot be undone.';
+
+  @override
+  String get deleteAccountConfirmAction => 'Delete forever';
+
+  @override
+  String get deleteAccountCancel => 'Cancel';
+
+  @override
+  String get deleteAccountFailed => 'Failed to delete account. Try again.';
+
+  @override
   String get premiumTitle => 'InnerCore Pro';
 
   @override

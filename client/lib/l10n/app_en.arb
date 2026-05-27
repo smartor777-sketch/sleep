@@ -177,6 +177,18 @@
   "logoutConfirm": "Sign out?",
   "logoutConfirmMessage": "You will be signed in as a guest. Your dreams will remain on this device.",
   "forgotPassword": "Forgot password?",
+  "forgotPasswordTitle": "Reset your password",
+  "forgotPasswordHelper": "We'll email you a link to reset your password.",
+  "forgotPasswordSubmit": "Send link",
+  "forgotPasswordSent": "If this email is registered, a reset link has been sent.",
+  "forgotPasswordOauthError": "This account uses Google sign-in and has no password to reset.",
+
+  "deleteAccount": "Delete account",
+  "deleteAccountConfirmTitle": "Delete account?",
+  "deleteAccountConfirmBody": "This will permanently delete all your dreams, analyses, and chat history. This cannot be undone.",
+  "deleteAccountConfirmAction": "Delete forever",
+  "deleteAccountCancel": "Cancel",
+  "deleteAccountFailed": "Failed to delete account. Try again.",
 
   "premiumTitle": "InnerCore Pro",
   "premiumSubtitle": "Unlock the full potential of dream analysis",

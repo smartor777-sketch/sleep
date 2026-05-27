@@ -878,6 +878,72 @@ abstract class AppLocalizations {
   /// **'Забыли пароль?'**
   String get forgotPassword;
 
+  /// No description provided for @forgotPasswordTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Сброс пароля'**
+  String get forgotPasswordTitle;
+
+  /// No description provided for @forgotPasswordHelper.
+  ///
+  /// In ru, this message translates to:
+  /// **'Мы отправим ссылку для сброса пароля на ваш email.'**
+  String get forgotPasswordHelper;
+
+  /// No description provided for @forgotPasswordSubmit.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отправить ссылку'**
+  String get forgotPasswordSubmit;
+
+  /// No description provided for @forgotPasswordSent.
+  ///
+  /// In ru, this message translates to:
+  /// **'Если такой email зарегистрирован, мы отправили на него ссылку.'**
+  String get forgotPasswordSent;
+
+  /// No description provided for @forgotPasswordOauthError.
+  ///
+  /// In ru, this message translates to:
+  /// **'Этот аккаунт использует вход через Google, у него нет пароля для сброса.'**
+  String get forgotPasswordOauthError;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить аккаунт'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountConfirmTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить аккаунт?'**
+  String get deleteAccountConfirmTitle;
+
+  /// No description provided for @deleteAccountConfirmBody.
+  ///
+  /// In ru, this message translates to:
+  /// **'Это навсегда удалит все ваши сны, анализы и переписки. Действие необратимо.'**
+  String get deleteAccountConfirmBody;
+
+  /// No description provided for @deleteAccountConfirmAction.
+  ///
+  /// In ru, this message translates to:
+  /// **'Удалить навсегда'**
+  String get deleteAccountConfirmAction;
+
+  /// No description provided for @deleteAccountCancel.
+  ///
+  /// In ru, this message translates to:
+  /// **'Отмена'**
+  String get deleteAccountCancel;
+
+  /// No description provided for @deleteAccountFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось удалить аккаунт. Попробуйте позже.'**
+  String get deleteAccountFailed;
+
   /// No description provided for @premiumTitle.
   ///
   /// In ru, this message translates to:

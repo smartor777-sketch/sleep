@@ -1,8 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+// --- APPLE SIGN-IN (disabled until re-enabled) ---
+// import 'dart:io';
+// import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'package:provider/provider.dart';
 
@@ -649,14 +650,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 12),
           ],
-          if (Platform.isIOS)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _linking ? null : _linkWithApple,
-                child: const Text('Sign in with Apple'),
-              ),
-            ),
+          // --- APPLE SIGN-IN (disabled until re-enabled) ---
+          // if (Platform.isIOS)
+          //   SizedBox(
+          //     width: double.infinity,
+          //     child: ElevatedButton(
+          //       onPressed: _linking ? null : _linkWithApple,
+          //       child: const Text('Sign in with Apple'),
+          //     ),
+          //   ),
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
@@ -761,31 +763,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _linkWithApple() async {
-    setState(() => _linking = true);
-    try {
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
-      final idToken = credential.identityToken;
-      if (idToken == null) {
-        _showError(AppLocalizations.of(context)!.appleTokenError);
-        return;
-      }
-      final updated = await context
-          .read<AuthProvider>()
-          .authService
-          .linkProvider(provider: 'apple', idToken: idToken);
-      context.read<AuthProvider>().updateUser(updated);
-    } catch (e) {
-      _handleLinkError(e);
-    } finally {
-      setState(() => _linking = false);
-    }
-  }
+  // --- APPLE SIGN-IN (disabled until re-enabled) ---
+  // Future<void> _linkWithApple() async {
+  //   setState(() => _linking = true);
+  //   try {
+  //     final credential = await SignInWithApple.getAppleIDCredential(
+  //       scopes: [
+  //         AppleIDAuthorizationScopes.email,
+  //         AppleIDAuthorizationScopes.fullName,
+  //       ],
+  //     );
+  //     final idToken = credential.identityToken;
+  //     if (idToken == null) {
+  //       _showError(AppLocalizations.of(context)!.appleTokenError);
+  //       return;
+  //     }
+  //     final updated = await context
+  //         .read<AuthProvider>()
+  //         .authService
+  //         .linkProvider(provider: 'apple', idToken: idToken);
+  //     context.read<AuthProvider>().updateUser(updated);
+  //   } catch (e) {
+  //     _handleLinkError(e);
+  //   } finally {
+  //     setState(() => _linking = false);
+  //   }
+  // }
 
   void _handleLinkError(Object error) {
     final l10n = AppLocalizations.of(context)!;

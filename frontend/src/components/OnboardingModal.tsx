@@ -3,28 +3,70 @@ import Modal from './Modal';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import { api } from '../lib/api';
-import { Moon, Sparkles, BookOpen } from 'lucide-react';
 
-const STEPS = 3;
+const STEPS = 5;
+
+type Gender = 'female' | 'male' | 'unknown' | null;
 
 export default function OnboardingModal() {
   const open = useApp((s) => s.onboardingOpen);
   const close = useApp((s) => s.closeOnboarding);
   const refresh = useApp((s) => s.refreshUser);
   const lang = useApp((s) => s.lang);
-  const user = useApp((s) => s.user);
 
   const [step, setStep] = useState(0);
-  const [about, setAbout] = useState(user?.profile?.about_me || '');
+  const [gender, setGender] = useState<Gender>(null);
+  const [age, setAge] = useState<string>('');
+  const [occupation, setOccupation] = useState('');
+  const [family, setFamily] = useState('');
+  const [interests, setInterests] = useState('');
+  const [lifeContext, setLifeContext] = useState('');
   const [saving, setSaving] = useState(false);
 
   if (!open) return null;
 
-  async function finish(skip = false) {
+  function genderLabel(g: Gender): string | null {
+    if (g === 'female') return t('onboarding.genderFemale', lang);
+    if (g === 'male') return t('onboarding.genderMale', lang);
+    if (g === 'unknown') return t('onboarding.genderUnspecified', lang);
+    return null;
+  }
+
+  function buildPayload(): string {
+    const parts: string[] = [];
+    const gl = genderLabel(gender);
+    if (gl) parts.push(gl);
+    if (age.trim()) {
+      parts.push(lang === 'ru' ? `${age.trim()} лет` : `${age.trim()} years old`);
+    }
+    if (occupation.trim()) parts.push(occupation.trim());
+    if (family.trim()) parts.push(family.trim());
+    if (interests.trim()) parts.push(interests.trim());
+    if (lifeContext.trim()) parts.push(lifeContext.trim());
+    return parts.join('; ');
+  }
+
+  function clearCurrentStep() {
+    if (step === 0) {
+      setGender(null);
+      setAge('');
+    } else if (step === 1) {
+      setOccupation('');
+    } else if (step === 2) {
+      setFamily('');
+    } else if (step === 3) {
+      setInterests('');
+    } else if (step === 4) {
+      setLifeContext('');
+    }
+  }
+
+  async function finish() {
     setSaving(true);
     try {
+      const payload = buildPayload();
       await api.updateMe({
-        self_description: skip ? (about || ' ') : about,
+        self_description: payload || ' ',
         onboarding_completed: true,
       });
       await refresh();
@@ -38,102 +80,181 @@ export default function OnboardingModal() {
     }
   }
 
+  function onSkip() {
+    if (step === STEPS - 1) {
+      finish();
+      return;
+    }
+    clearCurrentStep();
+    setStep((s) => s + 1);
+  }
+
+  function onNext() {
+    if (step === STEPS - 1) {
+      finish();
+      return;
+    }
+    setStep((s) => s + 1);
+  }
+
+  const stepLabel = t('onboarding.step', lang)
+    .replace('{step}', String(step + 1))
+    .replace('{total}', String(STEPS));
+
+  const ages = Array.from({ length: 90 - 12 + 1 }, (_, i) => String(12 + i));
+
   return (
     <Modal open={open} closable={false} size="md" testId="onboarding-modal">
-      <div className="min-h-[420px] flex flex-col">
-        {/* Progress dots */}
-        <div className="flex gap-1.5 justify-center mb-6">
+      <div className="min-h-[460px] flex flex-col">
+        <div className="mb-4">
+          <h2 className="font-display text-2xl mb-1">{t('onboarding.title', lang)}</h2>
+          <p className="muted-text text-xs">{stepLabel}</p>
+        </div>
+
+        <div className="flex gap-1.5 mb-5">
           {Array.from({ length: STEPS }).map((_, i) => (
             <span key={i}
-              className="h-1.5 rounded-full transition-all"
+              className="h-1.5 rounded-full transition-all flex-1"
               style={{
-                width: i === step ? 28 : 8,
                 background: i <= step ? 'rgb(var(--accent))' : 'rgba(255,255,255,0.15)',
               }}
             />
           ))}
         </div>
 
-        {step === 0 && (
-          <div className="text-center flex-1 flex flex-col items-center justify-center animate-fade-up">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
-                 style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
-              <Moon className="w-9 h-9 text-white" />
-            </div>
-            <h2 className="font-display text-3xl mb-3">{t('onboarding.title', lang)}</h2>
-            <p className="muted-text max-w-md">{t('onboarding.sub', lang)}</p>
-          </div>
-        )}
-
-        {step === 1 && (
-          <div className="text-center flex-1 flex flex-col items-center justify-center animate-fade-up">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center mb-5"
-                 style={{ background: 'rgba(var(--accent), 0.15)' }}>
-              <BookOpen className="w-9 h-9 accent-text" />
-            </div>
-            <h2 className="font-display text-2xl mb-3">
-              {lang === 'ru' ? 'Цикл самопознания' : 'A cycle of self-knowledge'}
-            </h2>
-            <p className="muted-text max-w-md">
-              {lang === 'ru'
-                ? 'Запишите сон — получите юнгианский анализ — поговорите о нём с Oneiros. Постепенно складывается карта вашего бессознательного.'
-                : 'Write a dream — receive a Jungian reading — talk it through with Oneiros. Slowly a map of your unconscious takes shape.'}
-            </p>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="flex-1 flex flex-col animate-fade-up">
-            <div className="text-center mb-4">
-              <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-3"
-                   style={{ background: 'rgba(var(--accent), 0.15)' }}>
-                <Sparkles className="w-7 h-7 accent-text" />
+        <div className="flex-1">
+          {step === 0 && (
+            <div className="animate-fade-up">
+              <p className="text-base mb-2">{t('onboarding.intro', lang)}</p>
+              <p className="muted-text text-sm mb-5">{t('onboarding.genderNote', lang)}</p>
+              <div className="flex gap-3 mb-5">
+                {(['female', 'male', 'unknown'] as const).map((key) => (
+                  <button
+                    key={key}
+                    onClick={() => setGender(gender === key ? null : key)}
+                    className="flex-1 py-3 rounded-2xl border transition-all"
+                    style={{
+                      borderColor: gender === key ? 'rgb(var(--accent))' : 'rgba(255,255,255,0.18)',
+                      borderWidth: gender === key ? 2 : 1,
+                      background: gender === key ? 'rgba(var(--accent), 0.12)' : 'transparent',
+                    }}
+                    data-testid={`onboarding-gender-${key}`}
+                  >
+                    {genderLabel(key)}
+                  </button>
+                ))}
               </div>
-              <h2 className="font-display text-2xl mb-2">{t('onboarding.aboutTitle', lang)}</h2>
-              <p className="muted-text max-w-md mx-auto">{t('onboarding.aboutDesc', lang)}</p>
+              <label className="block">
+                <span className="text-sm muted-text mb-1 block">{t('onboarding.ageLabel', lang)}</span>
+                <select
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  className="input-base w-full"
+                  data-testid="onboarding-age-select"
+                >
+                  <option value="">—</option>
+                  {ages.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </label>
             </div>
-            <textarea
-              value={about}
-              onChange={(e) => setAbout(e.target.value)}
-              maxLength={1000}
-              rows={5}
-              placeholder={t('onboarding.aboutPlaceholder', lang)}
-              className="input-base resize-none"
-              data-testid="onboarding-about-input"
+          )}
+
+          {step === 1 && (
+            <TextStep
+              title={t('onboarding.occupationQuestion', lang)}
+              hint={t('onboarding.occupationHint', lang)}
+              placeholder={t('onboarding.occupationPlaceholder', lang)}
+              value={occupation}
+              onChange={setOccupation}
+              testId="onboarding-occupation"
             />
-            <div className="text-right text-xs muted-text mt-1">{about.length}/1000</div>
-          </div>
-        )}
+          )}
+
+          {step === 2 && (
+            <TextStep
+              title={t('onboarding.familyQuestion', lang)}
+              hint={t('onboarding.familyHint', lang)}
+              placeholder={t('onboarding.familyPlaceholder', lang)}
+              value={family}
+              onChange={setFamily}
+              testId="onboarding-family"
+            />
+          )}
+
+          {step === 3 && (
+            <TextStep
+              title={t('onboarding.interestsQuestion', lang)}
+              hint={t('onboarding.interestsHint', lang)}
+              placeholder={t('onboarding.interestsPlaceholder', lang)}
+              value={interests}
+              onChange={setInterests}
+              testId="onboarding-interests"
+            />
+          )}
+
+          {step === 4 && (
+            <TextStep
+              title={t('onboarding.lifeContextQuestion', lang)}
+              hint={t('onboarding.lifeContextHint', lang)}
+              placeholder={t('onboarding.lifeContextPlaceholder', lang)}
+              value={lifeContext}
+              onChange={setLifeContext}
+              rows={6}
+              testId="onboarding-life-context"
+            />
+          )}
+        </div>
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <button
-            onClick={() => (step === 0 ? finish(true) : finish(true))}
+            onClick={onSkip}
             className="btn-pill btn-ghost"
             disabled={saving}
             data-testid="onboarding-skip-btn"
           >
             {t('onboarding.skip', lang)}
           </button>
-          {step < STEPS - 1 ? (
-            <button
-              onClick={() => setStep(step + 1)}
-              className="btn-pill btn-primary"
-              data-testid="onboarding-next-btn"
-            >
-              {t('onboarding.next', lang)}
-            </button>
-          ) : (
-            <button
-              onClick={() => finish(false)}
-              className="btn-pill btn-primary"
-              disabled={saving}
-              data-testid="onboarding-finish-btn"
-            >
-              {t('onboarding.start', lang)}
-            </button>
-          )}
+          <button
+            onClick={onNext}
+            className="btn-pill btn-primary"
+            disabled={saving}
+            data-testid={step === STEPS - 1 ? 'onboarding-finish-btn' : 'onboarding-next-btn'}
+          >
+            {step === STEPS - 1 ? t('onboarding.start', lang) : t('onboarding.next', lang)}
+          </button>
         </div>
       </div>
     </Modal>
+  );
+}
+
+interface TextStepProps {
+  title: string;
+  hint: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+  testId: string;
+}
+
+function TextStep({ title, hint, placeholder, value, onChange, rows = 4, testId }: TextStepProps) {
+  return (
+    <div className="animate-fade-up">
+      <h3 className="text-lg font-medium mb-2">{title}</h3>
+      <p className="muted-text text-sm mb-4">{hint}</p>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        maxLength={1000}
+        placeholder={placeholder}
+        className="input-base w-full resize-none"
+        data-testid={`${testId}-input`}
+      />
+      <div className="text-right text-xs muted-text mt-1">{value.length}/1000</div>
+    </div>
   );
 }

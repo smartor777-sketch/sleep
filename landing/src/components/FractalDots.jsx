@@ -49,9 +49,9 @@ const FractalDots = ({ variant = "copper", density = 56, opacity = 1 }) => {
         y: seed2 * H,
         vx: (Math.sin(i * 1.7) * 0.18),
         vy: (Math.cos(i * 2.3) * 0.18),
-        r: 0.7 + ((i * 7) % 5) * 0.35,
+        r: 1.8 + ((i * 7) % 5) * 0.65,
         phase: seed * Math.PI * 2,
-        accent: i % 13 === 0, // few accent-colored dots
+        accent: i % 9 === 0, // more accent-colored dots
       };
     });
 
@@ -67,7 +67,7 @@ const FractalDots = ({ variant = "copper", density = 56, opacity = 1 }) => {
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const CONNECT = 150; // px
+    const CONNECT = 190; // px
 
     let t0 = performance.now();
     const tick = (t) => {
@@ -99,7 +99,7 @@ const FractalDots = ({ variant = "copper", density = 56, opacity = 1 }) => {
       }
 
       // lines
-      ctx.lineWidth = 0.7;
+      ctx.lineWidth = 1.0;
       for (let i = 0; i < pts.length; i++) {
         for (let j = i + 1; j < pts.length; j++) {
           const a = pts[i], b = pts[j];
@@ -107,7 +107,7 @@ const FractalDots = ({ variant = "copper", density = 56, opacity = 1 }) => {
           const dy = a.y - b.y;
           const d2 = dx * dx + dy * dy;
           if (d2 < CONNECT * CONNECT) {
-            const alpha = (1 - Math.sqrt(d2) / CONNECT) * 0.42 * opacity;
+            const alpha = (1 - Math.sqrt(d2) / CONNECT) * 0.7 * opacity;
             ctx.strokeStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${alpha})`;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
@@ -124,9 +124,9 @@ const FractalDots = ({ variant = "copper", density = 56, opacity = 1 }) => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r * breathe, 0, Math.PI * 2);
         if (p.accent) {
-          ctx.fillStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${0.85 * opacity})`;
+          ctx.fillStyle = `rgba(${accent.r}, ${accent.g}, ${accent.b}, ${0.95 * opacity})`;
         } else {
-          ctx.fillStyle = `${accent.dot}${0.55 * opacity})`;
+          ctx.fillStyle = `${accent.dot}${0.78 * opacity})`;
         }
         ctx.fill();
       }

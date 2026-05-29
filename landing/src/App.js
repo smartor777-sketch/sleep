@@ -1,11 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import "@/App.css";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Plus } from "lucide-react";
 import Sphere from "@/components/Sphere";
 import DreamMap from "@/components/DreamMap";
 import { SigilQuadrature, SigilOuroboros, KeyGlyph, FooterSeal } from "@/components/Sigils";
 import FractalDots from "@/components/FractalDots";
 import FractalTrees from "@/components/FractalTrees";
+import { LangProvider, useLang } from "@/LangContext";
+import { ARCHETYPES, ARCHETYPES_INTRO, MEMORY_TIPS } from "@/i18n";
 
 const APP_URL = "https://app.innercore.art";
 const TG_URL = "https://t.me/post_cybercore";
@@ -29,7 +31,34 @@ const useFadeIn = () => {
   }, []);
 };
 
+const LangToggle = ({ small }) => {
+  const { lang, setLang } = useLang();
+  return (
+    <div className={`lang-toggle ${small ? "lang-small" : ""}`} data-testid="lang-toggle">
+      <button
+        type="button"
+        className={lang === "ru" ? "active" : ""}
+        aria-pressed={lang === "ru"}
+        onClick={() => setLang("ru")}
+        data-testid="lang-ru"
+      >
+        RU
+      </button>
+      <button
+        type="button"
+        className={lang === "en" ? "active" : ""}
+        aria-pressed={lang === "en"}
+        onClick={() => setLang("en")}
+        data-testid="lang-en"
+      >
+        EN
+      </button>
+    </div>
+  );
+};
+
 const Nav = () => {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -43,10 +72,11 @@ const Nav = () => {
   const close = () => setOpen(false);
 
   const links = [
-    { href: "#what", label: "что это", testid: "nav-what" },
-    { href: "#how", label: "метод", testid: "nav-how" },
-    { href: "#map", label: "карта", testid: "nav-map" },
-    { href: "#privacy", label: "приватность", testid: "nav-privacy" },
+    { href: "#manifest", label: t.nav.manifest, testid: "nav-manifest" },
+    { href: "#how", label: t.nav.how, testid: "nav-how" },
+    { href: "#map", label: t.nav.map, testid: "nav-map" },
+    { href: "#reading", label: t.nav.reading, testid: "nav-reading" },
+    { href: "#faq", label: t.nav.faq, testid: "nav-faq" },
   ];
 
   return (
@@ -54,8 +84,8 @@ const Nav = () => {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "nav-scrolled" : ""}`}
       data-testid="site-nav"
     >
-      <nav className="container-ms py-4 md:py-5 flex items-center justify-between">
-        <a href="#top" onClick={close} className="flex items-center gap-3 no-underline" data-testid="brand-mark">
+      <nav className="container-ms py-4 md:py-5 flex items-center justify-between gap-4">
+        <a href="#top" onClick={close} className="flex items-center gap-3 no-underline shrink-0" data-testid="brand-mark">
           <span style={{ color: "var(--copper)" }}>
             <SigilQuadrature size={22} />
           </span>
@@ -64,7 +94,7 @@ const Nav = () => {
           </span>
         </a>
 
-        <div className="hidden md:flex items-center gap-9 text-[13px]" style={{ color: "var(--stone)" }}>
+        <div className="hidden md:flex items-center gap-6 lg:gap-8 text-[13px]" style={{ color: "var(--stone)" }}>
           {links.map((l) => (
             <a
               key={l.href}
@@ -78,11 +108,14 @@ const Nav = () => {
           ))}
         </div>
 
-        <a href={APP_URL} className="btn-ghost nav-cta-desktop" data-testid="nav-cta">открыть →</a>
+        <div className="hidden md:flex items-center gap-4">
+          <LangToggle />
+          <a href={APP_URL} className="btn-ghost" data-testid="nav-cta">{t.nav.cta}</a>
+        </div>
 
         <button
           className="md:hidden p-2 -mr-2 text-[color:var(--cream)]"
-          aria-label={open ? "Закрыть меню" : "Открыть меню"}
+          aria-label={open ? "close" : "open"}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
           data-testid="mobile-menu-toggle"
@@ -91,9 +124,8 @@ const Nav = () => {
         </button>
       </nav>
 
-      {/* Mobile sheet */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ${open ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"}`}
+        className={`md:hidden overflow-hidden transition-all duration-300 ${open ? "max-h-[640px] opacity-100" : "max-h-0 opacity-0"}`}
         data-testid="mobile-menu"
         style={{ background: "rgba(15, 17, 24, 0.97)", borderTop: open ? "1px solid var(--hairline)" : "none" }}
       >
@@ -110,8 +142,9 @@ const Nav = () => {
               {l.label}
             </a>
           ))}
+          <div className="pt-2"><LangToggle /></div>
           <a href={APP_URL} onClick={close} className="btn-copper mt-2 self-start" data-testid="mobile-cta">
-            Открыть приложение
+            {t.hero.cta}
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M2 7 H12 M8 3 L12 7 L8 11" stroke="currentColor" strokeWidth="1.2" />
             </svg>
@@ -122,279 +155,430 @@ const Nav = () => {
   );
 };
 
-const SectionFrame = ({ id, children, className = "", testid }) => (
+const Section = ({ id, children, bg = "ink", className = "", testid }) => (
   <section
     id={id}
-    className={`relative overflow-hidden min-h-screen flex items-center ${className}`}
+    className={`relative overflow-hidden min-h-screen bg-${bg} ${className}`}
     data-testid={testid}
   >
     {children}
   </section>
 );
 
-const Hero = () => (
-  <SectionFrame id="top" testid="hero-section">
-    <div className="container-ms w-full pt-28 md:pt-24 pb-12 md:pb-16">
-      <div className="grid md:grid-cols-2 gap-10 md:gap-8 items-center">
-        <div className="relative order-2 md:order-1">
-          <div className="flex items-center gap-3 mb-6 md:mb-7" style={{ color: "var(--stone)" }}>
-            <span style={{ color: "var(--copper)" }}>
-              <SigilOuroboros size={38} />
-            </span>
-            <span className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase">opus minor · 2026</span>
-          </div>
-          <h1 className="font-serif text-[42px] sm:text-[58px] md:text-[68px] leading-[0.98] tracking-[-0.015em]" data-testid="hero-title">
-            Карта твоих<br/>
-            <span style={{ color: "var(--copper)" }}>снов.</span>
-          </h1>
-          <p className="mt-6 md:mt-7 max-w-[460px] text-[16px] md:text-[17px]" style={{ color: "var(--cream-dim)" }} data-testid="hero-subtitle">
-            Дневник сновидений с юнгианским анализом. Записывай — и наблюдай, как из ночного потока проступает структура.
-          </p>
-          <div className="mt-8 md:mt-10 flex items-center gap-5 md:gap-6 flex-wrap">
-            <a href={APP_URL} className="btn-copper" data-testid="hero-cta-open-app">
-              Открыть приложение
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M2 7 H12 M8 3 L12 7 L8 11" stroke="currentColor" strokeWidth="1.2" />
-              </svg>
-            </a>
-            <a href="#what" className="text-[12px] md:text-[13px] tracking-[0.12em] uppercase hover:underline" style={{ color: "var(--stone)", textDecoration: "none" }} data-testid="hero-scroll-down">
-              ↓ что это
-            </a>
-          </div>
-
-          <div className="mt-10 md:mt-14 flex items-center gap-3 md:gap-6 text-[11px] md:text-[12px] flex-wrap" style={{ color: "var(--stone)" }}>
-            <span className="flex items-center gap-2">
-              <span className="w-1 h-1 rounded-full" style={{ background: "var(--copper)" }}></span>
-              архетипы
-            </span>
-            <span>·</span>
-            <span>символы</span>
-            <span>·</span>
-            <span>векторная карта</span>
-            <span className="hidden sm:inline">·</span>
-            <span className="hidden sm:inline">e2e-шифрование</span>
-          </div>
-        </div>
-
-        <div className="relative order-1 md:order-2 max-w-[420px] md:max-w-none mx-auto w-full" data-testid="hero-sphere">
-          <Sphere />
-          <div className="mt-2 text-center font-serif italic text-[12px] md:text-[14px] px-4" style={{ color: "var(--stone)" }}>
-            quod superius sicut quod inferius — что вверху, то и внизу
-          </div>
-        </div>
-      </div>
-    </div>
-  </SectionFrame>
-);
-
-const WhatItIs = () => (
-  <SectionFrame id="what" testid="section-what" className="fade-in">
-    <div className="absolute inset-0 pointer-events-none" data-testid="fractal-bg-what">
-      <FractalDots variant="copper" density={60} opacity={0.9} />
-    </div>
-    <div className="container-ms relative w-full py-20 md:py-28 z-[2]">
-      <div className="max-w-[760px]">
-        <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-5 md:mb-6" style={{ color: "var(--copper)" }}>
-          — i. prima materia
-        </div>
-        <p className="font-serif text-[24px] sm:text-[32px] md:text-[36px] leading-[1.3]" style={{ color: "var(--cream)" }}>
-          Записывай сны простым языком. innerCore раскладывает их на <span style={{ color: "var(--copper)" }}>архетипы</span>, символы и связи с другими твоими снами. Со временем складывается карта — твоё личное бессознательное в форме.
-        </p>
-      </div>
-    </div>
-  </SectionFrame>
-);
-
-const HowItWorks = () => {
-  const cards = [
-    { glyph: "☿", label: "Mercurius", title: "Записать", text: "Веди дневник снов. Голосом или текстом, в любое время." },
-    { glyph: "🜍", label: "Sulphur", title: "Понять", text: "Каждый сон получает разбор: архетипы, мотивы, эмоциональный тон." },
-    { glyph: "🜔", label: "Sal", title: "Увидеть", text: "Сны соединяются в карту. Повторяющиеся темы становятся видимыми." },
-  ];
+const Hero = () => {
+  const { t } = useLang();
   return (
-    <SectionFrame id="how" testid="section-how" className="fade-in">
-      <div className="container-ms w-full py-20 md:py-28">
-        <div className="flex items-baseline justify-between mb-10 md:mb-12 flex-wrap gap-4">
-          <h2 className="font-serif text-[32px] sm:text-[42px] md:text-[52px] leading-[1.02]" data-testid="how-title">
-            Триада<br/>метода
+    <Section id="top" bg="ink" className="flex items-center" testid="hero-section">
+      <div className="container-ms w-full pt-28 md:pt-24 pb-12 md:pb-16">
+        <div className="grid md:grid-cols-12 gap-10 md:gap-8 items-center">
+          <div className="relative order-2 md:order-1 md:col-span-7">
+            <div className="flex items-center gap-3 mb-6 md:mb-7" style={{ color: "var(--stone)" }}>
+              <span style={{ color: "var(--copper)" }}>
+                <SigilOuroboros size={38} />
+              </span>
+              <span className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase">{t.hero.kicker}</span>
+            </div>
+            <h1
+              className="font-serif text-[34px] sm:text-[46px] md:text-[58px] lg:text-[64px] leading-[1.02] tracking-[-0.015em] max-w-[760px]"
+              data-testid="hero-title"
+            >
+              {t.hero.title1}{" "}
+              <span style={{ color: "var(--copper)" }}>{t.hero.title2}</span>
+            </h1>
+            <p className="mt-6 md:mt-8 max-w-[520px] text-[16px] md:text-[18px]" style={{ color: "var(--cream-dim)" }} data-testid="hero-subtitle">
+              {t.hero.subtitle}
+            </p>
+            <div className="mt-8 md:mt-10 flex items-center gap-5 md:gap-6 flex-wrap">
+              <a href={APP_URL} className="btn-copper" data-testid="hero-cta-open-app">
+                {t.hero.cta}
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path d="M2 7 H12 M8 3 L12 7 L8 11" stroke="currentColor" strokeWidth="1.2" />
+                </svg>
+              </a>
+              <a
+                href="#manifest"
+                className="text-[12px] md:text-[13px] tracking-[0.12em] uppercase hover:underline"
+                style={{ color: "var(--stone)", textDecoration: "none" }}
+                data-testid="hero-scroll-down"
+              >
+                {t.hero.scroll}
+              </a>
+            </div>
+
+            <div className="mt-10 md:mt-14 flex items-center gap-3 md:gap-6 text-[11px] md:text-[12px] flex-wrap" style={{ color: "var(--stone)" }}>
+              {t.hero.badges.map((b, i) => (
+                <React.Fragment key={i}>
+                  {i === 0 ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-1 h-1 rounded-full" style={{ background: "var(--copper)" }}></span>
+                      {b}
+                    </span>
+                  ) : (
+                    <span className={i === 3 ? "hidden sm:inline" : ""}>{b}</span>
+                  )}
+                  {i < t.hero.badges.length - 1 && <span className={i === 2 ? "hidden sm:inline" : ""}>·</span>}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative order-1 md:order-2 md:col-span-5 max-w-[420px] md:max-w-none mx-auto w-full" data-testid="hero-sphere">
+            <Sphere />
+            <div className="mt-2 text-center font-serif italic text-[12px] md:text-[14px] px-4" style={{ color: "var(--stone)" }}>
+              {t.hero.caption}
+            </div>
+          </div>
+        </div>
+      </div>
+    </Section>
+  );
+};
+
+const renderParagraph = (p, idx) => {
+  if (typeof p === "string") {
+    return <p key={idx}>{p}</p>;
+  }
+  if (p && p.italic) {
+    return (
+      <p key={idx} className="font-serif italic" style={{ color: "var(--cream)" }}>
+        {p.italic}
+      </p>
+    );
+  }
+  return null;
+};
+
+const SubBlock = ({ block, i }) => (
+  <div className="mb-14 md:mb-20 max-w-[720px]" data-testid={`manifest-block-${i}`}>
+    {block.kicker && (
+      <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
+        {block.kicker}
+      </div>
+    )}
+    {block.title && (
+      <h3 className="font-serif text-[24px] sm:text-[30px] md:text-[36px] leading-[1.15] mb-5 md:mb-6" style={{ color: "var(--cream)" }}>
+        {block.title}
+      </h3>
+    )}
+    <div className="space-y-4 md:space-y-5 text-[15px] md:text-[17px]" style={{ color: "var(--cream-dim)" }}>
+      {block.paragraphs.map(renderParagraph)}
+    </div>
+  </div>
+);
+
+const Manifesto = () => {
+  const { t } = useLang();
+  return (
+    <Section id="manifest" bg="ink-soft" className="fade-in" testid="section-manifest">
+      <div className="absolute inset-0 pointer-events-none" data-testid="fractal-bg-manifest">
+        <FractalDots variant="copper" density={110} opacity={1} />
+      </div>
+      <div className="container-ms relative w-full py-24 md:py-32 z-[2]">
+        <div className="mb-14 md:mb-20 max-w-[820px]">
+          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
+            {t.manifest.kicker}
+          </div>
+          <h2
+            className="font-serif text-[32px] sm:text-[44px] md:text-[58px] leading-[1.04] tracking-[-0.01em]"
+            data-testid="manifest-title"
+          >
+            {t.manifest.title}
           </h2>
-          <div className="text-[10px] md:text-[12px] tracking-[0.32em] uppercase" style={{ color: "var(--stone)" }}>
-            — ii. mercurius · sulphur · sal
+        </div>
+
+        {t.manifest.blocks.map((b, i) => (
+          <SubBlock key={i} block={b} i={i} />
+        ))}
+      </div>
+    </Section>
+  );
+};
+
+const Tool = () => {
+  const { t } = useLang();
+  return (
+    <Section id="how" bg="ink" className="flex items-center fade-in" testid="section-how">
+      <div className="absolute inset-0 pointer-events-none" data-testid="fractal-trees-bg-how">
+        <FractalTrees />
+      </div>
+      <div className="container-ms relative w-full py-24 md:py-32 z-[2]">
+        <div className="flex items-baseline justify-between mb-12 md:mb-16 flex-wrap gap-4">
+          <div>
+            <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
+              {t.tool.kicker}
+            </div>
+            <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[56px] leading-[1.02]" data-testid="how-title">
+              {t.tool.titleA}<br/>{t.tool.titleB}
+            </h2>
+          </div>
+          <div className="text-[10px] md:text-[12px] tracking-[0.32em] uppercase font-serif italic" style={{ color: "var(--stone)" }}>
+            {t.tool.subkicker}
           </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-px" style={{ background: "var(--hairline)" }}>
-          {cards.map((c, i) => (
-            <div key={i} className="card-ms" data-testid={`how-card-${i}`} style={{ borderRadius: 0, borderWidth: 0 }}>
-              <div className="flex items-center justify-between mb-6 md:mb-7">
+          {t.tool.cards.map((c, i) => (
+            <div key={i} className="card-ms" data-testid={`how-card-${i}`} style={{ borderRadius: 0, borderWidth: 0, background: "rgba(15, 17, 24, 0.78)", backdropFilter: "blur(8px)" }}>
+              <div className="flex items-center justify-between mb-6 md:mb-8">
                 <span className="glyph">{c.glyph}</span>
                 <span className="text-[10px] tracking-[0.32em] uppercase" style={{ color: "var(--stone)" }}>
                   {String(i + 1).padStart(2, "0")} · {c.label}
                 </span>
               </div>
-              <h3 className="font-serif text-[26px] md:text-[28px] mb-3">{c.title}</h3>
-              <p className="text-[15px]" style={{ color: "var(--cream-dim)" }}>{c.text}</p>
+              <h3 className="font-serif text-[26px] md:text-[30px] mb-4">{c.title}</h3>
+              <p className="text-[15px] md:text-[16px] mb-4 font-serif italic" style={{ color: "var(--cream)" }}>{c.intro}</p>
+              <p className="text-[14px] md:text-[15px]" style={{ color: "var(--cream-dim)" }}>{c.body}</p>
             </div>
           ))}
         </div>
       </div>
-    </SectionFrame>
+    </Section>
   );
 };
 
-const MapSection = () => (
-  <SectionFrame id="map" testid="section-map" className="fade-in">
-    <div className="container-ms w-full py-20 md:py-28">
-      <div className="grid md:grid-cols-12 gap-8 md:gap-10 items-center">
-        <div className="md:col-span-5">
-          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-5 md:mb-6" style={{ color: "var(--copper)" }}>
-            — iii. mappa somniorum
-          </div>
-          <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[52px] leading-[1.04] mb-5 md:mb-6">
-            Карта снов
-          </h2>
-          <p className="text-[15px] md:text-[16px] mb-4" style={{ color: "var(--cream-dim)" }}>
-            Каждый сон — точка. Похожие сны — кластеры. Архетипы — созвездия.
-          </p>
-          <p className="text-[14px] md:text-[15px] italic font-serif" style={{ color: "var(--stone)" }}>
-            Математическая близость векторов — как близость смыслов.
-          </p>
-        </div>
-        <div className="md:col-span-7" data-testid="dream-map-demo">
-          <DreamMap />
-        </div>
+const MapAndPrivacy = () => {
+  const { t } = useLang();
+  return (
+    <Section id="map" bg="ink-soft" className="fade-in" testid="section-map">
+      <div className="absolute inset-0 pointer-events-none" data-testid="fractal-bg-map">
+        <FractalDots variant="cinnabar" density={120} opacity={0.95} />
       </div>
-    </div>
-  </SectionFrame>
-);
-
-const Privacy = () => (
-  <SectionFrame id="privacy" testid="section-privacy" className="fade-in">
-    <div className="absolute inset-0 pointer-events-none" data-testid="fractal-bg-privacy">
-      <FractalDots variant="cinnabar" density={64} opacity={0.85} />
-    </div>
-    <div className="container-ms relative w-full py-20 md:py-28 z-[2]">
-      <div className="grid md:grid-cols-12 gap-8 md:gap-10 items-start max-w-[1000px] mx-auto">
-        <div className="md:col-span-3 flex md:justify-end">
-          <div style={{ color: "var(--copper)" }}>
-            <KeyGlyph size={56} />
+      <div className="container-ms relative w-full py-24 md:py-32 z-[2]">
+        <div className="grid md:grid-cols-12 gap-10 md:gap-12 items-start">
+          <div className="md:col-span-5">
+            <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-5" style={{ color: "var(--copper)" }}>
+              {t.map.kicker}
+            </div>
+            <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[52px] leading-[1.04] mb-6">
+              {t.map.title}
+            </h2>
+            <p className="text-[15px] md:text-[17px] mb-4" style={{ color: "var(--cream-dim)" }}>
+              {t.map.p1}
+            </p>
+            <p className="text-[14px] md:text-[15px] italic font-serif" style={{ color: "var(--stone)" }}>
+              {t.map.p2}
+            </p>
+          </div>
+          <div className="md:col-span-7" data-testid="dream-map-demo">
+            <DreamMap />
           </div>
         </div>
-        <div className="md:col-span-9">
-          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-4 md:mb-5" style={{ color: "var(--copper)" }}>
-            — iv. sigillum
+
+        <div id="sigillum" className="mt-20 md:mt-28 grid md:grid-cols-12 gap-8 md:gap-12 items-start max-w-[1100px]" data-testid="block-privacy">
+          <div className="md:col-span-3 flex md:justify-end">
+            <div style={{ color: "var(--copper)" }}>
+              <KeyGlyph size={60} />
+            </div>
           </div>
-          <h2 className="font-serif text-[28px] sm:text-[38px] md:text-[44px] leading-[1.06] mb-5 md:mb-6">
-            Сны не покидают тебя.
-          </h2>
-          <p className="text-[15px] md:text-[17px] max-w-[620px]" style={{ color: "var(--cream-dim)" }}>
-            Содержимое снов шифруется на твоём устройстве перед отправкой. На сервере — только шифротекст. Ни Google, ни мы, никто другой не видит, что тебе снилось.
-          </p>
+          <div className="md:col-span-9">
+            <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
+              {t.sigillum.kicker}
+            </div>
+            <h3 className="font-serif text-[28px] sm:text-[36px] md:text-[42px] leading-[1.08] mb-6">
+              {t.sigillum.titleA}<br className="hidden md:inline" /> {t.sigillum.titleB}
+            </h3>
+            <p className="text-[15px] md:text-[17px] mb-4 max-w-[640px]" style={{ color: "var(--cream-dim)" }}>
+              {t.sigillum.p1}
+            </p>
+            <p className="text-[14px] md:text-[15px] italic font-serif max-w-[620px]" style={{ color: "var(--stone)" }}>
+              {t.sigillum.p2}
+            </p>
+          </div>
         </div>
       </div>
-    </div>
-  </SectionFrame>
+    </Section>
+  );
+};
+
+const ArchetypesInline = ({ lang }) => (
+  <p>
+    {ARCHETYPES_INTRO[lang]}{" "}
+    {ARCHETYPES[lang].map((a, i) => (
+      <React.Fragment key={i}>
+        <span className="font-serif italic" style={{ color: "var(--cream)" }}>{a}</span>
+        {i < ARCHETYPES[lang].length - 1 ? ", " : "."}
+      </React.Fragment>
+    ))}
+  </p>
 );
 
-const DeepBlock = () => (
-  <SectionFrame id="deep" testid="section-deep" className="fade-in">
-    <div className="container-ms w-full py-20 md:py-28">
-      <details className="border-t border-b hairline py-8 md:py-10 max-w-[900px] mx-auto" data-testid="deep-details">
-        <summary className="flex items-center justify-between gap-4 cursor-pointer group">
-          <h2 className="font-serif text-[22px] sm:text-[30px] md:text-[34px] leading-[1.1]">
-            Для тех, кто глубже
+const MemoryTipsInline = ({ lang }) => (
+  <p>
+    {MEMORY_TIPS[lang].map((m, i) => (
+      <React.Fragment key={i}>
+        <span className="font-serif italic" style={{ color: "var(--cream)" }}>{m.label}</span>{" "}
+        {m.text}{" "}
+      </React.Fragment>
+    ))}
+  </p>
+);
+
+const renderArticleParagraph = (p, idx, lang) => {
+  if (typeof p === "string") return <p key={idx}>{p}</p>;
+  if (p.kind === "archetypes-ru" || p.kind === "archetypes-en")
+    return <ArchetypesInline key={idx} lang={lang} />;
+  if (p.kind === "memory-tips-ru" || p.kind === "memory-tips-en")
+    return <MemoryTipsInline key={idx} lang={lang} />;
+  return null;
+};
+
+const ReadingArticle = ({ article, lang, i }) => (
+  <article className="mb-16 md:mb-20 max-w-[720px]" data-testid={`reading-article-${i}`}>
+    <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-3" style={{ color: "var(--copper)" }}>
+      {article.kicker}
+    </div>
+    <h3 className="font-serif text-[24px] sm:text-[30px] md:text-[34px] leading-[1.18] mb-5 md:mb-6" style={{ color: "var(--cream)" }}>
+      {article.title}
+    </h3>
+    <div className="space-y-4 text-[15px] md:text-[16px] leading-[1.75]" style={{ color: "var(--cream-dim)" }}>
+      {article.paragraphs.map((p, idx) => renderArticleParagraph(p, idx, lang))}
+    </div>
+  </article>
+);
+
+const Reading = () => {
+  const { t, lang } = useLang();
+  return (
+    <Section id="reading" bg="ink" className="fade-in" testid="section-reading">
+      <div className="container-ms w-full py-24 md:py-32">
+        <div className="mb-14 md:mb-20 max-w-[820px]">
+          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
+            {t.reading.kicker}
+          </div>
+          <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[56px] leading-[1.04] tracking-[-0.01em]">
+            {t.reading.title}
           </h2>
-          <span className="font-serif text-[26px] md:text-[28px] transition-transform" style={{ color: "var(--copper)" }} aria-hidden="true">
-            +
-          </span>
-        </summary>
-        <div className="mt-7 md:mt-8 max-w-[680px] text-[15px] md:text-[16px] space-y-4 md:space-y-5" style={{ color: "var(--cream-dim)" }}>
-          <p>
-            <span className="font-serif italic" style={{ color: "var(--cream)" }}>Юнгианская модель психики.</span> Сознание как малая поверхность, под которой — слои личного и коллективного бессознательного.
-          </p>
-          <p>
-            <span className="font-serif italic" style={{ color: "var(--cream)" }}>Архетипы</span> как структурные паттерны — Тень, Анима, Самость, Герой, Мудрый старец. Они не образы, а формы, в которые отливаются образы.
-          </p>
-          <p>
-            <span className="font-serif italic" style={{ color: "var(--cream)" }}>Векторная база данных</span> как форма для индивидуальной карты символов. Каждый сон — точка в пространстве смыслов; повторение и кластеризация раскрывают паттерн.
-          </p>
-          <p>
-            <span className="font-serif italic" style={{ color: "var(--cream)" }}>Открытая методология.</span> Статьи о методе и его обосновании — в Telegram-канале{" "}
-            <a href={TG_URL} target="_blank" rel="noreferrer" style={{ color: "var(--copper)" }} className="hover:underline" data-testid="deep-tg-link">
-              CyberCore
-            </a>.
+          <p className="mt-5 text-[15px] md:text-[16px] italic font-serif max-w-[620px]" style={{ color: "var(--stone)" }}>
+            {t.reading.lead}
           </p>
         </div>
-      </details>
+        <div className="grid md:grid-cols-2 gap-x-10 md:gap-x-14 gap-y-0 md:gap-y-4">
+          {t.reading.articles.map((a, i) => (
+            <ReadingArticle key={i} article={a} lang={lang} i={i} />
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+};
+
+const renderFaqAnswer = (a, idx, lang) => {
+  if (typeof a === "string") return <p key={idx}>{a}</p>;
+  if (a.kind === "memory-tips-ru" || a.kind === "memory-tips-en")
+    return <MemoryTipsInline key={idx} lang={lang} />;
+  return null;
+};
+
+const FAQItem = ({ q, a, lang, i }) => (
+  <details className="faq-item border-b hairline py-6 md:py-7" data-testid={`faq-item-${i}`}>
+    <summary className="flex items-start justify-between gap-6 cursor-pointer group">
+      <h3 className="font-serif text-[19px] sm:text-[22px] md:text-[26px] leading-[1.25]" style={{ color: "var(--cream)" }}>
+        {q}
+      </h3>
+      <span className="shrink-0 mt-1" style={{ color: "var(--copper)" }} aria-hidden="true">
+        <Plus size={22} className="faq-plus transition-transform duration-300" />
+      </span>
+    </summary>
+    <div className="mt-5 max-w-[640px] space-y-3 md:space-y-4 text-[15px] md:text-[16px] leading-[1.75]" style={{ color: "var(--cream-dim)" }}>
+      {a.map((p, idx) => renderFaqAnswer(p, idx, lang))}
     </div>
-  </SectionFrame>
+  </details>
 );
 
-const FinalCTA = () => (
-  <SectionFrame id="final" testid="section-final-cta" className="fade-in">
-    <div className="absolute inset-0 pointer-events-none" data-testid="fractal-trees-bg">
-      <FractalTrees />
-    </div>
-    <div className="container-ms relative w-full py-20 md:py-28 text-center z-[2]">
-      <div className="flex justify-center mb-8 md:mb-10" style={{ color: "var(--copper)" }}>
-        <SigilQuadrature size={44} />
+const FAQSection = () => {
+  const { t, lang } = useLang();
+  return (
+    <Section id="faq" bg="ink-soft" className="fade-in" testid="section-faq">
+      <div className="container-ms w-full py-24 md:py-32">
+        <div className="mb-12 md:mb-16 max-w-[820px]">
+          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
+            {t.faq.kicker}
+          </div>
+          <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[56px] leading-[1.04] tracking-[-0.01em]">
+            {t.faq.title}
+          </h2>
+        </div>
+        <div className="max-w-[860px] border-t hairline">
+          {t.faq.items.map((it, i) => (
+            <FAQItem key={i} i={i} q={it.q} a={it.a} lang={lang} />
+          ))}
+        </div>
       </div>
-      <h2 className="font-serif text-[34px] sm:text-[48px] md:text-[60px] leading-[1.02] max-w-[760px] mx-auto mb-8 md:mb-10">
-        Сегодня ночью<br/>что-то приснится.
-      </h2>
-      <a href={APP_URL} className="btn-copper" data-testid="final-cta-open-app">
-        Открыть приложение
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <path d="M2 7 H12 M8 3 L12 7 L8 11" stroke="currentColor" strokeWidth="1.2" />
-        </svg>
-      </a>
-      <div className="mt-6 md:mt-7 text-[12px] md:text-[13px] px-4" style={{ color: "var(--stone)" }}>
-        Канал автора{" "}
-        <a href={TG_URL} target="_blank" rel="noreferrer" style={{ color: "var(--cream-dim)" }} className="hover:underline" data-testid="final-tg-link">
-          @CyberCore
-        </a>{" "}
-        — про снотолкование, бессознательное и киберпанк.
-      </div>
-    </div>
-  </SectionFrame>
-);
+    </Section>
+  );
+};
 
-const Footer = () => (
-  <footer className="relative border-t hairline" data-testid="site-footer">
-    <div className="container-ms py-10 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
-      <div className="text-[11px] md:text-[12px] tracking-[0.18em] uppercase" style={{ color: "var(--stone)" }}>
-        © 2026 · innerCore
+const FinalCTA = () => {
+  const { t } = useLang();
+  return (
+    <Section id="final" bg="ink" className="flex items-center fade-in" testid="section-final-cta">
+      <div className="absolute inset-0 pointer-events-none" data-testid="fractal-trees-bg">
+        <FractalTrees />
       </div>
-      <div className="flex items-center gap-5 md:gap-7 text-[12px] md:text-[13px] flex-wrap" style={{ color: "var(--stone)" }}>
-        <a href="mailto:hi@innercore.art" className="hover:text-[color:var(--cream)]" style={{ color: "inherit", textDecoration: "none" }} data-testid="footer-contact">
-          контакт
+      <div className="container-ms relative w-full py-24 md:py-32 text-center z-[2]">
+        <div className="flex justify-center mb-8 md:mb-10" style={{ color: "var(--copper)" }}>
+          <SigilQuadrature size={44} />
+        </div>
+        <h2 className="font-serif text-[34px] sm:text-[48px] md:text-[60px] leading-[1.02] max-w-[760px] mx-auto mb-8 md:mb-10">
+          {t.final.titleA}<br/>{t.final.titleB}
+        </h2>
+        <a href={APP_URL} className="btn-copper" data-testid="final-cta-open-app">
+          {t.final.cta}
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M2 7 H12 M8 3 L12 7 L8 11" stroke="currentColor" strokeWidth="1.2" />
+          </svg>
         </a>
-        <a href="#privacy" className="hover:text-[color:var(--cream)]" style={{ color: "inherit", textDecoration: "none" }} data-testid="footer-privacy">
-          политика приватности
-        </a>
-        <a href={TG_URL} target="_blank" rel="noreferrer" className="hover:text-[color:var(--cream)]" style={{ color: "inherit", textDecoration: "none" }} data-testid="footer-telegram">
-          telegram
-        </a>
+        <div className="mt-6 md:mt-7 text-[12px] md:text-[13px] px-4" style={{ color: "var(--stone)" }}>
+          {t.final.tgLead}{" "}
+          <a href={TG_URL} target="_blank" rel="noreferrer" style={{ color: "var(--cream-dim)" }} className="hover:underline" data-testid="final-tg-link">
+            @CyberCore
+          </a>{" "}
+          {t.final.tgTail}
+        </div>
       </div>
-      <div style={{ color: "var(--copper)" }} className="md:ml-auto">
-        <FooterSeal size={26} />
-      </div>
-    </div>
-  </footer>
-);
+    </Section>
+  );
+};
 
-function App() {
+const Footer = () => {
+  const { t } = useLang();
+  return (
+    <footer className="relative border-t hairline bg-ink" data-testid="site-footer">
+      <div className="container-ms py-10 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
+        <div className="text-[11px] md:text-[12px] tracking-[0.18em] uppercase" style={{ color: "var(--stone)" }}>
+          © 2026 · innerCore
+        </div>
+        <div className="flex items-center gap-5 md:gap-7 text-[12px] md:text-[13px] flex-wrap" style={{ color: "var(--stone)" }}>
+          <a href="mailto:hi@innercore.art" className="hover:text-[color:var(--cream)]" style={{ color: "inherit", textDecoration: "none" }} data-testid="footer-contact">
+            {t.footer.contact}
+          </a>
+          <a href="#sigillum" className="hover:text-[color:var(--cream)]" style={{ color: "inherit", textDecoration: "none" }} data-testid="footer-privacy">
+            {t.footer.privacy}
+          </a>
+          <a href={TG_URL} target="_blank" rel="noreferrer" className="hover:text-[color:var(--cream)]" style={{ color: "inherit", textDecoration: "none" }} data-testid="footer-telegram">
+            {t.footer.telegram}
+          </a>
+        </div>
+        <div style={{ color: "var(--copper)" }} className="md:ml-auto">
+          <FooterSeal size={26} />
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+function AppInner() {
   useFadeIn();
   return (
     <div className="App relative" data-testid="app-root">
       <Nav />
       <main>
         <Hero />
-        <WhatItIs />
-        <HowItWorks />
-        <MapSection />
-        <Privacy />
-        <DeepBlock />
+        <Manifesto />
+        <Tool />
+        <MapAndPrivacy />
+        <Reading />
+        <FAQSection />
         <FinalCTA />
       </main>
       <Footer />
@@ -402,4 +586,10 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <LangProvider>
+      <AppInner />
+    </LangProvider>
+  );
+}

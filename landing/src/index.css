@@ -4,6 +4,7 @@
 
 :root {
     --ink: #0F1118;
+    --ink-soft: #161A24;
     --ink-2: #14171F;
     --ink-3: #1A1E27;
     --cream: #E8E1D4;
@@ -15,6 +16,9 @@
     --hairline: rgba(232, 225, 212, 0.08);
     --hairline-strong: rgba(232, 225, 212, 0.16);
 }
+
+.bg-ink { background: var(--ink); }
+.bg-ink-soft { background: var(--ink-soft); }
 
 * {
     box-sizing: border-box;
@@ -30,6 +34,11 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: "ss01", "kern";
     text-rendering: optimizeLegibility;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
 }
 
 ::selection {
@@ -205,6 +214,14 @@ details > summary {
 }
 details > summary::-webkit-details-marker { display: none; }
 
+/* FAQ */
+.faq-item[open] .faq-plus {
+    transform: rotate(45deg);
+}
+.faq-item > summary:hover h3 {
+    color: var(--copper-bright);
+}
+
 /* Drop cap accent */
 .drop-cap::first-letter {
     font-family: 'EB Garamond', Georgia, serif;
@@ -237,6 +254,38 @@ details > summary::-webkit-details-marker { display: none; }
     max-width: 1180px;
     margin: 0 auto;
     padding: 0 1.5rem;
+}
+
+/* Language toggle pill */
+.lang-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    background: rgba(232, 225, 212, 0.02);
+    font-family: 'Manrope', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.lang-toggle button {
+    padding: 5px 10px;
+    border-radius: 999px;
+    color: var(--stone);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 200ms ease, background 200ms ease;
+    font-family: inherit;
+    font-size: inherit;
+    letter-spacing: inherit;
+}
+.lang-toggle button:hover { color: var(--cream); }
+.lang-toggle button.active {
+    color: var(--ink);
+    background: var(--copper);
 }
 
 /* Sticky header */

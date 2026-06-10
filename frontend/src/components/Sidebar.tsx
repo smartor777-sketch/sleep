@@ -1,5 +1,5 @@
 import { NavLink, useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Search, Map as MapIcon, User as UserIcon, Sparkles, Plus, X, BookOpen } from 'lucide-react';
+import { LayoutGrid, Search, Map as MapIcon, User as UserIcon, Sparkles, Plus, X } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import clsx from 'clsx';
@@ -60,11 +60,9 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
         {/* Brand */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4">
           <Link to="/" onClick={onClose} className="flex items-center gap-2.5 no-tap" data-testid="brand-link">
-            <span
-              className="relative w-9 h-9 rounded-2xl overflow-hidden flex items-center justify-center"
-              style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 75%)' }}
-            >
-              <BookOpen className="w-4 h-4 text-white" />
+            <span className="relative w-9 h-9 rounded-2xl overflow-hidden block shrink-0">
+              <img src="/icon-background.png" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" />
+              <img src="/icon.png" alt="InnerCore" className="absolute inset-0 w-full h-full object-contain" />
             </span>
             <span className="font-display text-xl tracking-tight">InnerCore</span>
           </Link>

@@ -220,6 +220,21 @@ export const api = {
     return data;
   },
 
+  telegramInit: () =>
+    post<{ auth_token: string; deeplink: string; expires_in: number }>(
+      '/api/v1/auth/telegram/init',
+      {},
+      { __skipAuth: true } as any
+    ),
+
+  telegramStatus: (auth_token: string) =>
+    get<{
+      status: 'pending' | 'completed' | 'expired';
+      access_token?: string;
+      refresh_token?: string;
+      token_type?: string;
+    }>(`/api/v1/auth/telegram/status?auth_token=${encodeURIComponent(auth_token)}`, { __skipAuth: true } as any),
+
   linkProvider: (provider: 'google' | 'apple', id_token: string) =>
     post<LinkResponse>('/api/v1/auth/link', { provider, id_token }),
 

@@ -110,6 +110,8 @@ services:
       GOOGLE_PLAY_PACKAGE_NAME: ${GOOGLE_PLAY_PACKAGE_NAME:-art.innercore.app}
       GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON}
       DREAMS_PER_DAY_LIMIT: ${DREAMS_PER_DAY_LIMIT}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME}
+      TELEGRAM_BOT_BACKEND_SECRET: ${TELEGRAM_BOT_BACKEND_SECRET}
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -174,6 +176,20 @@ services:
   landing:
     image: ghcr.io/core-euler/sna_net-landing:${IMAGE_TAG:-latest}
     container_name: innercore_landing
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  bot_auth:
+    image: ghcr.io/core-euler/sna_net-bot_auth:${IMAGE_TAG:-latest}
+    container_name: innercore_bot_auth
+    environment:
+      BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BACKEND_URL: http://backend:8000
+      BACKEND_BOT_SECRET: ${TELEGRAM_BOT_BACKEND_SECRET}
+      WEB_URL: https://app.innercore.art
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      backend: { condition: service_started }
     networks: [innercore_network]
     restart: unless-stopped
 

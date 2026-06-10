@@ -114,3 +114,30 @@ class MergeAnonymousRequest(BaseModel):
 class GoogleSignInRequest(BaseModel):
     """Google Sign-In: ID token от клиента"""
     id_token: str
+
+
+# === Telegram bot auth (deep-link flow) ===
+
+class TelegramInitResponse(BaseModel):
+    """Старт TG-авторизации: отдаём короткоживущий токен + deeplink."""
+    auth_token: str
+    deeplink: str
+    expires_in: int
+
+
+class TelegramStatusResponse(BaseModel):
+    """Поллинг статуса TG-авторизации."""
+    status: str  # 'pending' | 'completed' | 'expired'
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str | None = None
+
+
+class TelegramConfirmRequest(BaseModel):
+    """Бот сообщает: пользователь нажал /start <auth_token>."""
+    auth_token: str = Field(..., min_length=10, max_length=128)
+    telegram_id: int
+    username: str | None = None
+    first_name: str | None = Field(None, max_length=100)
+    last_name: str | None = Field(None, max_length=100)
+    photo_url: str | None = None

@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     apple_team_id: str | None = None
     apple_key_id: str | None = None
     apple_private_key: str | None = None
+
+    # Telegram bot auth
+    telegram_bot_username: str | None = None
+    telegram_bot_backend_secret: SecretStr | None = None
     
     # Email (SMTP)
     smtp_host: str = "smtp.gmail.com"

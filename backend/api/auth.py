@@ -32,6 +32,9 @@ from schemas import (
     VerifyEmailCodeRequest,
     MergeAnonymousRequest,
     GoogleSignInRequest,
+    TelegramInitResponse,
+    TelegramStatusResponse,
+    TelegramConfirmRequest,
 )
 from services.auth_service import (
     get_user_by_email,
@@ -47,6 +50,7 @@ from services.auth_service import (
     merge_anonymous_user,
 )
 from services.email_service import email_service
+from services import telegram_auth_service as tg_auth
 from services.oauth_token_service import verify_google_id_token, verify_apple_id_token
 from services.oauth_identity_service import (
     get_identity,
@@ -575,3 +579,110 @@ async def logout():
     В будущем можно добавить blacklist для токенов в Redis.
     """
     return {"message": "Successfully logged out"}
+
+
+# === Telegram bot deep-link auth ===
+
+from fastapi import Header
+from config import settings
+
+
+def _bot_username_or_500() -> str:
+    if not settings.telegram_bot_username:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="telegram_auth_not_configured",
+        )
+    return settings.telegram_bot_username
+
+
+def _bot_secret_or_500() -> str:
+    if not settings.telegram_bot_backend_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="telegram_auth_not_configured",
+        )
+    return settings.telegram_bot_backend_secret.get_secret_value()
+
+
+async def _verify_bot_caller(authorization: str = Header(...)) -> None:
+    expected = _bot_secret_or_500()
+    if authorization != f"Bot {expected}":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid_bot_secret",
+        )
+
+
+@router.post("/telegram/init", response_model=TelegramInitResponse)
+async def telegram_init() -> TelegramInitResponse:
+    """Web → backend: дай мне токен и deeplink на бота."""
+    bot_username = _bot_username_or_500()
+    token = await tg_auth.create_pending_token()
+    return TelegramInitResponse(
+        auth_token=token,
+        deeplink=f"https://t.me/{bot_username}?start={token}",
+        expires_in=tg_auth.TOKEN_TTL_SECONDS,
+    )
+
+
+@router.get("/telegram/status", response_model=TelegramStatusResponse)
+async def telegram_status(auth_token: str = Query(..., min_length=10, max_length=128)) -> TelegramStatusResponse:
+    """Web поллит статус. Один-shot: при completed — отдаём токены и удаляем."""
+    state = await tg_auth.get_token_state(auth_token)
+    if state is None:
+        return TelegramStatusResponse(status="expired")
+    if state.get("status") == "pending":
+        return TelegramStatusResponse(status="pending")
+    return TelegramStatusResponse(
+        status="completed",
+        access_token=state.get("access_token"),
+        refresh_token=state.get("refresh_token"),
+        token_type=state.get("token_type", "bearer"),
+    )
+
+
+@router.post(
+    "/telegram/confirm",
+    response_model=MessageResponse,
+    dependencies=[Depends(_verify_bot_caller)],
+)
+async def telegram_confirm(
+    body: TelegramConfirmRequest,
+    db: DatabaseSession,
+) -> MessageResponse:
+    """Бот → backend: пользователь нажал /start <auth_token>. Создаём/находим юзера, сохраняем JWT в Redis под токеном."""
+    # Make sure the auth_token is still alive (don't consume it here — that happens in complete_token).
+    from services.telegram_auth_service import _redis as _tg_redis, KEY_PREFIX as _KP
+    client = await _tg_redis()
+    try:
+        exists = await client.exists(_KP + body.auth_token)
+    finally:
+        await client.close()
+    if not exists:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="auth_token_expired",
+        )
+
+    user = await tg_auth.get_or_create_telegram_user(
+        db,
+        telegram_id=body.telegram_id,
+        username=body.username,
+        first_name=body.first_name,
+        last_name=body.last_name,
+    )
+
+    access = create_access_token({"sub": str(user.id)})
+    refresh = create_refresh_token({"sub": str(user.id)})
+
+    ok = await tg_auth.complete_token(body.auth_token, access, refresh)
+    if not ok:
+        # token expired between exists() and complete_token — extremely unlikely
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="auth_token_expired",
+        )
+
+    logger.info("Telegram auth completed for user=%s telegram_id=%s", user.id, body.telegram_id)
+    return {"message": "ok"}

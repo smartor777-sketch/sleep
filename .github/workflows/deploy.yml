@@ -25,6 +25,7 @@ jobs:
           - { name: llm_service, context: ./llm_service, dockerfile: ./llm_service/Dockerfile }
           - { name: frontend,    context: ./frontend,    dockerfile: ./frontend/Dockerfile }
           - { name: landing,     context: ./landing,     dockerfile: ./landing/Dockerfile }
+          - { name: bot_auth,    context: ./bot_auth,    dockerfile: ./bot_auth/Dockerfile }
     steps:
       - uses: actions/checkout@v4
 

@@ -60,6 +60,9 @@ from .auth import (
     VerifyEmailCodeRequest,
     MergeAnonymousRequest,
     GoogleSignInRequest,
+    TelegramInitResponse,
+    TelegramStatusResponse,
+    TelegramConfirmRequest,
 )
 from .billing import (
     VerifyPurchaseRequest,
@@ -123,6 +126,9 @@ __all__ = [
     "VerifyEmailCodeRequest",
     "MergeAnonymousRequest",
     "GoogleSignInRequest",
+    "TelegramInitResponse",
+    "TelegramStatusResponse",
+    "TelegramConfirmRequest",
     # Billing
     "VerifyPurchaseRequest",
     "VerifyPurchaseResponse",

@@ -89,12 +89,12 @@ const Nav = () => {
           <span style={{ color: "var(--copper)" }}>
             <SigilQuadrature size={22} />
           </span>
-          <span className="font-serif text-[18px] md:text-[19px] tracking-[0.02em]" style={{ color: "var(--cream)" }}>
+          <span className="font-serif text-[19px] md:text-[20px] tracking-[0.02em]" style={{ color: "var(--cream)" }}>
             innerCore
           </span>
         </a>
 
-        <div className="hidden md:flex items-center gap-6 lg:gap-8 text-[13px]" style={{ color: "var(--stone)" }}>
+        <div className="hidden md:flex items-center gap-6 lg:gap-8 text-[14px]" style={{ color: "var(--stone)" }}>
           {links.map((l) => (
             <a
               key={l.href}
@@ -135,7 +135,7 @@ const Nav = () => {
               key={l.href}
               href={l.href}
               onClick={close}
-              className="font-serif text-[22px]"
+              className="font-serif text-[23px]"
               style={{ color: "var(--cream)", textDecoration: "none" }}
               data-testid={`m-${l.testid}`}
             >
@@ -176,16 +176,16 @@ const Hero = () => {
               <span style={{ color: "var(--copper)" }}>
                 <SigilOuroboros size={38} />
               </span>
-              <span className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase">{t.hero.kicker}</span>
+              <span className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase">{t.hero.kicker}</span>
             </div>
             <h1
-              className="font-serif text-[34px] sm:text-[46px] md:text-[58px] lg:text-[64px] leading-[1.02] tracking-[-0.015em] max-w-[760px]"
+              className="font-serif text-[35px] sm:text-[47px] md:text-[59px] lg:text-[65px] leading-[1.02] tracking-[-0.015em] max-w-[760px]"
               data-testid="hero-title"
             >
               {t.hero.title1}{" "}
               <span style={{ color: "var(--copper)" }}>{t.hero.title2}</span>
             </h1>
-            <p className="mt-6 md:mt-8 max-w-[520px] text-[16px] md:text-[18px]" style={{ color: "var(--cream-dim)" }} data-testid="hero-subtitle">
+            <p className="mt-6 md:mt-8 max-w-[520px] text-[17px] md:text-[19px]" style={{ color: "var(--cream-dim)" }} data-testid="hero-subtitle">
               {t.hero.subtitle}
             </p>
             <div className="mt-8 md:mt-10 flex items-center gap-5 md:gap-6 flex-wrap">
@@ -197,7 +197,7 @@ const Hero = () => {
               </a>
               <a
                 href="#manifest"
-                className="text-[12px] md:text-[13px] tracking-[0.12em] uppercase hover:underline"
+                className="text-[13px] md:text-[14px] tracking-[0.12em] uppercase hover:underline"
                 style={{ color: "var(--stone)", textDecoration: "none" }}
                 data-testid="hero-scroll-down"
               >
@@ -205,7 +205,7 @@ const Hero = () => {
               </a>
             </div>
 
-            <div className="mt-10 md:mt-14 flex items-center gap-3 md:gap-6 text-[11px] md:text-[12px] flex-wrap" style={{ color: "var(--stone)" }}>
+            <div className="mt-10 md:mt-14 flex items-center gap-3 md:gap-6 text-[12px] md:text-[13px] flex-wrap" style={{ color: "var(--stone)" }}>
               {t.hero.badges.map((b, i) => (
                 <React.Fragment key={i}>
                   {i === 0 ? (
@@ -224,7 +224,7 @@ const Hero = () => {
 
           <div className="relative order-1 md:order-2 md:col-span-5 max-w-[420px] md:max-w-none mx-auto w-full" data-testid="hero-sphere">
             <Sphere />
-            <div className="mt-2 text-center font-serif italic text-[12px] md:text-[14px] px-4" style={{ color: "var(--stone)" }}>
+            <div className="mt-2 text-center font-serif italic text-[13px] md:text-[15px] px-4" style={{ color: "var(--stone)" }}>
               {t.hero.caption}
             </div>
           </div>
@@ -251,16 +251,16 @@ const renderParagraph = (p, idx) => {
 const SubBlock = ({ block, i }) => (
   <div className="mb-14 md:mb-20 max-w-[720px]" data-testid={`manifest-block-${i}`}>
     {block.kicker && (
-      <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
+      <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
         {block.kicker}
       </div>
     )}
     {block.title && (
-      <h3 className="font-serif text-[24px] sm:text-[30px] md:text-[36px] leading-[1.15] mb-5 md:mb-6" style={{ color: "var(--cream)" }}>
+      <h3 className="font-serif text-[25px] sm:text-[31px] md:text-[37px] leading-[1.15] mb-5 md:mb-6" style={{ color: "var(--cream)" }}>
         {block.title}
       </h3>
     )}
-    <div className="space-y-4 md:space-y-5 text-[15px] md:text-[17px]" style={{ color: "var(--cream-dim)" }}>
+    <div className="space-y-4 md:space-y-5 text-[16px] md:text-[18px]" style={{ color: "var(--cream-dim)" }}>
       {block.paragraphs.map(renderParagraph)}
     </div>
   </div>
@@ -275,11 +275,11 @@ const Manifesto = () => {
       </div>
       <div className="container-ms relative w-full py-24 md:py-32 z-[2]">
         <div className="mb-14 md:mb-20 max-w-[820px]">
-          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
+          <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
             {t.manifest.kicker}
           </div>
           <h2
-            className="font-serif text-[32px] sm:text-[44px] md:text-[58px] leading-[1.04] tracking-[-0.01em]"
+            className="font-serif text-[33px] sm:text-[45px] md:text-[59px] leading-[1.04] tracking-[-0.01em]"
             data-testid="manifest-title"
           >
             {t.manifest.title}
@@ -304,14 +304,14 @@ const Tool = () => {
       <div className="container-ms relative w-full py-24 md:py-32 z-[2]">
         <div className="flex items-baseline justify-between mb-12 md:mb-16 flex-wrap gap-4">
           <div>
-            <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
+            <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
               {t.tool.kicker}
             </div>
-            <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[56px] leading-[1.02]" data-testid="how-title">
+            <h2 className="font-serif text-[33px] sm:text-[45px] md:text-[57px] leading-[1.02]" data-testid="how-title">
               {t.tool.titleA}<br/>{t.tool.titleB}
             </h2>
           </div>
-          <div className="text-[10px] md:text-[12px] tracking-[0.32em] uppercase font-serif italic" style={{ color: "var(--stone)" }}>
+          <div className="text-[11px] md:text-[13px] tracking-[0.32em] uppercase font-serif italic" style={{ color: "var(--stone)" }}>
             {t.tool.subkicker}
           </div>
         </div>
@@ -321,13 +321,13 @@ const Tool = () => {
             <div key={i} className="card-ms" data-testid={`how-card-${i}`} style={{ borderRadius: 0, borderWidth: 0, background: "rgba(15, 17, 24, 0.78)", backdropFilter: "blur(8px)" }}>
               <div className="flex items-center justify-between mb-6 md:mb-8">
                 <span className="glyph">{c.glyph}</span>
-                <span className="text-[10px] tracking-[0.32em] uppercase" style={{ color: "var(--stone)" }}>
+                <span className="text-[11px] tracking-[0.32em] uppercase" style={{ color: "var(--stone)" }}>
                   {String(i + 1).padStart(2, "0")} · {c.label}
                 </span>
               </div>
-              <h3 className="font-serif text-[26px] md:text-[30px] mb-4">{c.title}</h3>
-              <p className="text-[15px] md:text-[16px] mb-4 font-serif italic" style={{ color: "var(--cream)" }}>{c.intro}</p>
-              <p className="text-[14px] md:text-[15px]" style={{ color: "var(--cream-dim)" }}>{c.body}</p>
+              <h3 className="font-serif text-[27px] md:text-[31px] mb-4">{c.title}</h3>
+              <p className="text-[16px] md:text-[17px] mb-4 font-serif italic" style={{ color: "var(--cream)" }}>{c.intro}</p>
+              <p className="text-[15px] md:text-[16px]" style={{ color: "var(--cream-dim)" }}>{c.body}</p>
             </div>
           ))}
         </div>
@@ -346,16 +346,16 @@ const MapAndPrivacy = () => {
       <div className="container-ms relative w-full py-24 md:py-32 z-[2]">
         <div className="grid md:grid-cols-12 gap-10 md:gap-12 items-start">
           <div className="md:col-span-5">
-            <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-5" style={{ color: "var(--copper)" }}>
+            <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-5" style={{ color: "var(--copper)" }}>
               {t.map.kicker}
             </div>
-            <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[52px] leading-[1.04] mb-6">
+            <h2 className="font-serif text-[33px] sm:text-[45px] md:text-[53px] leading-[1.04] mb-6">
               {t.map.title}
             </h2>
-            <p className="text-[15px] md:text-[17px] mb-4" style={{ color: "var(--cream-dim)" }}>
+            <p className="text-[16px] md:text-[18px] mb-4" style={{ color: "var(--cream-dim)" }}>
               {t.map.p1}
             </p>
-            <p className="text-[14px] md:text-[15px] italic font-serif" style={{ color: "var(--stone)" }}>
+            <p className="text-[15px] md:text-[16px] italic font-serif" style={{ color: "var(--stone)" }}>
               {t.map.p2}
             </p>
           </div>
@@ -371,16 +371,16 @@ const MapAndPrivacy = () => {
             </div>
           </div>
           <div className="md:col-span-9">
-            <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
+            <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-4" style={{ color: "var(--copper)" }}>
               {t.sigillum.kicker}
             </div>
-            <h3 className="font-serif text-[28px] sm:text-[36px] md:text-[42px] leading-[1.08] mb-6">
+            <h3 className="font-serif text-[29px] sm:text-[37px] md:text-[43px] leading-[1.08] mb-6">
               {t.sigillum.titleA}<br className="hidden md:inline" /> {t.sigillum.titleB}
             </h3>
-            <p className="text-[15px] md:text-[17px] mb-4 max-w-[640px]" style={{ color: "var(--cream-dim)" }}>
+            <p className="text-[16px] md:text-[18px] mb-4 max-w-[640px]" style={{ color: "var(--cream-dim)" }}>
               {t.sigillum.p1}
             </p>
-            <p className="text-[14px] md:text-[15px] italic font-serif max-w-[620px]" style={{ color: "var(--stone)" }}>
+            <p className="text-[15px] md:text-[16px] italic font-serif max-w-[620px]" style={{ color: "var(--stone)" }}>
               {t.sigillum.p2}
             </p>
           </div>
@@ -424,13 +424,13 @@ const renderArticleParagraph = (p, idx, lang) => {
 
 const ReadingArticle = ({ article, lang, i }) => (
   <article className="mb-16 md:mb-20 max-w-[720px]" data-testid={`reading-article-${i}`}>
-    <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-3" style={{ color: "var(--copper)" }}>
+    <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-3" style={{ color: "var(--copper)" }}>
       {article.kicker}
     </div>
-    <h3 className="font-serif text-[24px] sm:text-[30px] md:text-[34px] leading-[1.18] mb-5 md:mb-6" style={{ color: "var(--cream)" }}>
+    <h3 className="font-serif text-[25px] sm:text-[31px] md:text-[35px] leading-[1.18] mb-5 md:mb-6" style={{ color: "var(--cream)" }}>
       {article.title}
     </h3>
-    <div className="space-y-4 text-[15px] md:text-[16px] leading-[1.75]" style={{ color: "var(--cream-dim)" }}>
+    <div className="space-y-4 text-[16px] md:text-[17px] leading-[1.75]" style={{ color: "var(--cream-dim)" }}>
       {article.paragraphs.map((p, idx) => renderArticleParagraph(p, idx, lang))}
     </div>
   </article>
@@ -442,13 +442,13 @@ const Reading = () => {
     <Section id="reading" bg="ink" className="fade-in" testid="section-reading">
       <div className="container-ms w-full py-24 md:py-32">
         <div className="mb-14 md:mb-20 max-w-[820px]">
-          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
+          <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
             {t.reading.kicker}
           </div>
-          <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[56px] leading-[1.04] tracking-[-0.01em]">
+          <h2 className="font-serif text-[33px] sm:text-[45px] md:text-[57px] leading-[1.04] tracking-[-0.01em]">
             {t.reading.title}
           </h2>
-          <p className="mt-5 text-[15px] md:text-[16px] italic font-serif max-w-[620px]" style={{ color: "var(--stone)" }}>
+          <p className="mt-5 text-[16px] md:text-[17px] italic font-serif max-w-[620px]" style={{ color: "var(--stone)" }}>
             {t.reading.lead}
           </p>
         </div>
@@ -472,14 +472,14 @@ const renderFaqAnswer = (a, idx, lang) => {
 const FAQItem = ({ q, a, lang, i }) => (
   <details className="faq-item border-b hairline py-6 md:py-7" data-testid={`faq-item-${i}`}>
     <summary className="flex items-start justify-between gap-6 cursor-pointer group">
-      <h3 className="font-serif text-[19px] sm:text-[22px] md:text-[26px] leading-[1.25]" style={{ color: "var(--cream)" }}>
+      <h3 className="font-serif text-[20px] sm:text-[23px] md:text-[27px] leading-[1.25]" style={{ color: "var(--cream)" }}>
         {q}
       </h3>
       <span className="shrink-0 mt-1" style={{ color: "var(--copper)" }} aria-hidden="true">
         <Plus size={22} className="faq-plus transition-transform duration-300" />
       </span>
     </summary>
-    <div className="mt-5 max-w-[640px] space-y-3 md:space-y-4 text-[15px] md:text-[16px] leading-[1.75]" style={{ color: "var(--cream-dim)" }}>
+    <div className="mt-5 max-w-[640px] space-y-3 md:space-y-4 text-[16px] md:text-[17px] leading-[1.75]" style={{ color: "var(--cream-dim)" }}>
       {a.map((p, idx) => renderFaqAnswer(p, idx, lang))}
     </div>
   </details>
@@ -491,10 +491,10 @@ const FAQSection = () => {
     <Section id="faq" bg="ink-soft" className="fade-in" testid="section-faq">
       <div className="container-ms w-full py-24 md:py-32">
         <div className="mb-12 md:mb-16 max-w-[820px]">
-          <div className="text-[10px] md:text-[11px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
+          <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-6" style={{ color: "var(--copper)" }}>
             {t.faq.kicker}
           </div>
-          <h2 className="font-serif text-[32px] sm:text-[44px] md:text-[56px] leading-[1.04] tracking-[-0.01em]">
+          <h2 className="font-serif text-[33px] sm:text-[45px] md:text-[57px] leading-[1.04] tracking-[-0.01em]">
             {t.faq.title}
           </h2>
         </div>
@@ -519,7 +519,7 @@ const FinalCTA = () => {
         <div className="flex justify-center mb-8 md:mb-10" style={{ color: "var(--copper)" }}>
           <SigilQuadrature size={44} />
         </div>
-        <h2 className="font-serif text-[34px] sm:text-[48px] md:text-[60px] leading-[1.02] max-w-[760px] mx-auto mb-8 md:mb-10">
+        <h2 className="font-serif text-[35px] sm:text-[49px] md:text-[61px] leading-[1.02] max-w-[760px] mx-auto mb-8 md:mb-10">
           {t.final.titleA}<br/>{t.final.titleB}
         </h2>
         <a href={APP_URL} className="btn-copper" data-testid="final-cta-open-app">
@@ -528,7 +528,7 @@ const FinalCTA = () => {
             <path d="M2 7 H12 M8 3 L12 7 L8 11" stroke="currentColor" strokeWidth="1.2" />
           </svg>
         </a>
-        <div className="mt-6 md:mt-7 text-[12px] md:text-[13px] px-4" style={{ color: "var(--stone)" }}>
+        <div className="mt-6 md:mt-7 text-[13px] md:text-[14px] px-4" style={{ color: "var(--stone)" }}>
           {t.final.tgLead}{" "}
           <a href={TG_URL} target="_blank" rel="noreferrer" style={{ color: "var(--cream-dim)" }} className="hover:underline" data-testid="final-tg-link">
             @CyberCore
@@ -545,10 +545,10 @@ const Footer = () => {
   return (
     <footer className="relative border-t hairline bg-ink" data-testid="site-footer">
       <div className="container-ms py-10 flex flex-col md:flex-row gap-6 md:items-center md:justify-between">
-        <div className="text-[11px] md:text-[12px] tracking-[0.18em] uppercase" style={{ color: "var(--stone)" }}>
+        <div className="text-[12px] md:text-[13px] tracking-[0.18em] uppercase" style={{ color: "var(--stone)" }}>
           © 2026 · innerCore
         </div>
-        <div className="flex items-center gap-5 md:gap-7 text-[12px] md:text-[13px] flex-wrap" style={{ color: "var(--stone)" }}>
+        <div className="flex items-center gap-5 md:gap-7 text-[13px] md:text-[14px] flex-wrap" style={{ color: "var(--stone)" }}>
           <a href="mailto:hi@innercore.art" className="hover:text-[color:var(--cream)]" style={{ color: "inherit", textDecoration: "none" }} data-testid="footer-contact">
             {t.footer.contact}
           </a>

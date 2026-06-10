@@ -93,7 +93,7 @@ html {
     color: #1A0F05;
     font-family: 'Manrope', sans-serif;
     font-weight: 500;
-    font-size: 0.95rem;
+    font-size: 1.0125rem;
     letter-spacing: 0.01em;
     border-radius: 2px;
     border: 1px solid transparent;
@@ -118,7 +118,7 @@ html {
     padding: 0.7rem 1.1rem;
     color: var(--cream);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.9625rem;
     border-bottom: 1px solid var(--hairline);
     transition: color 200ms ease, border-color 200ms ease;
 }
@@ -202,7 +202,7 @@ p {
 /* Glyph in cards */
 .glyph {
     font-family: 'EB Garamond', Georgia, serif;
-    font-size: 2.4rem;
+    font-size: 2.4625rem;
     color: var(--copper);
     line-height: 1;
 }
@@ -266,7 +266,7 @@ details > summary::-webkit-details-marker { display: none; }
     border-radius: 999px;
     background: rgba(232, 225, 212, 0.02);
     font-family: 'Manrope', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }

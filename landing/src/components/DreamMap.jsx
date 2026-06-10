@@ -142,14 +142,14 @@ const DreamMap = () => {
         </svg>
 
         {/* HUD overlay */}
-        <div className="absolute top-3 left-4 flex gap-3 items-center text-[11px] uppercase tracking-[0.18em]" style={{ color: "var(--stone)" }}>
-          <span className="font-serif italic text-[14px] normal-case tracking-normal" style={{ color: "var(--cream)" }}>Dream Map</span>
+        <div className="absolute top-3 left-4 flex gap-3 items-center text-[12px] uppercase tracking-[0.18em]" style={{ color: "var(--stone)" }}>
+          <span className="font-serif italic text-[15px] normal-case tracking-normal" style={{ color: "var(--cream)" }}>Dream Map</span>
           <span>·</span>
           <span>43 nodes</span>
           <span>·</span>
           <span>6 clusters</span>
         </div>
-        <div className="absolute bottom-3 right-4 text-[10px] tracking-[0.18em] uppercase" style={{ color: "var(--stone)" }}>
+        <div className="absolute bottom-3 right-4 text-[11px] tracking-[0.18em] uppercase" style={{ color: "var(--stone)" }}>
           v · близость = смысл
         </div>
       </div>

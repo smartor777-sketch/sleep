@@ -160,10 +160,10 @@ export default function OnboardingModal() {
                     <Minus className="w-5 h-5" />
                   </button>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="numeric"
-                    min={12}
-                    max={90}
+                    pattern="[0-9]*"
+                    maxLength={2}
                     placeholder="—"
                     value={age}
                     onChange={(e) => {
@@ -172,7 +172,7 @@ export default function OnboardingModal() {
                       const n = parseInt(raw, 10);
                       if (Number.isFinite(n)) setAge(String(Math.min(90, Math.max(12, n))));
                     }}
-                    className="w-24 bg-transparent border-0 outline-none text-center font-display tabular-nums text-5xl focus:outline-none focus:ring-0"
+                    className="w-20 bg-transparent border-0 outline-none text-center font-display tabular-nums text-5xl focus:outline-none focus:ring-0"
                     data-testid="onboarding-age-input"
                   />
                   <button

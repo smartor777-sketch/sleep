@@ -64,7 +64,10 @@ async def on_start_with_token(message: Message, command: CommandObject) -> None:
             r = await client.post(
                 CONFIRM_URL,
                 json=payload,
-                headers={"Authorization": f"Bot {BACKEND_BOT_SECRET}"},
+                headers={
+                    "Authorization": f"Bot {BACKEND_BOT_SECRET}",
+                    "X-App-Version": "0.4.2",
+                },
             )
     except httpx.HTTPError as e:
         logger.warning("backend unreachable: %s", e)

@@ -28,14 +28,14 @@ export default function Modal({ open, onClose, children, title, size = 'md', clo
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" data-testid={testId}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-x-hidden" data-testid={testId}>
       <div
         className="absolute inset-0 bg-black/55 backdrop-blur-sm animate-fade-up"
         onClick={() => closable && onClose?.()}
       />
       <div
         className={clsx(
-          'relative glass rounded-t-[28px] sm:rounded-[28px] w-full overflow-hidden animate-fade-up',
+          'relative glass rounded-t-[28px] sm:rounded-[28px] w-full max-w-full overflow-hidden animate-fade-up',
           size === 'sm' && 'sm:max-w-md',
           size === 'md' && 'sm:max-w-xl',
           size === 'lg' && 'sm:max-w-3xl'

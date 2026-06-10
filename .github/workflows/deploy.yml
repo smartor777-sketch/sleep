@@ -69,6 +69,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Compute tag
         id: tag
         run: echo "sha_tag=main-$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
@@ -82,6 +84,17 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -p ${{ secrets.MSK1_SSH_PORT }} -H ${{ secrets.MSK1_SSH_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Sync deploy artifacts (compose, Caddyfile, deploy.sh)
+        run: |
+          scp -P ${{ secrets.MSK1_SSH_PORT }} \
+              deploy/docker-compose.prod.yml \
+              deploy/Caddyfile \
+              deploy/deploy.sh \
+              ${{ secrets.MSK1_SSH_USER }}@${{ secrets.MSK1_SSH_HOST }}:~/innercore/deploy/
+          ssh -p ${{ secrets.MSK1_SSH_PORT }} \
+              ${{ secrets.MSK1_SSH_USER }}@${{ secrets.MSK1_SSH_HOST }} \
+              "chmod +x ~/innercore/deploy/deploy.sh"
 
       - name: Run deploy
         env:

@@ -232,10 +232,12 @@ export default function ProfilePage() {
       {/* Mobile app */}
       <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="mobile-app-section">
         <div className="flex items-start gap-4">
-          <span className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shrink-0"
-                style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
-            <Smartphone className="w-5 h-5" />
-          </span>
+          <img
+            src="/icon-background.png"
+            alt=""
+            aria-hidden="true"
+            className="w-12 h-12 rounded-2xl object-cover shrink-0"
+          />
           <div className="flex-1 min-w-0">
             <div className="font-display text-lg mb-1">
               {lang === 'ru' ? 'Мобильное приложение' : 'Mobile app'}

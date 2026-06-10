@@ -197,10 +197,12 @@ function EmptyState() {
   const lang = useApp((s) => s.lang);
   return (
     <div className="text-center py-16 px-6 animate-fade-up" data-testid="dreams-empty">
-      <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-5"
-           style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
-        <Sparkles className="w-8 h-8 text-white" />
-      </div>
+      <img
+        src="/icon-background.png"
+        alt=""
+        aria-hidden="true"
+        className="w-20 h-20 mx-auto rounded-full object-cover mb-5"
+      />
       <h3 className="font-display text-2xl mb-2">{t('dreams.empty.title', lang)}</h3>
       <p className="muted-text max-w-md mx-auto">{t('dreams.empty.sub', lang)}</p>
     </div>

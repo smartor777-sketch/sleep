@@ -62,10 +62,12 @@ export default function MapPage() {
   if (!isPro) {
     return (
       <div className="text-center py-20 px-4 animate-fade-up" data-testid="map-gate">
-        <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-5"
-             style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
-          <MapIcon className="w-9 h-9 text-white" />
-        </div>
+        <img
+          src="/icon-background.png"
+          alt=""
+          aria-hidden="true"
+          className="mx-auto w-20 h-20 rounded-full object-cover mb-5"
+        />
         <h2 className="font-display text-2xl mb-2">{t('map.gate', lang)}</h2>
         <p className="muted-text max-w-md mx-auto mb-6">{t('map.gateDesc', lang)}</p>
         <button onClick={() => openPaywall(t('map.gate', lang))} className="btn-pill btn-primary" data-testid="map-upgrade-btn">

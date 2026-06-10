@@ -230,10 +230,12 @@ export default function DreamPage() {
 
       {dream.analysis_status === 'analyzing' && (
         <div className="card-surface rounded-[24px] p-6 text-center" data-testid="dream-analyzing">
-          <div className="w-14 h-14 mx-auto rounded-full flex items-center justify-center mb-3 animate-pulse-soft"
-               style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}>
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
+          <img
+            src="/icon-background.png"
+            alt=""
+            aria-hidden="true"
+            className="w-14 h-14 mx-auto rounded-full object-cover mb-3 animate-pulse-soft"
+          />
           <p className="muted-text">{t('dream.analyzing', lang)}</p>
         </div>
       )}

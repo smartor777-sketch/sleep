@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Minus, Plus } from 'lucide-react';
 import Modal from './Modal';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
@@ -101,8 +102,6 @@ export default function OnboardingModal() {
     .replace('{step}', String(step + 1))
     .replace('{total}', String(STEPS));
 
-  const ages = Array.from({ length: 90 - 12 + 1 }, (_, i) => String(12 + i));
-
   return (
     <Modal open={open} closable={false} size="md" testId="onboarding-modal">
       <div className="min-h-[460px] flex flex-col">
@@ -144,20 +143,53 @@ export default function OnboardingModal() {
                   </button>
                 ))}
               </div>
-              <label className="block">
-                <span className="text-sm muted-text mb-1 block">{t('onboarding.ageLabel', lang)}</span>
-                <select
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                  className="input-base w-full"
-                  data-testid="onboarding-age-select"
-                >
-                  <option value="">—</option>
-                  {ages.map((a) => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </label>
+              <div>
+                <span className="text-sm muted-text mb-3 block">{t('onboarding.ageLabel', lang)}</span>
+                <div className="flex items-center justify-center gap-4 bg-white/5 rounded-3xl py-5 px-4">
+                  <button
+                    type="button"
+                    aria-label="decrease age"
+                    onClick={() => {
+                      const cur = parseInt(age, 10);
+                      const next = Number.isFinite(cur) ? Math.max(12, cur - 1) : 25;
+                      setAge(String(next));
+                    }}
+                    className="w-12 h-12 rounded-full btn-soft flex items-center justify-center shrink-0"
+                    data-testid="onboarding-age-dec"
+                  >
+                    <Minus className="w-5 h-5" />
+                  </button>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={12}
+                    max={90}
+                    placeholder="—"
+                    value={age}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, '').slice(0, 2);
+                      if (raw === '') { setAge(''); return; }
+                      const n = parseInt(raw, 10);
+                      if (Number.isFinite(n)) setAge(String(Math.min(90, Math.max(12, n))));
+                    }}
+                    className="w-24 bg-transparent border-0 outline-none text-center font-display tabular-nums text-5xl focus:outline-none focus:ring-0"
+                    data-testid="onboarding-age-input"
+                  />
+                  <button
+                    type="button"
+                    aria-label="increase age"
+                    onClick={() => {
+                      const cur = parseInt(age, 10);
+                      const next = Number.isFinite(cur) ? Math.min(90, cur + 1) : 25;
+                      setAge(String(next));
+                    }}
+                    className="w-12 h-12 rounded-full btn-soft flex items-center justify-center shrink-0"
+                    data-testid="onboarding-age-inc"
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

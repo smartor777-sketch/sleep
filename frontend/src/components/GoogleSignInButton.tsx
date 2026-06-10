@@ -38,7 +38,8 @@ interface Props {
 const CLIENT_ID = (import.meta as any).env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 export default function GoogleSignInButton({ onCredential, locale = 'ru', disabled }: Props) {
-  const ref = useRef<HTMLDivElement | null>(null);
+  // Two refs: outer (React-owned, holds skeleton) + inner (GIS-owned, never touched by React after first paint)
+  const gisHostRef = useRef<HTMLDivElement | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,8 @@ export default function GoogleSignInButton({ onCredential, locale = 'ru', disabl
         setTimeout(init, 150);
         return;
       }
+      const host = gisHostRef.current;
+      if (!host) return;
       window.google.accounts.id.initialize({
         client_id: CLIENT_ID,
         callback: (resp) => {
@@ -59,18 +62,15 @@ export default function GoogleSignInButton({ onCredential, locale = 'ru', disabl
         auto_select: false,
         cancel_on_tap_outside: true,
       });
-      if (ref.current) {
-        ref.current.innerHTML = '';
-        window.google.accounts.id.renderButton(ref.current, {
-          type: 'standard',
-          theme: 'filled_black',
-          size: 'large',
-          text: 'continue_with',
-          shape: 'pill',
-          width: 280,
-          locale,
-        });
-      }
+      window.google.accounts.id.renderButton(host, {
+        type: 'standard',
+        theme: 'filled_black',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        width: 280,
+        locale,
+      });
       setReady(true);
     };
 
@@ -80,19 +80,18 @@ export default function GoogleSignInButton({ onCredential, locale = 'ru', disabl
     };
   }, [onCredential, locale]);
 
-  if (!CLIENT_ID) {
-    return null;
-  }
+  if (!CLIENT_ID) return null;
 
   return (
     <div
-      ref={ref}
-      style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto' }}
       className="flex justify-center"
+      style={{ opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? 'none' : 'auto' }}
       data-testid="google-signin-button"
     >
+      {/* GIS owns this node — React doesn't render any children into it */}
+      <div ref={gisHostRef} className="min-h-10" />
       {!ready && (
-        <div className="h-10 w-[280px] rounded-full bg-white/5 animate-pulse" />
+        <div className="absolute h-10 w-[280px] rounded-full bg-white/5 animate-pulse" aria-hidden="true" />
       )}
     </div>
   );

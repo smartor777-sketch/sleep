@@ -180,7 +180,7 @@ services:
     restart: unless-stopped
 
   xray_proxy:
-    image: teddysun/xray:latest
+    image: ghcr.io/core-euler/sna_net-xray_proxy:${IMAGE_TAG:-latest}
     container_name: innercore_xray_proxy
     volumes:
       - ./xray-proxy.json:/etc/xray/config.json:ro

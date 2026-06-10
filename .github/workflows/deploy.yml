@@ -26,6 +26,7 @@ jobs:
           - { name: frontend,    context: ./frontend,    dockerfile: ./frontend/Dockerfile }
           - { name: landing,     context: ./landing,     dockerfile: ./landing/Dockerfile }
           - { name: bot_auth,    context: ./bot_auth,    dockerfile: ./bot_auth/Dockerfile }
+          - { name: xray_proxy,  context: ./xray_proxy,  dockerfile: ./xray_proxy/Dockerfile }
     steps:
       - uses: actions/checkout@v4
 
@@ -85,12 +86,13 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p ${{ secrets.MSK1_SSH_PORT }} -H ${{ secrets.MSK1_SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Sync deploy artifacts (compose, Caddyfile, deploy.sh)
+      - name: Sync deploy artifacts (compose, Caddyfile, deploy.sh, xray-proxy.json)
         run: |
           scp -P ${{ secrets.MSK1_SSH_PORT }} \
               deploy/docker-compose.prod.yml \
               deploy/Caddyfile \
               deploy/deploy.sh \
+              deploy/xray-proxy.json \
               ${{ secrets.MSK1_SSH_USER }}@${{ secrets.MSK1_SSH_HOST }}:~/innercore/deploy/
           ssh -p ${{ secrets.MSK1_SSH_PORT }} \
               ${{ secrets.MSK1_SSH_USER }}@${{ secrets.MSK1_SSH_HOST }} \

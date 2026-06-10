@@ -19,6 +19,8 @@ async def get_me(current_user: CurrentUser, db: DatabaseSession):
     return UserMeResponse(
         id=current_user.id,
         email=current_user.email,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
         is_anonymous=current_user.is_anonymous,
         email_verified=current_user.email_verified,
         sub_type=current_user.sub_type,
@@ -53,6 +55,8 @@ async def update_me(
     return UserMeResponse(
         id=current_user.id,
         email=current_user.email,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
         is_anonymous=current_user.is_anonymous,
         email_verified=current_user.email_verified,
         sub_type=current_user.sub_type,

@@ -21,6 +21,8 @@ export interface LinkResponse {
 export interface User {
   id: string;
   email: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   is_anonymous: boolean;
   email_verified?: boolean;
   sub_type?: 'free' | 'trial' | 'pro';

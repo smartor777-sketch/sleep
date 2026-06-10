@@ -67,6 +67,8 @@ class UserMeResponse(BaseModel):
     """Текущий пользователь"""
     id: UUID
     email: EmailStr | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     is_anonymous: bool
     email_verified: bool = False
     sub_type: str = "free"

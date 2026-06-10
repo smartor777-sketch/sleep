@@ -208,16 +208,26 @@ export default function ProfilePage() {
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-semibold">{user?.email}</div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-semibold truncate">
+                {user?.email
+                  || [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+                  || (lang === 'ru' ? 'Аккаунт' : 'Account')}
+              </div>
               <div className="muted-text text-sm">
-                {user?.email_verified
-                  ? (lang === 'ru' ? 'Email подтверждён' : 'Email verified')
-                  : (lang === 'ru' ? 'Email не подтверждён' : 'Email not verified')}
+                {user?.email
+                  ? (user?.email_verified
+                      ? (lang === 'ru' ? 'Email подтверждён' : 'Email verified')
+                      : (lang === 'ru' ? 'Email не подтверждён' : 'Email not verified'))
+                  : (user?.linked_providers?.includes('telegram')
+                      ? 'Telegram'
+                      : user?.linked_providers?.includes('google')
+                        ? 'Google'
+                        : (lang === 'ru' ? 'Авторизован' : 'Signed in'))}
               </div>
             </div>
-            <button onClick={signOut} className="btn-pill btn-ghost" data-testid="signout-btn">
+            <button onClick={signOut} className="btn-pill btn-ghost shrink-0" data-testid="signout-btn">
               <LogOut className="w-4 h-4" />
               {t('profile.signOut', lang)}
             </button>

@@ -140,12 +140,12 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
         <div className="px-4 pb-5 mt-2">
           <div className="card-surface rounded-2xl p-4" data-testid="sidebar-plan-widget">
             <div className="flex items-center gap-3 mb-1">
-              <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0"
-                style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}
-              >
-                <Sparkles className="w-4 h-4" />
-              </span>
+              <img
+                src="/icon-background.png"
+                alt=""
+                aria-hidden="true"
+                className="w-9 h-9 rounded-xl object-cover shrink-0"
+              />
               <div className="min-w-0">
                 <div className="text-sm font-semibold leading-tight truncate">
                   {user?.email || (lang === 'ru' ? 'Гость' : 'Guest')}

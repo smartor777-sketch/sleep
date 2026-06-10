@@ -1,7 +1,7 @@
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import Modal from './Modal';
-import { Sparkles, Infinity as InfIcon, MessageCircle, Map as MapIcon, BookHeart, Lock } from 'lucide-react';
+import { Infinity as InfIcon, MessageCircle, Map as MapIcon, BookHeart, Lock } from 'lucide-react';
 
 export default function PaywallModal() {
   const open = useApp((s) => s.paywallOpen);
@@ -19,12 +19,12 @@ export default function PaywallModal() {
   return (
     <Modal open={open} onClose={close} size="md" testId="paywall-modal" closable>
       <div className="text-center pt-2 pb-4">
-        <div
-          className="mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-5"
-          style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 75%)' }}
-        >
-          <Sparkles className="w-8 h-8 text-white" />
-        </div>
+        <img
+          src="/icon-background.png"
+          alt=""
+          aria-hidden="true"
+          className="mx-auto w-20 h-20 rounded-full object-cover mb-5"
+        />
         <h2 className="font-display text-2xl mb-2">{t('paywall.title', lang)}</h2>
         <p className="muted-text max-w-md mx-auto">{t('paywall.sub', lang)}</p>
         {reason && (

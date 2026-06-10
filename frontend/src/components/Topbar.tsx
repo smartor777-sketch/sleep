@@ -95,12 +95,11 @@ export default function Topbar({ onOpenSidebar, rightSlot }: Props) {
               className="hidden sm:flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full btn-ghost"
               data-testid="topbar-profile-link"
             >
-              <span
-                className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold"
-                style={{ background: 'radial-gradient(circle at 30% 30%, #FA9042, #8885FF 80%)' }}
-              >
-                {lang === 'ru' ? 'Я' : 'I'}
-              </span>
+              <img
+                src="/icon-background.png"
+                alt={lang === 'ru' ? 'Профиль' : 'Profile'}
+                className="w-7 h-7 rounded-full object-cover"
+              />
             </Link>
           </div>
         </div>

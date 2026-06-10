@@ -77,6 +77,12 @@ def _parse_version(v: str) -> tuple[int, ...]:
 
 class MinVersionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # CORS preflight: browsers don't include custom headers (X-App-Version)
+        # in OPTIONS preflight, and blocking it here would also strip the CORS
+        # headers from the response — making the whole site uncallable.
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
         if request.url.path in _EXEMPT_PATHS:
             return await call_next(request)
 

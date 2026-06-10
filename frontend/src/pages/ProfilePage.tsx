@@ -3,7 +3,7 @@ import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { t } from '../lib/i18n';
 import { ACCENTS, FontSize, Lang, ThemeMode } from '../lib/settings';
-import { Check, LogOut, Sparkles, Trash2, UserPlus, LogIn, Smartphone } from 'lucide-react';
+import { Check, LogOut, Sparkles, Trash2, UserPlus, Smartphone } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import { DreamsBarChart, ArchetypesDonut } from '../components/Charts';
 
@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const [about, setAbout] = useState(user?.profile?.about_me || '');
   const [saving, setSaving] = useState(false);
   const [savedFlag, setSavedFlag] = useState(false);
-  const [authOpen, setAuthOpen] = useState<{ open: boolean; mode: 'register' | 'login' }>({ open: false, mode: 'register' });
+  const [authOpen, setAuthOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
   useEffect(() => { refreshBilling().catch(() => {}); refreshStats().catch(() => {}); }, [refreshBilling, refreshStats]);
@@ -201,12 +201,8 @@ export default function ProfilePage() {
             <div className="font-display text-lg mb-1">{t('profile.createAccount', lang)}</div>
             <p className="muted-text text-sm mb-4">{t('profile.createAccountDesc', lang)}</p>
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => setAuthOpen({ open: true, mode: 'register' })} className="btn-pill btn-primary" data-testid="register-btn">
+              <button onClick={() => setAuthOpen(true)} className="btn-pill btn-primary" data-testid="register-btn">
                 <UserPlus className="w-4 h-4" />
-                {t('profile.createAccount', lang)}
-              </button>
-              <button onClick={() => setAuthOpen({ open: true, mode: 'login' })} className="btn-pill btn-soft" data-testid="login-btn">
-                <LogIn className="w-4 h-4" />
                 {t('profile.signIn', lang)}
               </button>
             </div>
@@ -274,7 +270,7 @@ export default function ProfilePage() {
         </section>
       )}
 
-      <AuthModal open={authOpen.open} onClose={() => setAuthOpen({ open: false, mode: 'register' })} initialMode={authOpen.mode} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
 
       {confirmDel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

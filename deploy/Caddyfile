@@ -1,0 +1,35 @@
+# Caddy reverse-proxy for InnerCore production
+# Auto-TLS via Let's Encrypt (requires A-records to point to this host)
+
+(common) {
+    encode gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+# Landing site
+innercore.art {
+    import common
+    reverse_proxy landing:80
+}
+
+# Web app
+app.innercore.art {
+    import common
+    reverse_proxy frontend:80
+}
+
+# Backend API
+api.innercore.art {
+    import common
+    reverse_proxy backend:8000
+}
+
+# Redirect www → apex
+www.innercore.art {
+    redir https://innercore.art{uri} 308
+}

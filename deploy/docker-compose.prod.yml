@@ -1,0 +1,206 @@
+# Production compose for InnerCore
+# Run from project root:  docker compose -f deploy/docker-compose.prod.yml up -d
+#
+# Images for backend / celery / llm_service / frontend / landing are pulled
+# from ghcr.io (built by GitHub Actions, see .github/workflows/deploy.yml).
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: innercore_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: innercore_redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: innercore_minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  llm_service:
+    image: ghcr.io/core-euler/sna_net-llm_service:${IMAGE_TAG:-latest}
+    container_name: innercore_llm_service
+    environment:
+      GONKA_BASE_URL: ${GONKA_BASE_URL:-https://proxy.gonka.gg/v1}
+      GONKA_API_KEY: ${GONKA_API_KEY}
+      GONKA_MODEL: ${GONKA_MODEL:-Qwen/Qwen3-235B-A22B-Instruct-2507-FP8}
+      COMET_API_KEY: ${COMET_API_KEY}
+      COMET_BASE_URL: ${COMET_BASE_URL:-https://api.cometapi.com/v1}
+      COMET_MODEL: ${COMET_MODEL:-gpt-5.1}
+      HOST: 0.0.0.0
+      PORT: 8001
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/core-euler/sna_net-backend:${IMAGE_TAG:-latest}
+    container_name: innercore_backend
+    dns: ["8.8.8.8", "1.1.1.1"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APPLE_CLIENT_ID: ${APPLE_CLIENT_ID}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_REGION: ${S3_REGION}
+      S3_USE_SSL: ${S3_USE_SSL}
+      LLM_SERVICE_URL: ${LLM_SERVICE_URL}
+      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL}
+      EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL}
+      HOST: 0.0.0.0
+      PORT: 8000
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://innercore.art,https://app.innercore.art}
+      GOOGLE_PLAY_PACKAGE_NAME: ${GOOGLE_PLAY_PACKAGE_NAME:-art.innercore.app}
+      GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${GOOGLE_PLAY_SERVICE_ACCOUNT_JSON}
+      DREAMS_PER_DAY_LIMIT: ${DREAMS_PER_DAY_LIMIT}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      llm_service: { condition: service_started }
+      minio: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  celery_worker:
+    image: ghcr.io/core-euler/sna_net-backend:${IMAGE_TAG:-latest}
+    container_name: innercore_celery_worker
+    command: celery -A celery_app worker --loglevel=info
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      LLM_SERVICE_URL: ${LLM_SERVICE_URL}
+      EMBEDDINGS_BASE_URL: ${EMBEDDINGS_BASE_URL}
+      EMBEDDINGS_API_KEY: ${EMBEDDINGS_API_KEY}
+      EMBEDDINGS_MODEL: ${EMBEDDINGS_MODEL}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM}
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: ${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: ${JWT_REFRESH_TOKEN_EXPIRE_DAYS}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_REGION: ${S3_REGION}
+      S3_USE_SSL: ${S3_USE_SSL}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      llm_service: { condition: service_started }
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  celery_beat:
+    image: ghcr.io/core-euler/sna_net-backend:${IMAGE_TAG:-latest}
+    container_name: innercore_celery_beat
+    command: celery -A celery_app beat --loglevel=info
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      redis: { condition: service_healthy }
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/core-euler/sna_net-frontend:${IMAGE_TAG:-latest}
+    container_name: innercore_frontend
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  landing:
+    image: ghcr.io/core-euler/sna_net-landing:${IMAGE_TAG:-latest}
+    container_name: innercore_landing
+    networks: [innercore_network]
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: innercore_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [frontend, landing, backend]
+    networks: [innercore_network]
+    restart: unless-stopped
+
+networks:
+  innercore_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  caddy_data:
+  caddy_config:

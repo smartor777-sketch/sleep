@@ -35,8 +35,8 @@ interface Settings {
 }
 
 const DEFAULT: Settings = {
-  theme: 'dark',
-  accentId: 'purple',
+  theme: 'light',
+  accentId: 'amber',
   fontSize: 'medium',
   lang: 'ru',
 };

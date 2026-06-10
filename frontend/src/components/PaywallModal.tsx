@@ -28,7 +28,10 @@ export default function PaywallModal() {
         <h2 className="font-display text-2xl mb-2">{t('paywall.title', lang)}</h2>
         <p className="muted-text max-w-md mx-auto">{t('paywall.sub', lang)}</p>
         {reason && (
-          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-sm">
+          <div
+            className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm accent-text"
+            style={{ background: 'rgba(var(--accent), 0.14)' }}
+          >
             <Lock className="w-3.5 h-3.5" />
             {reason}
           </div>

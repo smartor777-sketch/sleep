@@ -3,7 +3,7 @@ import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { t } from '../lib/i18n';
 import { ACCENTS, FontSize, Lang, ThemeMode } from '../lib/settings';
-import { Check, LogOut, Sparkles, Trash2, UserPlus, LogIn, Apple, Smartphone } from 'lucide-react';
+import { Check, LogOut, Sparkles, Trash2, UserPlus, LogIn, Smartphone } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 import { DreamsBarChart, ArchetypesDonut } from '../components/Charts';
 
@@ -246,27 +246,16 @@ export default function ProfilePage() {
                 : 'Capture dreams the moment you wake. One account — same dreams on every device.'}
             </p>
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => alert(lang === 'ru' ? 'Ссылка появится скоро' : 'Link coming soon')}
-                className="btn-pill btn-soft !py-2 w-full sm:w-auto justify-center sm:justify-start"
-                data-testid="download-ios-btn"
-              >
-                <Apple className="w-4 h-4" />
-                {lang === 'ru' ? 'Скачать для iOS' : 'Download for iOS'}
-              </button>
-              <button
-                type="button"
-                onClick={() => alert(lang === 'ru' ? 'Ссылка появится скоро' : 'Link coming soon')}
+              <a
+                href="https://github.com/core-euler/sna_net/releases/tag/v0.4.2"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn-pill btn-soft !py-2 w-full sm:w-auto justify-center sm:justify-start"
                 data-testid="download-android-btn"
               >
                 <Smartphone className="w-4 h-4" />
                 {lang === 'ru' ? 'Скачать для Android' : 'Download for Android'}
-              </button>
-            </div>
-            <div className="muted-text text-xs mt-3">
-              {lang === 'ru' ? 'Скоро в App Store и Google Play' : 'Coming to App Store and Google Play'}
+              </a>
             </div>
           </div>
         </div>

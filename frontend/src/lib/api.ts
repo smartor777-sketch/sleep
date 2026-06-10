@@ -221,7 +221,7 @@ export const api = {
   },
 
   telegramInit: () =>
-    post<{ auth_token: string; deeplink: string; expires_in: number }>(
+    post<{ auth_token: string; deeplink: string; bot_username: string; expires_in: number }>(
       '/api/v1/auth/telegram/init',
       {},
       { __skipAuth: true } as any

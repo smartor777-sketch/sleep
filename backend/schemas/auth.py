@@ -119,9 +119,10 @@ class GoogleSignInRequest(BaseModel):
 # === Telegram bot auth (deep-link flow) ===
 
 class TelegramInitResponse(BaseModel):
-    """Старт TG-авторизации: отдаём короткоживущий токен + deeplink."""
+    """Старт TG-авторизации: отдаём короткоживущий токен + deeplink + bot username."""
     auth_token: str
     deeplink: str
+    bot_username: str
     expires_in: int
 
 

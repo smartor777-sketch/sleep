@@ -622,6 +622,7 @@ async def telegram_init() -> TelegramInitResponse:
     return TelegramInitResponse(
         auth_token=token,
         deeplink=f"https://t.me/{bot_username}?start={token}",
+        bot_username=bot_username,
         expires_in=tg_auth.TOKEN_TTL_SECONDS,
     )
 

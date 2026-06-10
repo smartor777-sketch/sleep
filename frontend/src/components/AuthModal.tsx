@@ -13,7 +13,7 @@ interface Props {
 
 type TgPrep =
   | { kind: 'preparing' }
-  | { kind: 'ready'; token: string; deeplink: string }
+  | { kind: 'ready'; token: string; deeplink: string; botUsername: string }
   | { kind: 'error'; message: string };
 
 export default function AuthModal({ open, onClose }: Props) {
@@ -43,8 +43,6 @@ export default function AuthModal({ open, onClose }: Props) {
 
   useEffect(() => () => stopPolling(), []);
 
-  // Prepare TG deeplink as soon as the modal opens (so the link is "live"
-  // by the time the user clicks it — no popup-blocker race).
   useEffect(() => {
     if (!open) {
       reset();
@@ -55,7 +53,12 @@ export default function AuthModal({ open, onClose }: Props) {
     api.telegramInit()
       .then((r) => {
         if (cancelled) return;
-        setTg({ kind: 'ready', token: r.auth_token, deeplink: r.deeplink });
+        setTg({
+          kind: 'ready',
+          token: r.auth_token,
+          deeplink: r.deeplink,
+          botUsername: r.bot_username,
+        });
       })
       .catch((e) => {
         if (cancelled) return;
@@ -82,12 +85,9 @@ export default function AuthModal({ open, onClose }: Props) {
     }
   }, [onClose, refreshUser, refreshBilling]);
 
-  // When user clicks the TG link, start polling for completion.
-  // The link itself navigates the new tab natively — no JS popup involved.
-  const onTelegramAnchorClick = useCallback(() => {
-    if (tg.kind !== 'ready' || waitingConfirm) return;
+  const startPolling = useCallback((token: string) => {
+    if (waitingConfirm) return;
     setWaitingConfirm(true);
-    const token = tg.token;
     const anonDevice = getDeviceId();
     pollRef.current = window.setInterval(async () => {
       try {
@@ -105,10 +105,10 @@ export default function AuthModal({ open, onClose }: Props) {
           setTg({ kind: 'error', message: 'session_expired' });
         }
       } catch {
-        /* silent — keep polling */
+        /* keep polling */
       }
     }, 2000);
-  }, [tg, waitingConfirm, onClose, refreshUser, refreshBilling]);
+  }, [waitingConfirm, onClose, refreshUser, refreshBilling]);
 
   return (
     <Modal open={open} onClose={() => { onClose(); reset(); }} title={t('profile.createAccount', lang)} size="sm" testId="auth-modal">
@@ -128,8 +128,8 @@ export default function AuthModal({ open, onClose }: Props) {
             <Loader2 className="w-4 h-4 animate-spin shrink-0" />
             <span>
               {lang === 'ru'
-                ? 'Открой Telegram и нажми Start — мы тебя сразу залогиним.'
-                : 'Open Telegram and tap Start — we will sign you in.'}
+                ? 'Ждём подтверждения от Telegram…'
+                : 'Waiting for confirmation from Telegram…'}
             </span>
           </div>
         )}
@@ -150,14 +150,12 @@ export default function AuthModal({ open, onClose }: Props) {
               href={tg.deeplink}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={onTelegramAnchorClick}
+              onClick={() => startPolling(tg.token)}
               className="btn-pill btn-soft !py-2 w-full max-w-[280px] justify-center"
               data-testid="auth-telegram-link"
             >
               <Send className="w-4 h-4" />
-              {waitingConfirm
-                ? (lang === 'ru' ? 'Открыть Telegram ещё раз' : 'Reopen Telegram')
-                : (lang === 'ru' ? 'Войти через Telegram' : 'Sign in with Telegram')}
+              {lang === 'ru' ? 'Войти через Telegram' : 'Sign in with Telegram'}
             </a>
           ) : (
             <button
@@ -171,6 +169,14 @@ export default function AuthModal({ open, onClose }: Props) {
             </button>
           )}
         </div>
+
+        {tg.kind === 'ready' && (
+          <p className="text-xs muted-text text-center pt-1">
+            {lang === 'ru'
+              ? 'Нужен установленный Telegram (десктоп или мобильное приложение).'
+              : 'Requires Telegram app (desktop or mobile).'}
+          </p>
+        )}
       </div>
     </Modal>
   );

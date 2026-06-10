@@ -179,6 +179,14 @@ services:
     networks: [innercore_network]
     restart: unless-stopped
 
+  xray_proxy:
+    image: teddysun/xray:latest
+    container_name: innercore_xray_proxy
+    volumes:
+      - ./xray-proxy.json:/etc/xray/config.json:ro
+    networks: [innercore_network]
+    restart: unless-stopped
+
   bot_auth:
     image: ghcr.io/core-euler/sna_net-bot_auth:${IMAGE_TAG:-latest}
     container_name: innercore_bot_auth
@@ -187,9 +195,11 @@ services:
       BACKEND_URL: http://backend:8000
       BACKEND_BOT_SECRET: ${TELEGRAM_BOT_BACKEND_SECRET}
       WEB_URL: https://app.innercore.art
+      TELEGRAM_PROXY: http://xray_proxy:10809
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       backend: { condition: service_started }
+      xray_proxy: { condition: service_started }
     networks: [innercore_network]
     restart: unless-stopped
 

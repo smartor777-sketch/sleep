@@ -11,6 +11,7 @@ import os
 import httpx
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
@@ -21,6 +22,7 @@ BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:8000").rstrip("/")
 BACKEND_BOT_SECRET = os.environ["BACKEND_BOT_SECRET"]
 WEB_URL = os.environ.get("WEB_URL", "https://app.innercore.art")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+TELEGRAM_PROXY = os.environ.get("TELEGRAM_PROXY") or None
 
 CONFIRM_URL = f"{BACKEND_URL}/api/v1/auth/telegram/confirm"
 
@@ -29,6 +31,7 @@ logger = logging.getLogger("innercore.bot_auth")
 bot = Bot(
     token=BOT_TOKEN,
     default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    session=AiohttpSession(proxy=TELEGRAM_PROXY) if TELEGRAM_PROXY else None,
 )
 dp = Dispatcher()
 

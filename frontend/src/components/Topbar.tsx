@@ -18,16 +18,20 @@ export default function Topbar({ onOpenSidebar, rightSlot }: Props) {
   const nav = useNavigate();
 
   const pageTitle = (() => {
-    if (loc.pathname === '/') return lang === 'ru' ? 'Дневник снов' : 'Dream journal';
+    if (loc.pathname === '/') return lang === 'ru' ? 'Сегодня' : 'Today';
+    if (loc.pathname === '/dreams') return lang === 'ru' ? 'Сны' : 'Dreams';
     if (loc.pathname.startsWith('/dream/')) return lang === 'ru' ? 'Сон' : 'Dream';
     if (loc.pathname === '/map') return t('map.title', lang);
     if (loc.pathname === '/search') return t('search.title', lang);
+    if (loc.pathname === '/analytics') return lang === 'ru' ? 'Аналитика' : 'Analytics';
     if (loc.pathname === '/profile') return t('profile.title', lang);
     return '';
   })();
 
   const subtitle = (() => {
-    if (loc.pathname === '/') return t('app.tagline', lang);
+    if (loc.pathname === '/') return lang === 'ru' ? 'Обзор и быстрая запись' : 'Overview and quick capture';
+    if (loc.pathname === '/dreams') return lang === 'ru' ? 'Личный архив' : 'Personal archive';
+    if (loc.pathname === '/analytics') return lang === 'ru' ? 'Статистика и мотивы' : 'Statistics and motifs';
     if (loc.pathname === '/profile') return lang === 'ru' ? 'Настройки и подписка' : 'Settings & subscription';
     return null;
   })();

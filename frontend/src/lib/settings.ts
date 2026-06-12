@@ -12,11 +12,11 @@ export interface AccentSwatch {
 }
 
 export const ACCENTS: AccentSwatch[] = [
-  { id: 'purple', hex: '#673AB7', softHex: '#9F7AEA' },
-  { id: 'teal',   hex: '#26A69A', softHex: '#4DD0C4' },
-  { id: 'amber',  hex: '#FA9042', softHex: '#FFB976' },
-  { id: 'pink',   hex: '#E91E63', softHex: '#F48FB1' },
-  { id: 'blue',   hex: '#42A5F5', softHex: '#82C4FF' },
+  { id: 'amber',  hex: '#D68A3A', softHex: '#E9B36E' },
+  { id: 'sage',   hex: '#7FA38F', softHex: '#B8D0C3' },
+  { id: 'mist',   hex: '#6F96C4', softHex: '#B7CEE8' },
+  { id: 'lavender', hex: '#8B75C9', softHex: '#C5B7EE' },
+  { id: 'graphite', hex: '#3F4A5A', softHex: '#8B97A8' },
 ];
 
 const FONT_SCALE: Record<FontSize, number> = {

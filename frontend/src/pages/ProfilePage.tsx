@@ -5,16 +5,13 @@ import { t } from '../lib/i18n';
 import { ACCENTS, FontSize, Lang, ThemeMode } from '../lib/settings';
 import { Check, LogOut, Sparkles, Trash2, UserPlus, Smartphone } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
-import { DreamsBarChart, ArchetypesDonut } from '../components/Charts';
 
 export default function ProfilePage() {
   const lang = useApp((s) => s.lang);
   const user = useApp((s) => s.user);
   const billing = useApp((s) => s.billing);
-  const stats = useApp((s) => s.stats);
   const refreshUser = useApp((s) => s.refreshUser);
   const refreshBilling = useApp((s) => s.refreshBilling);
-  const refreshStats = useApp((s) => s.refreshStats);
   const openPaywall = useApp((s) => s.openPaywall);
   const setTheme = useApp((s) => s.setTheme);
   const setAccent = useApp((s) => s.setAccent);
@@ -31,7 +28,7 @@ export default function ProfilePage() {
   const [authOpen, setAuthOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
 
-  useEffect(() => { refreshBilling().catch(() => {}); refreshStats().catch(() => {}); }, [refreshBilling, refreshStats]);
+  useEffect(() => { refreshBilling().catch(() => {}); }, [refreshBilling]);
   useEffect(() => { setAbout(user?.profile?.about_me || ''); }, [user?.id, user?.profile?.about_me]);
 
   async function save() {
@@ -160,40 +157,6 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Stats */}
-      {stats && (
-        <section className="space-y-4" data-testid="stats-section">
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard label={t('profile.totalDreams', lang)} value={stats.total_dreams} accent />
-            <StatCard label={t('profile.streak', lang)} value={`${stats.streak_days}🔥`} />
-          </div>
-
-          {stats.dreams_last_14_days?.length > 0 && (
-            <div className="card-surface rounded-3xl p-4 sm:p-5">
-              <div className="flex items-baseline justify-between mb-3 sm:mb-4 gap-3">
-                <div className="font-display text-base sm:text-lg">{t('profile.last14', lang)}</div>
-                <span className="muted-text text-[10px] sm:text-xs text-right">
-                  {lang === 'ru' ? 'количество снов в день' : 'dreams per day'}
-                </span>
-              </div>
-              <DreamsBarChart data={stats.dreams_last_14_days} lang={lang} />
-            </div>
-          )}
-
-          {stats.archetypes_top?.length > 0 && (
-            <div className="card-surface rounded-3xl p-4 sm:p-5">
-              <div className="flex items-baseline justify-between mb-3 sm:mb-4 gap-3">
-                <div className="font-display text-base sm:text-lg">{t('profile.topArch', lang)}</div>
-                <span className="muted-text text-[10px] sm:text-xs text-right">
-                  {lang === 'ru' ? 'распределение во снах' : 'distribution in dreams'}
-                </span>
-              </div>
-              <ArchetypesDonut data={stats.archetypes_top} lang={lang} />
-            </div>
-          )}
-        </section>
-      )}
-
       {/* Account section */}
       <section className="card-surface rounded-3xl p-5">
         {user?.is_anonymous ? (
@@ -321,14 +284,5 @@ function Toggle({ on, onChange, testId }: { on: boolean; onChange: (v: boolean) 
         style={{ transform: on ? 'translateX(20px)' : 'translateX(0)' }}
       />
     </button>
-  );
-}
-
-function StatCard({ label, value, accent }: { label: string; value: number | string; accent?: boolean }) {
-  return (
-    <div className="card-surface rounded-3xl p-4 sm:p-5">
-      <div className={'font-display text-2xl sm:text-3xl mb-1 ' + (accent ? 'accent-text' : '')}>{value}</div>
-      <div className="muted-text text-xs sm:text-sm">{label}</div>
-    </div>
   );
 }

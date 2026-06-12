@@ -1,5 +1,5 @@
 import { NavLink, useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutGrid, Search, Map as MapIcon, User as UserIcon, Sparkles, Plus, X } from 'lucide-react';
+import { BarChart3, BookOpen, CalendarDays, Map as MapIcon, User as UserIcon, Sparkles, Plus, X } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import clsx from 'clsx';
@@ -20,10 +20,11 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
   const loc = useLocation();
 
   const items = [
-    { to: '/',        icon: LayoutGrid, label: t('nav.grid', lang),    id: 'nav-grid' },
-    { to: '/search',  icon: Search,     label: t('nav.search', lang),  id: 'nav-search' },
-    { to: '/map',     icon: MapIcon,    label: t('nav.map', lang),     id: 'nav-map' },
-    { to: '/profile', icon: UserIcon,   label: t('nav.profile', lang), id: 'nav-profile' },
+    { to: '/',          icon: CalendarDays, label: t('nav.today', lang),    id: 'nav-today' },
+    { to: '/dreams',    icon: BookOpen,     label: t('nav.dreams', lang),   id: 'nav-dreams' },
+    { to: '/map',       icon: MapIcon,      label: t('nav.map', lang),      id: 'nav-map' },
+    { to: '/analytics', icon: BarChart3,    label: t('nav.analytics', lang), id: 'nav-analytics' },
+    { to: '/profile',   icon: UserIcon,     label: t('nav.profile', lang),  id: 'nav-profile' },
   ];
 
   const tier = billing?.sub_type || 'free';
@@ -127,7 +128,7 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
                     <it.icon className="w-4 h-4" strokeWidth={2.2} />
                   </span>
                   <span className="font-medium">{it.label}</span>
-                  {it.to === '/' && dreamsTotal > 0 && (
+                  {it.to === '/dreams' && dreamsTotal > 0 && (
                     <span className="ml-auto text-xs muted-text">{dreamsTotal}</span>
                   )}
                 </>

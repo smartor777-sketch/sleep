@@ -31,33 +31,42 @@ export default function DreamCard({ dream }: Props) {
     <Link
       to={`/dream/${dream.id}`}
       data-testid={`dream-card-${dream.id}`}
-      className="relative group aspect-[4/5] rounded-[28px] overflow-hidden no-tap animate-fade-up"
+      className="relative group min-h-[220px] rounded-[22px] overflow-hidden no-tap animate-fade-up card-surface dream-card"
       style={{
         // @ts-ignore custom props
         ['--g1' as any]: g1,
         ['--g2' as any]: g2,
       }}
     >
-      <div className="absolute inset-0 dream-grad" />
-      {/* shine sheen */}
-      <div className="absolute inset-0 opacity-60 mix-blend-overlay pointer-events-none"
-           style={{ background: 'linear-gradient(120deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,0.25) 100%)' }} />
-      {/* darken bottom for legibility */}
-      <div className="absolute inset-0 pointer-events-none"
-           style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0) 30%, rgba(0,0,0,0.45) 100%)' }} />
+      <div className="absolute inset-x-0 top-0 h-1 dream-grad" />
+      <div className="absolute -right-10 -top-10 w-28 h-28 rounded-full blur-2xl opacity-20 dream-grad pointer-events-none" />
 
-      <div className="relative h-full p-3 sm:p-4 flex flex-col justify-between text-white">
-        <div className="text-[11px] sm:text-xs opacity-90 font-medium tracking-wide">{date}</div>
-        <div>
-          <div className="text-sm sm:text-base lg:text-lg leading-tight line-clamp-3 font-semibold drop-shadow">
+      <div className="relative h-full p-4 flex flex-col justify-between">
+        <div className="flex items-start justify-between gap-3">
+          <div className="text-[11px] sm:text-xs muted-text font-medium tracking-wide">{date}</div>
+          {dream.emoji && <div className="text-base sm:text-lg">{dream.emoji}</div>}
+        </div>
+        <div className="py-5">
+          <div className="text-base lg:text-lg leading-snug line-clamp-3 font-semibold">
             {title}
           </div>
-          {dream.emoji && <div className="mt-1 text-base sm:text-lg">{dream.emoji}</div>}
+          <p className="muted-text text-sm mt-3 line-clamp-4 leading-relaxed">
+            {dream.content}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="chip chip-1">
+            {dream.analysis_status === 'analyzed'
+              ? (lang === 'ru' ? 'анализ' : 'analysis')
+              : dream.analysis_status === 'analyzing'
+                ? (lang === 'ru' ? 'анализируется' : 'analyzing')
+                : (lang === 'ru' ? 'запись' : 'entry')}
+          </span>
         </div>
       </div>
 
       {isAnalyzing && (
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/40 backdrop-blur px-2 py-1 rounded-full text-[11px] text-white">
+        <div className="absolute top-3 right-3 flex items-center gap-1 glass px-2 py-1 rounded-full text-[11px]">
           <Loader2 className="w-3 h-3 animate-spin" />
           {t('dream.analyzing', lang).split('…')[0]}…
         </div>

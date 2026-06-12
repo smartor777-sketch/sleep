@@ -4,10 +4,13 @@ type Dict = Record<string, string>;
 
 const ru: Dict = {
   'app.tagline': 'Атлас вашего бессознательного',
+  'nav.today': 'Сегодня',
+  'nav.dreams': 'Сны',
   'nav.grid': 'Сны',
   'nav.chat': 'Чат',
   'nav.search': 'Поиск',
   'nav.map': 'Карта',
+  'nav.analytics': 'Аналитика',
   'nav.profile': 'Профиль',
   'compose.placeholder': 'Напишите сон…',
   'compose.recording': 'Запись… отпустите для остановки',
@@ -127,10 +130,13 @@ const ru: Dict = {
 
 const en: Dict = {
   'app.tagline': 'An atlas of your unconscious',
+  'nav.today': 'Today',
+  'nav.dreams': 'Dreams',
   'nav.grid': 'Dreams',
   'nav.chat': 'Chat',
   'nav.search': 'Search',
   'nav.map': 'Map',
+  'nav.analytics': 'Analytics',
   'nav.profile': 'Profile',
   'compose.placeholder': 'Write a dream…',
   'compose.recording': 'Recording… release to stop',

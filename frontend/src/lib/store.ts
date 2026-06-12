@@ -3,6 +3,10 @@ import { api, clearTokens, getDeviceId, getAccessToken } from './api';
 import { applySettings, AccentSwatch, ACCENTS, FontSize, Lang, loadSettings, saveSettings, ThemeMode } from './settings';
 import { BillingStatus, Dream, User, UserStats } from './types';
 
+function needsOnboarding(user: User): boolean {
+  return !user.profile?.onboarding_completed || !user.profile?.about_me;
+}
+
 interface AppState {
   // Auth
   user: User | null;
@@ -27,6 +31,7 @@ interface AppState {
   paywallReason: string;
   upgradeBanner: { min_version?: string; download_url?: string } | null;
   onboardingOpen: boolean;
+  authPromptOpen: boolean;
 
   // Actions
   bootstrap: () => Promise<void>;
@@ -48,6 +53,8 @@ interface AppState {
   setUpgradeBanner: (info: { min_version?: string; download_url?: string } | null) => void;
   openOnboarding: () => void;
   closeOnboarding: () => void;
+  openAuthPrompt: () => void;
+  closeAuthPrompt: () => void;
 
   signOut: () => Promise<void>;
 }
@@ -72,6 +79,7 @@ export const useApp = create<AppState>((set, get) => ({
   paywallReason: '',
   upgradeBanner: null,
   onboardingOpen: false,
+  authPromptOpen: false,
 
   bootstrap: async () => {
     set({ bootstrapping: true });
@@ -97,9 +105,13 @@ export const useApp = create<AppState>((set, get) => ({
 
       const u = get().user;
       if (u) {
-        const needOnboarding =
-          !u.profile?.onboarding_completed || !u.profile?.about_me;
-        if (needOnboarding) set({ onboardingOpen: true });
+        if (needsOnboarding(u)) {
+          set(u.is_anonymous
+            ? { authPromptOpen: true, onboardingOpen: false }
+            : { onboardingOpen: true, authPromptOpen: false });
+        } else {
+          set({ onboardingOpen: false, authPromptOpen: false });
+        }
       }
     } catch (e) {
       // network or backend down — fail soft, UI still shows
@@ -112,6 +124,13 @@ export const useApp = create<AppState>((set, get) => ({
   refreshUser: async () => {
     const u = await api.me();
     set({ user: u });
+    if (needsOnboarding(u)) {
+      set(u.is_anonymous
+        ? { authPromptOpen: true, onboardingOpen: false }
+        : { onboardingOpen: true, authPromptOpen: false });
+    } else {
+      set({ onboardingOpen: false, authPromptOpen: false });
+    }
   },
   refreshBilling: async () => {
     const b = await api.billingStatus();
@@ -168,11 +187,13 @@ export const useApp = create<AppState>((set, get) => ({
   setUpgradeBanner: (info) => set({ upgradeBanner: info }),
   openOnboarding: () => set({ onboardingOpen: true }),
   closeOnboarding: () => set({ onboardingOpen: false }),
+  openAuthPrompt: () => set({ authPromptOpen: true }),
+  closeAuthPrompt: () => set({ authPromptOpen: false }),
 
   signOut: async () => {
     try { await api.logout(); } catch {}
     clearTokens();
-    set({ user: null, dreams: [], dreamsTotal: 0, billing: null, stats: null });
+    set({ user: null, dreams: [], dreamsTotal: 0, billing: null, stats: null, onboardingOpen: false, authPromptOpen: false });
     // re-bootstrap to anonymous
     await get().bootstrap();
   },

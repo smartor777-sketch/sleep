@@ -218,7 +218,7 @@ export default function ProfilePage() {
             </p>
             <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
               <a
-                href="https://github.com/core-euler/sna_net/releases/tag/v0.4.2"
+                href="https://github.com/core-euler/sna_net/releases/latest"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-pill btn-soft !py-2 w-full sm:w-auto justify-center sm:justify-start"

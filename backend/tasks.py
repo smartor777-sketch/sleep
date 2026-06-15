@@ -112,6 +112,11 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 content=dream.content,
             )
 
+            # Загружаем user.md для контекста (нужно ДО построения system_prompt)
+            memory_doc = await user_memory_service.get_or_create(db, user.id)
+            user_memory_md = memory_doc.content_md or ""
+            memory_version = memory_doc.version
+
             # Собираем контекст для LLM
             from prompts import get_chat_system_prompt
             system_prompt = get_chat_system_prompt(user.self_description, user_memory_md)
@@ -123,11 +128,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 system_prompt=system_prompt,
                 include_retrieval=False,
             )
-
-            # Загружаем user.md для контекста
-            memory_doc = await user_memory_service.get_or_create(db, user.id)
-            user_memory_md = memory_doc.content_md or ""
-            memory_version = memory_doc.version
 
             # Отправляем запрос в LLM Service
             try:

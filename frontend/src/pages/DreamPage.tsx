@@ -163,8 +163,6 @@ export default function DreamPage() {
     }
   }
 
-  const g1 = dream?.gradient_color_1 || '#FA9042';
-  const g2 = dream?.gradient_color_2 || '#8885FF';
   const date = useMemo(() => {
     if (!dream) return '';
     try { return new Date(dream.created_at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }); }
@@ -196,20 +194,16 @@ export default function DreamPage() {
 
       {/* Dream hero card */}
       <div
-        className="rounded-[28px] p-4 sm:p-6 lg:p-7 relative overflow-hidden text-white"
-        style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}
+        className="card-surface rounded-[28px] p-4 sm:p-6 lg:p-7"
+        style={{ borderColor: 'rgb(var(--accent))', borderWidth: 3 }}
       >
-        <div className="absolute inset-0 opacity-50 mix-blend-overlay"
-             style={{ background: 'linear-gradient(120deg, rgba(255,255,255,0.25), transparent 40%, rgba(0,0,0,0.35))' }} />
-        <div className="relative">
-          <div className="text-xs opacity-80 mb-2">{date}</div>
-          <h1 className="font-display text-xl sm:text-2xl lg:text-3xl leading-tight mb-3 font-semibold">
-            {dream.title || dream.content.trim().split(/\s+/).slice(0, 5).join(' ')}
-          </h1>
-          <p className="whitespace-pre-wrap text-[15px] sm:text-base lg:text-[17px] leading-relaxed opacity-95">
-            {dream.content}
-          </p>
-        </div>
+        <div className="text-xs muted-text mb-2">{date}</div>
+        <h1 className="font-display text-xl sm:text-2xl lg:text-3xl leading-tight mb-3 font-semibold">
+          {dream.title || dream.content.trim().split(/\s+/).slice(0, 5).join(' ')}
+        </h1>
+        <p className="whitespace-pre-wrap text-[15px] sm:text-base lg:text-[17px] leading-relaxed">
+          {dream.content}
+        </p>
       </div>
 
       {/* Bottom action / analysis area */}

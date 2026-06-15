@@ -3,7 +3,6 @@ import { api, ApiError } from '../lib/api';
 import { t } from '../lib/i18n';
 import { useApp } from '../lib/store';
 import { onNewDreamRequest } from './Layout';
-import AudioButton from './AudioButton';
 import { BookOpen, Loader2, Send } from 'lucide-react';
 
 interface Props {
@@ -93,9 +92,8 @@ export default function DreamComposer({ variant = 'hero', onCreated, className =
         </p>
         <div className="flex items-center justify-between mt-4 pt-4 border-t divider gap-3">
           <div className="flex items-center gap-2 muted-text text-xs min-w-0">
-            <AudioButton onText={(s) => setText((p) => (p ? p + ' ' + s : s))} />
             <span className="hidden sm:inline truncate">
-              {lang === 'ru' ? 'Текст или голос. Cmd+Enter — сохранить' : 'Type or speak. Cmd+Enter to save'}
+              {lang === 'ru' ? 'Cmd+Enter — сохранить' : 'Cmd+Enter to save'}
             </span>
           </div>
           <div className="flex items-center gap-3">

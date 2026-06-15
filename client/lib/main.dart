@@ -212,7 +212,7 @@ class _MyAppState extends State<MyApp> {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _checkUpdate(context);
             });
-            final needsOnboarding = !user.onboardingCompleted || (user.aboutMe?.trim().isEmpty ?? true);
+            final needsOnboarding = !user.onboardingCompleted;
             final mainScreen = MainChatScreen(
               isDarkMode: isDarkMode,
               toggleTheme: toggleTheme,

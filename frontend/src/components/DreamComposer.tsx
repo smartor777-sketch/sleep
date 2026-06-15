@@ -46,8 +46,16 @@ export default function DreamComposer({ variant = 'hero', onCreated, className =
       onCreated?.();
     } catch (e) {
       const ae = e as ApiError;
-      if (ae.status === 429) setErr(t('compose.dailyLimitReached', lang));
-      else setErr(ae.detail || (lang === 'ru' ? 'Не удалось сохранить' : 'Could not save'));
+      if (ae.status === 429) {
+        // Backend detail: "Daily limit of N dreams exceeded" — pluck the number,
+        // localize the message. If parse fails, fall back to raw detail.
+        const m = (ae.detail || '').match(/(\d+)/);
+        const count = m ? m[1] : '';
+        setErr(count
+          ? t('compose.dailyLimitReached', lang).replace('{count}', count)
+          : (ae.detail || t('compose.dailyLimitReached', lang).replace('{count}', '?'))
+        );
+      } else setErr(ae.detail || (lang === 'ru' ? 'Не удалось сохранить' : 'Could not save'));
     } finally {
       setSending(false);
     }

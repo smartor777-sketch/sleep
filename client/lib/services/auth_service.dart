@@ -235,6 +235,65 @@ class AuthService {
   }
 
   SecureStorageService get storage => _storage;
+
+  /// Telegram deep-link auth — step 1: ask backend for short-lived token
+  /// and a https://t.me/<bot>?start=<token> deeplink.
+  Future<TelegramInitResult> telegramInit() async {
+    final response = await _api.post('/api/v1/auth/telegram/init', body: const {});
+    if (response.statusCode != 200) {
+      throw Exception('telegram_init_failed');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return TelegramInitResult(
+      authToken: data['auth_token'] as String,
+      deeplink: data['deeplink'] as String,
+      botUsername: data['bot_username'] as String? ?? '',
+      expiresIn: data['expires_in'] as int? ?? 600,
+    );
+  }
+
+  /// Telegram deep-link auth — step 2: poll status until the bot confirms.
+  /// Returns null while pending, throws on expired, returns tokens on completion.
+  /// On completion the access/refresh tokens are written to secure storage.
+  Future<TelegramStatusResult> telegramStatus(String authToken) async {
+    final response = await _api.get(
+      '/api/v1/auth/telegram/status?auth_token=${Uri.encodeQueryComponent(authToken)}',
+    );
+    if (response.statusCode != 200) {
+      throw Exception('telegram_status_failed');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final status = data['status'] as String? ?? 'pending';
+    if (status == 'completed') {
+      final access = data['access_token'] as String?;
+      final refresh = data['refresh_token'] as String?;
+      if (access != null && refresh != null) {
+        await _storage.setTokens(accessToken: access, refreshToken: refresh);
+      }
+      return TelegramStatusResult(status: 'completed');
+    }
+    return TelegramStatusResult(status: status);
+  }
+}
+
+class TelegramInitResult {
+  final String authToken;
+  final String deeplink;
+  final String botUsername;
+  final int expiresIn;
+
+  TelegramInitResult({
+    required this.authToken,
+    required this.deeplink,
+    required this.botUsername,
+    required this.expiresIn,
+  });
+}
+
+class TelegramStatusResult {
+  /// 'pending' | 'completed' | 'expired'
+  final String status;
+  TelegramStatusResult({required this.status});
 }
 
 class UpgradeRequiredException implements Exception {

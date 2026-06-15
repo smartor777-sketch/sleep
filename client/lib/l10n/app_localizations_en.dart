@@ -528,4 +528,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get manageSubscription => 'Manage subscription';
+
+  @override
+  String get signInHelloTitle => 'Sign in to InnerCore';
+
+  @override
+  String get signInWhyHint => 'Save your dreams and continue on any device.';
+
+  @override
+  String get signInWithGoogle => 'Sign in with Google';
+
+  @override
+  String get signInWithTelegram => 'Sign in with Telegram';
+
+  @override
+  String get signInDisclaimer =>
+      'Email sign-in is no longer supported. Please use Google or Telegram.';
+
+  @override
+  String get telegramWaiting =>
+      'Open Telegram and tap Start — we will sign you in.';
+
+  @override
+  String get telegramReopen => 'Reopen Telegram';
+
+  @override
+  String get telegramOpenFailed =>
+      'Couldn\'t open Telegram. Is the app installed?';
+
+  @override
+  String get telegramSessionExpired => 'Session expired. Please try again.';
 }

@@ -224,5 +224,14 @@
   "analysisLimitReached": "Weekly analysis limit reached. Upgrade to Pro for unlimited access.",
   "upgradeToPro": "Upgrade to Pro",
   "freeAccount": "Free",
-  "manageSubscription": "Manage subscription"
+  "manageSubscription": "Manage subscription",
+  "signInHelloTitle": "Sign in to InnerCore",
+  "signInWhyHint": "Save your dreams and continue on any device.",
+  "signInWithGoogle": "Sign in with Google",
+  "signInWithTelegram": "Sign in with Telegram",
+  "signInDisclaimer": "Email sign-in is no longer supported. Please use Google or Telegram.",
+  "telegramWaiting": "Open Telegram and tap Start — we will sign you in.",
+  "telegramReopen": "Reopen Telegram",
+  "telegramOpenFailed": "Couldn't open Telegram. Is the app installed?",
+  "telegramSessionExpired": "Session expired. Please try again."
 }

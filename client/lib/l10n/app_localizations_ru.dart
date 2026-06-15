@@ -530,4 +530,36 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get manageSubscription => 'Управление подпиской';
+
+  @override
+  String get signInHelloTitle => 'Войдите в InnerCore';
+
+  @override
+  String get signInWhyHint =>
+      'Чтобы сохранить сны и продолжить на любом устройстве.';
+
+  @override
+  String get signInWithGoogle => 'Войти через Google';
+
+  @override
+  String get signInWithTelegram => 'Войти через Telegram';
+
+  @override
+  String get signInDisclaimer =>
+      'Email-вход больше не поддерживается. Используйте Google или Telegram.';
+
+  @override
+  String get telegramWaiting =>
+      'Открой Telegram и нажми Start — мы тебя сразу залогиним.';
+
+  @override
+  String get telegramReopen => 'Открыть Telegram ещё раз';
+
+  @override
+  String get telegramOpenFailed =>
+      'Не удалось открыть Telegram. Установлено ли приложение?';
+
+  @override
+  String get telegramSessionExpired =>
+      'Время сессии истекло. Попробуй ещё раз.';
 }

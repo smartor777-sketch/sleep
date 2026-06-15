@@ -103,11 +103,31 @@ class AuthProvider extends ChangeNotifier {
 
   /// Sign in with Google.
   Future<UserMe> signInWithGoogle() async {
-    await mergeAnonymous();
     final user = await _authService.signInWithGoogle();
+    // Merge AFTER the new tokens are stored so the backend authenticates as
+    // the freshly-linked Google user and pulls anonymous dreams into it.
+    try { await mergeAnonymous(); } catch (_) {}
     _user = user;
     notifyListeners();
     return user;
+  }
+
+  /// Telegram deep-link auth — step 1.
+  Future<TelegramInitResult> startTelegramAuth() async {
+    return await _authService.telegramInit();
+  }
+
+  /// Telegram deep-link auth — polling. Returns 'pending' / 'completed' /
+  /// 'expired'. On 'completed' the AuthProvider is updated with the new user.
+  Future<String> pollTelegramAuth(String authToken) async {
+    final result = await _authService.telegramStatus(authToken);
+    if (result.status == 'completed') {
+      try { await mergeAnonymous(); } catch (_) {}
+      final user = await _authService.getMe();
+      _user = user;
+      notifyListeners();
+    }
+    return result.status;
   }
 
   /// Logout — clear tokens and bootstrap anonymously.

@@ -12,8 +12,7 @@ import '../providers/auth_provider.dart';
 import '../providers/billing_provider.dart';
 import '../providers/profile_provider.dart';
 import '../utils/snackbar.dart';
-import 'email_login_screen.dart';
-import 'email_register_screen.dart';
+import 'auth_screen.dart';
 import 'paywall_screen.dart';
 import 'verify_email_screen.dart';
 
@@ -61,7 +60,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late Color _accentColor;
   late TextEditingController _aboutController;
   String _aboutText = '';
-  bool _linking = false;
   bool _deleting = false;
 
   @override
@@ -608,32 +606,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: ElevatedButton.icon(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const EmailRegisterScreen()),
+                MaterialPageRoute(builder: (_) => const AuthScreen()),
               ),
-              child: Text(l10n.createAccount),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EmailLoginScreen()),
-              ),
-              child: Text(l10n.signIn),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: _linking ? null : _signInWithGoogle,
               icon: const Icon(Icons.login),
-              label: const Text('Sign in with Google'),
+              label: Text(l10n.signIn),
             ),
           ),
         ] else ...[
@@ -723,21 +702,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() => _linking = true);
-    try {
-      await context.read<AuthProvider>().signInWithGoogle();
-    } catch (e) {
-      if (!mounted) return;
-      final msg = e.toString();
-      if (!msg.contains('cancelled')) {
-        showToast(context, AppLocalizations.of(context)!.linkFailed, isError: true);
-      }
-    } finally {
-      if (mounted) setState(() => _linking = false);
-    }
-  }
-
   Future<void> _confirmLogout(BuildContext context) async {
     final auth = context.read<AuthProvider>(); // захватываем до async
     final l10n = AppLocalizations.of(context)!;
@@ -789,14 +753,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   //     setState(() => _linking = false);
   //   }
   // }
-
-  void _handleLinkError(Object error) {
-    final l10n = AppLocalizations.of(context)!;
-    final message = error.toString().contains('identity_already_linked')
-        ? l10n.identityAlreadyLinked
-        : l10n.linkFailed;
-    _showError(message);
-  }
 
   String _mapProfileError(String? message) {
     final l10n = AppLocalizations.of(context)!;

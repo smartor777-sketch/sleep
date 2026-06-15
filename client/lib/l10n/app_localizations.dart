@@ -1063,6 +1063,60 @@ abstract class AppLocalizations {
   /// In ru, this message translates to:
   /// **'Управление подпиской'**
   String get manageSubscription;
+
+  /// No description provided for @signInHelloTitle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войдите в InnerCore'**
+  String get signInHelloTitle;
+
+  /// No description provided for @signInWhyHint.
+  ///
+  /// In ru, this message translates to:
+  /// **'Чтобы сохранить сны и продолжить на любом устройстве.'**
+  String get signInWhyHint;
+
+  /// No description provided for @signInWithGoogle.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти через Google'**
+  String get signInWithGoogle;
+
+  /// No description provided for @signInWithTelegram.
+  ///
+  /// In ru, this message translates to:
+  /// **'Войти через Telegram'**
+  String get signInWithTelegram;
+
+  /// No description provided for @signInDisclaimer.
+  ///
+  /// In ru, this message translates to:
+  /// **'Email-вход больше не поддерживается. Используйте Google или Telegram.'**
+  String get signInDisclaimer;
+
+  /// No description provided for @telegramWaiting.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открой Telegram и нажми Start — мы тебя сразу залогиним.'**
+  String get telegramWaiting;
+
+  /// No description provided for @telegramReopen.
+  ///
+  /// In ru, this message translates to:
+  /// **'Открыть Telegram ещё раз'**
+  String get telegramReopen;
+
+  /// No description provided for @telegramOpenFailed.
+  ///
+  /// In ru, this message translates to:
+  /// **'Не удалось открыть Telegram. Установлено ли приложение?'**
+  String get telegramOpenFailed;
+
+  /// No description provided for @telegramSessionExpired.
+  ///
+  /// In ru, this message translates to:
+  /// **'Время сессии истекло. Попробуй ещё раз.'**
+  String get telegramSessionExpired;
 }
 
 class _AppLocalizationsDelegate

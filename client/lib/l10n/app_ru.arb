@@ -224,5 +224,14 @@
   "analysisLimitReached": "Лимит анализов на неделю исчерпан. Перейдите на Pro для безлимитного доступа.",
   "upgradeToPro": "Перейти на Pro",
   "freeAccount": "Бесплатный",
-  "manageSubscription": "Управление подпиской"
+  "manageSubscription": "Управление подпиской",
+  "signInHelloTitle": "Войдите в InnerCore",
+  "signInWhyHint": "Чтобы сохранить сны и продолжить на любом устройстве.",
+  "signInWithGoogle": "Войти через Google",
+  "signInWithTelegram": "Войти через Telegram",
+  "signInDisclaimer": "Email-вход больше не поддерживается. Используйте Google или Telegram.",
+  "telegramWaiting": "Открой Telegram и нажми Start — мы тебя сразу залогиним.",
+  "telegramReopen": "Открыть Telegram ещё раз",
+  "telegramOpenFailed": "Не удалось открыть Telegram. Установлено ли приложение?",
+  "telegramSessionExpired": "Время сессии истекло. Попробуй ещё раз."
 }

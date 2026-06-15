@@ -202,3 +202,32 @@ async def handle_rtdn_notification(db: AsyncSession, message_data: dict) -> None
         await verify_purchase(db, user, purchase_token, product_id)
     except Exception:
         logger.exception("RTDN: failed to re-verify purchase")
+
+
+# ---------------------------------------------------------------------------
+# Trial bootstrap — give a fresh registered user 7 days of PRO-equivalent access
+# ---------------------------------------------------------------------------
+TRIAL_DURATION_DAYS = 7
+
+
+def start_trial(user: User) -> bool:
+    """Flip a brand-new registered user onto a 7-day trial.
+
+    Idempotent and conservative:
+    - anonymous users → no trial (per product decision; would be abusable)
+    - users already on trial/pro → no-op
+    - users who already had a trial in the past → no-op (one shot per account)
+
+    Returns True if the trial was actually started.
+    """
+    if user.is_anonymous:
+        return False
+    if user.sub_type != "free":
+        return False
+    if user.trial_started_at is not None:
+        return False
+
+    user.sub_type = "trial"
+    user.trial_started_at = datetime.now(timezone.utc)
+    logger.info("Started 7-day trial for user %s", user.id)
+    return True

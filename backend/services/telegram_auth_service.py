@@ -113,6 +113,8 @@ async def get_or_create_telegram_user(
         last_name=last_name,
         last_login_at=datetime.utcnow(),
     )
+    from services.billing_service import start_trial
+    start_trial(user)
     db.add(user)
     await db.flush()  # need user.id for OAuthIdentity
 

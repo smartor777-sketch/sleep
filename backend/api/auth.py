@@ -511,6 +511,8 @@ async def google_signin(
                 email_verified=bool(email),
                 timezone="UTC",
             )
+            from services.billing_service import start_trial
+            start_trial(user)
             db.add(user)
             await db.commit()
             await db.refresh(user)
@@ -518,6 +520,9 @@ async def google_signin(
         await create_identity(db, user, "google", provider_subject, email)
         if user.is_anonymous:
             user.is_anonymous = False
+            # Anon → first registered identity. Give them the trial too.
+            from services.billing_service import start_trial
+            start_trial(user)
         if not user.email and email:
             user.email = email
             user.email_verified = True

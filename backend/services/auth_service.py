@@ -85,11 +85,14 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
         timezone=user_data.timezone,
         is_anonymous=False,
     )
-    
+
+    from services.billing_service import start_trial
+    start_trial(user)
+
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    
+
     return user
 
 

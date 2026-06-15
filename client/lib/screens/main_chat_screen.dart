@@ -45,6 +45,8 @@ class MainChatScreen extends StatefulWidget {
 }
 
 class _MainChatScreenState extends State<MainChatScreen> {
+  String? _lastLoadedUserId;
+
   static const _tabGrid = 0;
   static const _tabChat = 1;
   static const _tabMap = 3;
@@ -123,8 +125,27 @@ class _MainChatScreenState extends State<MainChatScreen> {
       }
     };
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      _lastLoadedUserId = auth.user?.id;
       context.read<DreamsProvider>().loadDreams();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // If the signed-in user changes (e.g. anon → Google), reload dreams.
+    // Without this the main screen keeps the empty list from the previous
+    // (anonymous) account even though the new account has dreams.
+    final auth = context.watch<AuthProvider>();
+    final uid = auth.user?.id;
+    if (uid != null && uid != _lastLoadedUserId) {
+      _lastLoadedUserId = uid;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<DreamsProvider>().loadDreams();
+      });
+    }
   }
 
   @override

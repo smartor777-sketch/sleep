@@ -68,6 +68,10 @@ export default function DreamPage() {
   function startDreamPolling() {
     if (pollDreamRef.current) return;
     let n = 0;
+    // 10 min cap: 300 ticks × 2s. Matches Celery soft_time_limit on the backend,
+    // so if the worker eventually times out we'll see analysis_status=analysis_failed
+    // and stop on our own; if not, we give up and mark dream-level timeout in UI.
+    const MAX_TICKS = 300;
     pollDreamRef.current = setInterval(async () => {
       n++;
       try {
@@ -78,7 +82,12 @@ export default function DreamPage() {
           try { const a = await api.analysisForDream(id); setAnalysis(a); } catch {}
           try { const h = await api.messageHistory(id, 200, 0); setMessages(h.messages); } catch {}
           stopAllPolling();
-        } else if (d.analysis_status === 'analysis_failed' || n > 90) {
+        } else if (d.analysis_status === 'analysis_failed') {
+          stopAllPolling();
+        } else if (n >= MAX_TICKS) {
+          // Client-side safety net: pretend status flipped to failed so the
+          // user sees the retry UI even if backend never updated the row.
+          setDream({ ...d, analysis_status: 'analysis_failed' });
           stopAllPolling();
         }
       } catch { /* keep trying */ }

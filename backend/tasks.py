@@ -35,6 +35,8 @@ def _run_in_worker_loop(coro):
     retry_backoff_max=120,
     retry_jitter=True,
     max_retries=4,
+    soft_time_limit=600,   # 10 min — SoftTimeLimitExceeded raised, caught by except Exception → marks analysis FAILED
+    time_limit=660,        # 11 min — hard kill (only used if soft handler hangs)
 )
 def analyze_dream_task(self, analysis_id: str):
     """

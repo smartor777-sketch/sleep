@@ -51,6 +51,14 @@ class MemoryUpdateEntry(BaseModel):
     action: str = "replace"
     value: str = ""
 
+    @classmethod
+    def _coerce_from_string(cls, v):
+        """LLM sometimes returns memory_update entries as plain strings
+        instead of {action, value} objects. Wrap them so we don't lose data."""
+        if isinstance(v, str):
+            return {"action": "replace", "value": v}
+        return v
+
 
 class AnalysisPayload(BaseModel):
     analysis_text: str = Field(..., min_length=1)
@@ -79,7 +87,8 @@ class AnalysisPayload(BaseModel):
     @classmethod
     def _drop_invalid_memory_entries(cls, raw):
         """LLM occasionally returns memory_update entries that aren't {action,value}.
-        Drop the broken keys rather than nuking the whole payload."""
+        Drop the broken keys rather than nuking the whole payload. Plain strings
+        are accepted and wrapped as {action='replace', value=<string>}."""
         if raw is None:
             return None
         if not isinstance(raw, dict):
@@ -87,7 +96,8 @@ class AnalysisPayload(BaseModel):
         good = {}
         for k, v in raw.items():
             try:
-                good[str(k)] = MemoryUpdateEntry.model_validate(v)
+                coerced = MemoryUpdateEntry._coerce_from_string(v)
+                good[str(k)] = MemoryUpdateEntry.model_validate(coerced)
             except Exception:
                 continue
         return good or None

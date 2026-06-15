@@ -48,6 +48,10 @@ class GonkaProxyProvider:
             "model": self.model,
             "messages": normalized_messages,
             "temperature": temperature,
+            # Big enough that structured analysis (≈3-5k tokens of analysis_text
+            # plus ≈1-3k of JSON for entities/memory/etc.) doesn't get truncated
+            # mid-response. Qwen3-235B advertises max_tokens=16384 on Gonka.
+            "max_tokens": 12000,
         }
         url = f"{self.base_url}/chat/completions"
         headers = {

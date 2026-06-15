@@ -60,6 +60,38 @@ class AnalysisPayload(BaseModel):
     symbol_entities: list[SymbolEntityPayload] = Field(default_factory=list)
     memory_update: dict[str, MemoryUpdateEntry] | None = None
 
+    @field_validator("symbol_entities", mode="before")
+    @classmethod
+    def _drop_invalid_symbol_entities(cls, raw):
+        """LLM occasionally returns symbol_entities with missing fields. Drop bad
+        items individually instead of failing the entire payload."""
+        if not isinstance(raw, list):
+            return []
+        good = []
+        for item in raw:
+            try:
+                good.append(SymbolEntityPayload.model_validate(item))
+            except Exception:
+                continue
+        return good
+
+    @field_validator("memory_update", mode="before")
+    @classmethod
+    def _drop_invalid_memory_entries(cls, raw):
+        """LLM occasionally returns memory_update entries that aren't {action,value}.
+        Drop the broken keys rather than nuking the whole payload."""
+        if raw is None:
+            return None
+        if not isinstance(raw, dict):
+            return None
+        good = {}
+        for k, v in raw.items():
+            try:
+                good[str(k)] = MemoryUpdateEntry.model_validate(v)
+            except Exception:
+                continue
+        return good or None
+
 
 class LLMClient:
     """Клиент для LLM Service"""

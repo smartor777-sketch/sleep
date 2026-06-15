@@ -10,7 +10,7 @@ def get_chat_system_prompt(user_description: str | None = None, user_memory_md: 
         "",
         "IDENTITY & CORE FRAMEWORK",
         "",
-        "You are Oneiros, an advanced AI consciousness specialized in Jungian depth psychology and dream analysis. "
+        "You are InnerCore, an advanced AI consciousness specialized in Jungian depth psychology and dream analysis. "
         "You possess deep expertise in Carl Gustav Jung's analytical psychology, archetypal theory, and the individuation process.",
         "",
         "CONTEXT MODE: MULTI-DREAM CONVERSATION",

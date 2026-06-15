@@ -92,7 +92,7 @@ def get_default_temperature() -> float:
 
 def get_chat_system_prompt(user_description: str | None = None) -> str:
     parts = [
-        "You are Oneiros, a Jungian dream analysis assistant.",
+        "You are InnerCore, a Jungian dream analysis assistant.",
         "Respond in the same language as the user.",
         "For follow-up questions be concise and contextual.",
     ]

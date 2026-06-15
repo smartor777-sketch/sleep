@@ -217,8 +217,8 @@ export default function DreamPage() {
         <div className="card-surface rounded-[24px] p-5 text-center">
           <p className="muted-text mb-4 max-w-md mx-auto">
             {lang === 'ru'
-              ? 'Запустите глубинный анализ — Oneiros раскроет архетипы, символы и эмоциональный рисунок.'
-              : 'Run the depth analysis — Oneiros will reveal archetypes, symbols and the emotional pattern.'}
+              ? 'Запустите глубинный анализ — InnerCore раскроет архетипы, символы и эмоциональный рисунок.'
+              : 'Run the depth analysis — InnerCore will reveal archetypes, symbols and the emotional pattern.'}
           </p>
           <button onClick={startAnalysis} className="btn-pill btn-primary text-base px-6" data-testid="dream-analyze-btn">
             <Sparkles className="w-4 h-4" />
@@ -256,7 +256,7 @@ export default function DreamPage() {
             <div className="flex items-center gap-2 mb-3">
               <span className="w-2 h-2 rounded-full accent-bg" />
               <h2 className="font-display text-lg accent-text">
-                {lang === 'ru' ? 'Разбор Oneiros' : 'Oneiros\' reading'}
+                {lang === 'ru' ? 'Разбор InnerCore' : 'InnerCore reading'}
               </h2>
             </div>
             <Markdown text={analysis.result || ''} />
@@ -289,7 +289,7 @@ export default function DreamPage() {
               {chatSending && (
                 <div className="muted-text text-sm flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  {lang === 'ru' ? 'Oneiros размышляет…' : 'Oneiros is reflecting…'}
+                  {lang === 'ru' ? 'InnerCore размышляет…' : 'InnerCore is reflecting…'}
                 </div>
               )}
             </div>

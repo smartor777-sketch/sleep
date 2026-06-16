@@ -5,6 +5,7 @@ import { DreamMap, MapNode, SymbolDetail } from '../lib/types';
 import { t } from '../lib/i18n';
 import { Loader2, RefreshCw, Map as MapIcon, Lock, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { createMapFit, nodeImportance, previewLinks } from '../lib/mapLayout';
 
 export default function MapPage() {
   const lang = useApp((s) => s.lang);
@@ -22,6 +23,7 @@ export default function MapPage() {
   const [selected, setSelected] = useState<SymbolDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const dragging = useRef<{ x: number; y: number } | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!user || !isPro) return;
@@ -57,6 +59,43 @@ export default function MapPage() {
     if (filter === '__all__') return map.nodes;
     return map.nodes.filter(n => n.cluster_label === filter || n.related_archetypes.includes(filter));
   }, [map, filter]);
+
+  const mapFit = useMemo(() => createMapFit(filteredNodes, 0.08), [filteredNodes]);
+  const fittedNodes = mapFit.nodes;
+  const visibleClusterIds = useMemo(() => new Set(fittedNodes.map((n) => n.cluster_id)), [fittedNodes]);
+  const visibleClusters = useMemo(() => {
+    if (!map) return [];
+    return map.clusters
+      .filter((c) => visibleClusterIds.has(c.id))
+      .map((c) => ({ ...c, ...mapFit.point(c.center) }));
+  }, [map, mapFit, visibleClusterIds]);
+  const links = useMemo(() => previewLinks(fittedNodes, Math.min(28, fittedNodes.length * 2)), [fittedNodes]);
+  const labelNodes = useMemo(() => {
+    const count = zoom < 1.2 ? 8 : zoom < 1.8 ? 14 : zoom < 2.6 ? 26 : fittedNodes.length;
+    return [...fittedNodes]
+      .sort((a, b) => nodeImportance(b) - nodeImportance(a))
+      .slice(0, count);
+  }, [fittedNodes, zoom]);
+
+  function zoomAt(nextZoom: number, anchor?: { x: number; y: number }) {
+    const bounded = Math.max(0.7, Math.min(5, nextZoom));
+    const rect = viewportRef.current?.getBoundingClientRect();
+    const point = anchor && rect
+      ? { x: anchor.x - rect.left, y: anchor.y - rect.top }
+      : rect
+        ? { x: rect.width / 2, y: rect.height / 2 }
+        : { x: 0, y: 0 };
+
+    setPan((current) => {
+      const worldX = (point.x - current.x) / zoom;
+      const worldY = (point.y - current.y) / zoom;
+      return {
+        x: point.x - worldX * bounded,
+        y: point.y - worldY * bounded,
+      };
+    });
+    setZoom(bounded);
+  }
 
   // Gate for FREE
   if (!isPro) {
@@ -110,11 +149,12 @@ export default function MapPage() {
 
       {/* Canvas */}
       <div
+        ref={viewportRef}
         className="relative rounded-[24px] sm:rounded-[28px] overflow-hidden card-surface touch-none"
-        style={{ height: 'min(72vh, 720px)' }}
+        style={{ height: 'clamp(620px, calc(100vh - 190px), 820px)' }}
         onWheel={(e) => {
           e.preventDefault();
-          setZoom((z) => Math.max(0.5, Math.min(5, z + (e.deltaY < 0 ? 0.15 : -0.15))));
+          zoomAt(zoom + (e.deltaY < 0 ? 0.22 : -0.22), { x: e.clientX, y: e.clientY });
         }}
         onMouseDown={(e) => { dragging.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }; }}
         onMouseMove={(e) => {
@@ -132,71 +172,107 @@ export default function MapPage() {
                backgroundSize: '60px 60px',
              }} />
 
-        {/* Soft cluster glows */}
-        {map?.clusters?.map((c) => (
-          <div key={c.id}
-               className="absolute rounded-full pointer-events-none"
-               style={{
-                 left: `calc(${c.center.x * 100}% + ${pan.x}px)`,
-                 top: `calc(${c.center.y * 100}% + ${pan.y}px)`,
-                 transform: `translate(-50%, -50%) scale(${zoom})`,
-                 width: 220, height: 220,
-                 background: `radial-gradient(circle, ${c.color}55 0%, ${c.color}00 70%)`,
-                 filter: 'blur(8px)',
-               }} />
-        ))}
+        <div
+          className="absolute inset-0"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            transformOrigin: '0 0',
+          }}
+        >
+          {/* Soft inferred links */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+            {links.map(({ a, b }) => (
+              <line
+                key={`${a.id}:${b.id}`}
+                x1={`${a.viewX * 100}%`}
+                y1={`${a.viewY * 100}%`}
+                x2={`${b.viewX * 100}%`}
+                y2={`${b.viewY * 100}%`}
+                stroke="rgba(250,247,242,0.18)"
+                strokeWidth={Math.max(0.35, 0.9 / zoom)}
+              />
+            ))}
+          </svg>
 
-        {/* Nodes */}
-        {filteredNodes.map((n) => {
-          const size = 14 + Math.round(n.size_weight * 26);
-          return (
-            <button
-              key={n.id}
-              data-testid={`map-node-${n.id}`}
-              onClick={() => openSymbol(n)}
-              className="absolute rounded-full no-tap"
+          {/* Soft cluster glows */}
+          {visibleClusters.map((c) => (
+            <div key={c.id}
+                 className="absolute rounded-full pointer-events-none"
+                 style={{
+                   left: `${c.viewX * 100}%`,
+                   top: `${c.viewY * 100}%`,
+                   transform: `translate(-50%, -50%) scale(${1 / zoom})`,
+                   width: 220,
+                   height: 220,
+                   background: `radial-gradient(circle, ${c.color}50 0%, ${c.color}00 70%)`,
+                   filter: 'blur(10px)',
+                 }} />
+          ))}
+
+          {/* Nodes */}
+          {fittedNodes.map((n) => {
+            const size = 14 + Math.round(n.size_weight * 24);
+            return (
+              <button
+                key={n.id}
+                data-testid={`map-node-${n.id}`}
+                onClick={() => openSymbol(n)}
+                className="absolute rounded-full no-tap"
+                style={{
+                  left: `${n.viewX * 100}%`,
+                  top: `${n.viewY * 100}%`,
+                  width: size,
+                  height: size,
+                  transform: `translate(-50%, -50%) scale(${1 / zoom})`,
+                  background: n.archetype_color,
+                  boxShadow: `0 0 18px ${n.archetype_color}AA, inset 0 0 8px rgba(255,255,255,0.35)`,
+                  border: '1px solid rgba(255,255,255,0.28)',
+                }}
+                title={n.display_label}
+              />
+            );
+          })}
+
+          {/* Node labels and zoom details */}
+          {labelNodes.map((n) => (
+            <div
+              key={n.id + '-l'}
+              className="absolute text-[11px] sm:text-xs px-2 py-1 rounded-xl pointer-events-none"
               style={{
-                left: `calc(${n.x * 100}% + ${pan.x}px)`,
-                top: `calc(${n.y * 100}% + ${pan.y}px)`,
-                width: size * zoom,
-                height: size * zoom,
-                transform: 'translate(-50%, -50%)',
-                background: n.archetype_color,
-                boxShadow: `0 0 ${18 * zoom}px ${n.archetype_color}AA, inset 0 0 ${8 * zoom}px rgba(255,255,255,0.35)`,
+                left: `${n.viewX * 100}%`,
+                top: `${n.viewY * 100}%`,
+                transform: `translate(-50%, ${20 + Math.min(10, n.size_weight * 10)}px) scale(${1 / zoom})`,
+                transformOrigin: '50% 0',
+                background: 'rgba(0,0,0,0.58)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                color: '#fff',
+                whiteSpace: 'nowrap',
+                maxWidth: 240,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
               }}
-              title={n.display_label}
-            />
-          );
-        })}
-
-        {/* Node labels */}
-        {filteredNodes.slice(0, 14).map((n) => (
-          <div
-            key={n.id + '-l'}
-            className="absolute text-[11px] sm:text-xs px-2 py-1 rounded-full pointer-events-none"
-            style={{
-              left: `calc(${n.x * 100}% + ${pan.x}px)`,
-              top: `calc(${n.y * 100}% + ${pan.y + 24}px)`,
-              transform: 'translate(-50%, 0)',
-              background: 'rgba(0,0,0,0.55)',
-              border: '1px solid rgba(255,255,255,0.10)',
-              color: '#fff',
-              whiteSpace: 'nowrap',
-              maxWidth: 220,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {n.display_label}
-          </div>
-        ))}
+            >
+              <div className="font-medium leading-tight">{n.display_label}</div>
+              {zoom >= 2 && (
+                <div className="text-[10px] text-white/62 leading-tight mt-0.5">
+                  {n.dream_count} {t('symbol.dreams', lang)} · {n.occurrence_count} {t('symbol.occurrences', lang)}
+                </div>
+              )}
+              {zoom >= 3 && n.related_archetypes?.[0] && (
+                <div className="text-[10px] text-white/52 leading-tight mt-0.5 truncate">
+                  {n.related_archetypes.slice(0, 2).join(' · ')}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
         {/* Zoom buttons */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-2">
-          <button onClick={() => setZoom((z) => Math.min(5, z + 0.25))} className="w-10 h-10 rounded-full glass flex items-center justify-center">
+          <button onClick={() => zoomAt(zoom + 0.35)} className="w-10 h-10 rounded-full glass flex items-center justify-center">
             <ZoomIn className="w-4 h-4" />
           </button>
-          <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="w-10 h-10 rounded-full glass flex items-center justify-center">
+          <button onClick={() => zoomAt(zoom - 0.35)} className="w-10 h-10 rounded-full glass flex items-center justify-center">
             <ZoomOut className="w-4 h-4" />
           </button>
         </div>

@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../lib/store';
 import DreamComposer from '../components/DreamComposer';
-import { Dream } from '../lib/types';
+import { api } from '../lib/api';
+import { Dream, DreamMap } from '../lib/types';
 import { ArrowRight, CalendarDays, Map as MapIcon, Sparkles } from 'lucide-react';
+import { createMapFit, nodeImportance, previewLinks } from '../lib/mapLayout';
 
 function formatDate(iso: string, lang: string) {
   try {
@@ -144,19 +146,46 @@ function LatestDreams({ dreams, lang, loaded }: { dreams: Dream[]; lang: 'ru' | 
 }
 
 function MapPreview({ lang, hasDreams }: { lang: 'ru' | 'en'; hasDreams: boolean }) {
-  const nodes = [
-    { x: 22, y: 35, s: 18, c: '#D68A3A' },
-    { x: 48, y: 58, s: 26, c: '#CFE2FF' },
-    { x: 74, y: 34, s: 20, c: '#DCCBFF' },
-    { x: 66, y: 74, s: 14, c: '#DCE8E1' },
-  ];
+  const user = useApp((s) => s.user);
+  const billing = useApp((s) => s.billing);
+  const isPro = billing?.sub_type === 'pro' || billing?.sub_type === 'trial';
+  const [previewMap, setPreviewMap] = useState<DreamMap | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user || !isPro) {
+      setPreviewMap(null);
+      return () => { cancelled = true; };
+    }
+
+    setLoading(true);
+    api.getMap(user.id)
+      .then((m) => { if (!cancelled) setPreviewMap(m); })
+      .catch(() => { if (!cancelled) setPreviewMap(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [user?.id, isPro]);
+
+  const fittedNodes = useMemo(() => createMapFit(previewMap?.nodes ?? [], 0.1).nodes, [previewMap]);
+  const nodes = useMemo(
+    () => [...fittedNodes].sort((a, b) => nodeImportance(b) - nodeImportance(a)).slice(0, 28),
+    [fittedNodes],
+  );
+  const links = useMemo(() => previewLinks(nodes, 18), [nodes]);
+  const labels = nodes.slice(0, 5);
+  const hasRealMap = nodes.length > 0;
+
   return (
     <section className="card-surface dream-card rounded-[22px] p-5 min-h-[360px] h-full flex flex-col">
       <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h2 className="font-display text-xl">{lang === 'ru' ? 'Карта снов' : 'Dream map'}</h2>
           <p className="muted-text text-sm mt-1">
-            {hasDreams
+            {hasRealMap
+              ? (lang === 'ru' ? 'Миниатюра вашей карты' : 'A miniature of your map')
+              : hasDreams
               ? (lang === 'ru' ? 'Компактный вид связей' : 'A compact view of links')
               : (lang === 'ru' ? 'Начнёт проявляться после нескольких записей' : 'It starts appearing after a few entries')}
           </p>
@@ -164,14 +193,52 @@ function MapPreview({ lang, hasDreams }: { lang: 'ru' | 'en'; hasDreams: boolean
         <MapIcon className="w-5 h-5 accent-text" />
       </div>
       <Link to="/map" className="block map-preview rounded-2xl min-h-[220px] flex-1 relative overflow-hidden no-tap">
-        <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" aria-hidden="true">
-          <line x1="22" y1="35" x2="48" y2="58" stroke="rgba(250,247,242,0.28)" strokeWidth="0.6" />
-          <line x1="48" y1="58" x2="74" y2="34" stroke="rgba(250,247,242,0.24)" strokeWidth="0.6" />
-          <line x1="48" y1="58" x2="66" y2="74" stroke="rgba(250,247,242,0.22)" strokeWidth="0.6" />
-          {nodes.map((n, i) => (
-            <circle key={i} cx={n.x} cy={n.y} r={n.s / 4} fill={n.c} opacity="0.92" />
-          ))}
-        </svg>
+        {hasRealMap ? (
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" aria-hidden="true">
+            {links.map(({ a, b }) => (
+              <line
+                key={`${a.id}:${b.id}`}
+                x1={a.viewX * 100}
+                y1={a.viewY * 100}
+                x2={b.viewX * 100}
+                y2={b.viewY * 100}
+                stroke="rgba(250,247,242,0.26)"
+                strokeWidth="0.35"
+              />
+            ))}
+            {nodes.map((n) => (
+              <circle
+                key={n.id}
+                cx={n.viewX * 100}
+                cy={n.viewY * 100}
+                r={1.4 + n.size_weight * 3.2}
+                fill={n.archetype_color}
+                opacity="0.94"
+              />
+            ))}
+            {labels.map((n) => (
+              <text
+                key={`${n.id}-label`}
+                x={n.viewX * 100}
+                y={n.viewY * 100 + 6}
+                textAnchor="middle"
+                fill="rgba(255,255,255,0.72)"
+                fontSize="3"
+                fontWeight="600"
+              >
+                {n.display_label.slice(0, 14)}
+              </text>
+            ))}
+          </svg>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center px-6 text-center">
+            <div className="text-sm text-white/62 leading-relaxed">
+              {loading
+                ? (lang === 'ru' ? 'Собираем миниатюру карты...' : 'Preparing the map miniature...')
+                : (lang === 'ru' ? 'Карта начнёт проявляться после нескольких записей.' : 'The map starts appearing after a few entries.')}
+            </div>
+          </div>
+        )}
         <span className="absolute left-4 bottom-4 text-sm text-white/86 inline-flex items-center gap-1.5">
           {lang === 'ru' ? 'Открыть карту' : 'Open map'} <ArrowRight className="w-4 h-4" />
         </span>

@@ -19,6 +19,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const loc = useLocation();
   const isToday = loc.pathname === '/';
+  const isMap = loc.pathname === '/map';
 
   // Close drawer on Esc
   useEffect(() => {
@@ -48,7 +49,13 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar onOpenSidebar={() => setSidebarOpen(true)} />
-        <main className={`flex-1 px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 w-full mx-auto relative z-10 ${isToday ? 'max-w-none' : 'max-w-[1280px]'}`}>
+        <main
+          className={`flex-1 pt-4 sm:pt-6 pb-12 w-full relative z-10 ${
+            isMap
+              ? 'px-0 max-w-none'
+              : `px-3 sm:px-6 lg:px-8 mx-auto ${isToday ? 'max-w-none' : 'max-w-[1280px]'}`
+          }`}
+        >
           {children}
         </main>
       </div>

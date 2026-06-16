@@ -76,6 +76,7 @@ export default function MapPage() {
       .sort((a, b) => nodeImportance(b) - nodeImportance(a))
       .slice(0, count);
   }, [fittedNodes, zoom]);
+  const screenPercent = (value: number) => `${(value * zoom * 100).toFixed(4)}%`;
 
   function zoomAt(nextZoom: number, anchor?: { x: number; y: number }) {
     const bounded = Math.max(0.7, Math.min(5, nextZoom));
@@ -119,7 +120,7 @@ export default function MapPage() {
 
   return (
     <div className="space-y-3 sm:space-y-4" data-testid="map-page">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3 flex-wrap">
         <p className="muted-text text-xs sm:text-sm">
           {map ? `${map.nodes.length} ${t('map.nodes', lang)} · zoom ${zoom.toFixed(2)}x${map.meta.cached ? ' · cached' : ''}` : ''}
         </p>
@@ -139,7 +140,7 @@ export default function MapPage() {
 
       {/* Archetype filters */}
       {map && map.archetype_filters?.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1" data-testid="map-filters">
+        <div className="px-3 sm:px-6 lg:px-8 flex gap-2 overflow-x-auto pb-1" data-testid="map-filters">
           <FilterPill active={filter === '__all__'} onClick={() => setFilter('__all__')}>{t('map.all', lang)}</FilterPill>
           {map.archetype_filters.map((a) => (
             <FilterPill key={a} active={filter === a} onClick={() => setFilter(a)}>{a}</FilterPill>
@@ -233,39 +234,39 @@ export default function MapPage() {
             );
           })}
 
-          {/* Node labels and zoom details */}
-          {labelNodes.map((n) => (
-            <div
-              key={n.id + '-l'}
-              className="absolute text-[11px] sm:text-xs px-2 py-1 rounded-xl pointer-events-none"
-              style={{
-                left: `${n.viewX * 100}%`,
-                top: `${n.viewY * 100}%`,
-                transform: `translate(-50%, ${20 + Math.min(10, n.size_weight * 10)}px) scale(${1 / zoom})`,
-                transformOrigin: '50% 0',
-                background: 'rgba(0,0,0,0.58)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: '#fff',
-                whiteSpace: 'nowrap',
-                maxWidth: 240,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              <div className="font-medium leading-tight">{n.display_label}</div>
-              {zoom >= 2 && (
-                <div className="text-[10px] text-white/62 leading-tight mt-0.5">
-                  {n.dream_count} {t('symbol.dreams', lang)} · {n.occurrence_count} {t('symbol.occurrences', lang)}
-                </div>
-              )}
-              {zoom >= 3 && n.related_archetypes?.[0] && (
-                <div className="text-[10px] text-white/52 leading-tight mt-0.5 truncate">
-                  {n.related_archetypes.slice(0, 2).join(' · ')}
-                </div>
-              )}
-            </div>
-          ))}
         </div>
+
+        {/* Labels stay outside the scaled map layer to keep text sharp at every zoom level. */}
+        {labelNodes.map((n) => (
+          <div
+            key={n.id + '-l'}
+            className="absolute text-[11px] sm:text-xs px-2 py-1 rounded-xl pointer-events-none select-none"
+            style={{
+              left: `calc(${screenPercent(n.viewX)} + ${pan.x}px)`,
+              top: `calc(${screenPercent(n.viewY)} + ${pan.y}px)`,
+              transform: `translate(-50%, ${20 + Math.min(10, n.size_weight * 10)}px)`,
+              background: 'rgba(0,0,0,0.58)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              color: '#fff',
+              whiteSpace: 'nowrap',
+              maxWidth: 240,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            <div className="font-medium leading-tight">{n.display_label}</div>
+            {zoom >= 2 && (
+              <div className="text-[10px] text-white/62 leading-tight mt-0.5">
+                {n.dream_count} {t('symbol.dreams', lang)} · {n.occurrence_count} {t('symbol.occurrences', lang)}
+              </div>
+            )}
+            {zoom >= 3 && n.related_archetypes?.[0] && (
+              <div className="text-[10px] text-white/52 leading-tight mt-0.5 truncate">
+                {n.related_archetypes.slice(0, 2).join(' · ')}
+              </div>
+            )}
+          </div>
+        ))}
 
         {/* Zoom buttons */}
         <div className="absolute bottom-3 right-3 flex flex-col gap-2">

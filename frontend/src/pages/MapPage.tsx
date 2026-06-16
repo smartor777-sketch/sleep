@@ -119,7 +119,7 @@ export default function MapPage() {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4" data-testid="map-page">
+    <div className="space-y-2 sm:space-y-3" data-testid="map-page">
       <div className="px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3 flex-wrap">
         <p className="muted-text text-xs sm:text-sm">
           {map ? `${map.nodes.length} ${t('map.nodes', lang)} · zoom ${zoom.toFixed(2)}x${map.meta.cached ? ' · cached' : ''}` : ''}
@@ -151,8 +151,8 @@ export default function MapPage() {
       {/* Canvas */}
       <div
         ref={viewportRef}
-        className="relative rounded-[24px] sm:rounded-[28px] overflow-hidden card-surface touch-none"
-        style={{ height: 'clamp(620px, calc(100vh - 190px), 820px)' }}
+        className="relative mx-2 sm:mx-4 lg:mx-5 rounded-[24px] sm:rounded-[28px] overflow-hidden card-surface touch-none"
+        style={{ height: 'clamp(640px, calc(100dvh - 150px), 980px)' }}
         onWheel={(e) => {
           e.preventDefault();
           zoomAt(zoom + (e.deltaY < 0 ? 0.22 : -0.22), { x: e.clientX, y: e.clientY });

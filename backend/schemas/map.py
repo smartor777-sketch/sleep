@@ -59,6 +59,12 @@ class DreamMapOccurrenceResponse(BaseModel):
     text_preview: str
 
 
+class DreamMapRelatedSymbolResponse(BaseModel):
+    id: str
+    symbol_name: str
+    display_label: str
+
+
 class DreamMapSymbolDetailResponse(BaseModel):
     id: str
     symbol_name: str
@@ -73,5 +79,5 @@ class DreamMapSymbolDetailResponse(BaseModel):
     size_weight: float = Field(ge=0.0, le=1.0)
     last_seen_at: str
     related_archetypes: list[str]
-    related_symbols: list[str]
+    related_symbols: list[DreamMapRelatedSymbolResponse]
     occurrences: list[DreamMapOccurrenceResponse]

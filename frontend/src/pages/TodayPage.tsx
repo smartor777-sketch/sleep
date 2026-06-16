@@ -20,30 +20,11 @@ function titleOf(dream: Dream) {
   return dream.title?.trim() || dream.content.trim().split(/\s+/).slice(0, 6).join(' ') || '...';
 }
 
-function extractMotifs(dreams: Dream[]) {
-  const stop = new Set([
-    'и', 'в', 'во', 'на', 'не', 'я', 'мы', 'он', 'она', 'оно', 'это', 'как', 'но', 'за', 'из', 'по', 'под', 'там', 'мне', 'меня',
-    'the', 'and', 'was', 'were', 'with', 'from', 'into', 'that', 'this', 'you', 'had', 'for', 'not', 'but', 'then', 'there',
-  ]);
-  const counts = new Map<string, number>();
-  dreams.forEach((d) => {
-    const words = d.content
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
-      .split(/\s+/)
-      .filter((w) => w.length > 3 && !stop.has(w));
-    Array.from(new Set(words)).forEach((w) => counts.set(w, (counts.get(w) || 0) + 1));
-  });
-  return Array.from(counts.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([name, count]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), count }));
-}
-
 export default function TodayPage() {
   const lang = useApp((s) => s.lang);
   const user = useApp((s) => s.user);
   const dreams = useApp((s) => s.dreams);
+  const stats = useApp((s) => s.stats);
   const dreamsLoaded = useApp((s) => s.dreamsLoaded);
   const loadDreams = useApp((s) => s.loadDreams);
   const refreshStats = useApp((s) => s.refreshStats);
@@ -53,7 +34,16 @@ export default function TodayPage() {
     refreshStats().catch(() => {});
   }, [dreamsLoaded, loadDreams, refreshStats]);
 
-  const motifs = useMemo(() => extractMotifs(dreams), [dreams]);
+  // Recurring symbols come from the backend (LLM-extracted, normalized, 2+ dreams),
+  // not a client-side word count — see docs/SYMBOLS_RAG_CORE.md §3.1.
+  const motifs = useMemo(
+    () =>
+      (stats?.recurring_symbols ?? []).slice(0, 6).map((s) => ({
+        name: s.display_label.charAt(0).toUpperCase() + s.display_label.slice(1),
+        count: s.dream_count,
+      })),
+    [stats],
+  );
   const latest = dreams.slice(0, 3);
   const name = user?.first_name || user?.email?.split('@')[0] || (lang === 'ru' ? 'Гость' : 'Guest');
 

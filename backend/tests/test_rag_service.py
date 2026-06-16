@@ -13,7 +13,8 @@ from tests.helpers import FakeDb, FakeResult
 def test_chunk_extract_and_prompt_block():
     chunks = rag_service.chunk_dream_text("I entered the house. Then I saw water.\n\nA mirror appeared.", max_chunk_chars=25)
     assert len(chunks) >= 2
-    symbols = rag_service.extract_symbols("В доме была вода и зеркало. The house had water too.")
+    # extract_symbols is lowercase + stopword only (no lemmatization): use base forms.
+    symbols = rag_service.extract_symbols("Дом, вода и зеркало. The house had water.")
     assert "дом" in symbols
     assert "вода" in symbols
 
@@ -109,11 +110,53 @@ async def test_rebuild_dream_memory_persists_chunks_symbols_and_archetypes(monke
         dream,
         user_id,
         archetypes_delta={"shadow": 2, "": 1, "anima": 0},
+        symbol_entities=[
+            {
+                "canonical_name": "дом",
+                "display_label": "старый дом",
+                "entity_type": "symbol",
+                "weight": 0.8,
+                "source_chunk_indexes": [0],
+                "related_archetypes": ["shadow"],
+            }
+        ],
     )
 
     assert result is retrieval
     assert db.flushes == 1
     assert any(type(item).__name__ == "DreamChunk" for item in db.added)
     assert any(type(item).__name__ == "DreamSymbol" for item in db.added)
+    # DreamSymbolEntity is created only from LLM-supplied symbol_entities (no
+    # frequency fallback anymore — #6).
     assert any(type(item).__name__ == "DreamSymbolEntity" for item in db.added)
     assert any(type(item).__name__ == "DreamArchetype" for item in db.added)
+
+
+@pytest.mark.asyncio
+async def test_rebuild_dream_memory_no_fallback_entities_without_llm(monkeypatch):
+    """Without LLM symbol_entities, NO DreamSymbolEntity is created (#6) — the
+    frequency fallback that used to produce noisy map nodes is gone."""
+    retrieval = rag_service.RetrievalContext([], [], [], [], [])
+
+    async def fake_build_retrieval_context(*args, **kwargs):
+        return retrieval
+
+    async def fake_request_embedding(_text):
+        return [0.1, 0.2]
+
+    monkeypatch.setattr(rag_service, "build_retrieval_context", fake_build_retrieval_context)
+    monkeypatch.setattr(rag_service, "request_embedding", fake_request_embedding)
+
+    user_id = uuid4()
+    dream = SimpleNamespace(
+        id=uuid4(),
+        content="Дом и вода. В зеркале тень.",
+        recorded_at=datetime(2025, 1, 1, tzinfo=timezone.utc),
+        created_at=datetime(2025, 1, 1, tzinfo=timezone.utc),
+    )
+    db = FakeDb(execute_results=[FakeResult(), FakeResult(), FakeResult(), FakeResult()])
+
+    await rag_service.rebuild_dream_memory(db, dream, user_id)
+
+    assert any(type(item).__name__ == "DreamChunk" for item in db.added)
+    assert not any(type(item).__name__ == "DreamSymbolEntity" for item in db.added)

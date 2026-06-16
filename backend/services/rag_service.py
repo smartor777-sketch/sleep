@@ -21,56 +21,21 @@ from services.embedding_service import (
     request_embedding,
     serialize_embedding,
 )
+from services.text_normalization import (
+    clean_label,
+    extract_symbols,
+    is_meaningful_symbol,
+    normalize_symbol,
+)
 
 _SENTENCE_RE = re.compile(r"(?<=[.!?…])\s+|\n{2,}")
-_TOKEN_RE = re.compile(r"[A-Za-zА-Яа-яЁё]{3,}", re.UNICODE)
-_ENTITY_WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё-]{3,}", re.UNICODE)
-_STOPWORDS = {
-    "это", "как", "что", "когда", "потом", "после", "меня", "мне", "было", "были",
-    "очень", "будто", "снова", "там", "здесь", "этот", "эта", "эти", "the", "and",
-    "with", "from", "into", "that", "this", "have", "then", "they", "them", "was",
-    "were", "about", "because", "while", "where", "который", "которая", "свой",
-    "свои", "только", "через", "между", "вокруг", "себя", "него", "неё", "если",
-    "или", "для", "над", "под", "без", "она", "они", "оно", "его", "её", "уже",
-}
-_ENTITY_STOPWORDS = _STOPWORDS | {
-    "того", "где", "чуть", "есть", "находит", "находить", "следующий", "следующая",
-    "следующее", "типа", "кстати", "потом", "вроде", "сон", "сны", "сна", "сне",
-    "людей", "люди", "человек", "компании", "компания", "каких", "какой", "какая",
-    "какие", "возможно", "возможный", "возможная", "возможные", "эльфов", "эльфы",
-    "фей", "фея", "феи",
-}
 _ALLOWED_ENTITY_TYPES = {"symbol", "place", "figure", "object", "motif", "event"}
-_SYMBOL_ALIASES = {
-    "дома": "дом",
-    "доме": "дом",
-    "дому": "дом",
-    "домой": "дом",
-    "лесу": "лес",
-    "леса": "лес",
-    "воде": "вода",
-    "воды": "вода",
-    "моря": "море",
-    "реки": "река",
-    "машины": "машина",
-    "машине": "машина",
-    "машину": "машина",
-    "зеркала": "зеркало",
-    "лестнице": "лестница",
-    "двери": "дверь",
-    "тени": "тень",
-    "children": "child",
-    "houses": "house",
-    "doors": "door",
-    "stairs": "stair",
-    "forest": "лес",
-    "water": "вода",
-    "house": "дом",
-    "shadow": "тень",
-    "door": "дверь",
-    "mirror": "зеркало",
-    "mother": "мать",
-}
+
+# Symbol normalization now lives in text_normalization (single source of truth —
+# see docs/SYMBOLS_RAG_CORE.md §3.4/3.7). These back-compat aliases keep the names
+# this module, map_service and stats_service already use.
+_normalize_symbol = normalize_symbol
+_is_entity_token_allowed = is_meaningful_symbol
 
 
 @dataclass
@@ -151,20 +116,6 @@ def chunk_dream_text(text: str, max_chunk_chars: int = 320) -> list[ChunkCandida
         chunks = [" ".join(text.split())[:max_chunk_chars]]
 
     return [ChunkCandidate(index=i, text=chunk) for i, chunk in enumerate(chunks)]
-
-
-def extract_symbols(text: str, limit: int = 8) -> list[str]:
-    tokens = [_normalize_symbol(match.group(0)) for match in _TOKEN_RE.finditer(text or "")]
-    filtered = [token for token in tokens if token and token not in _STOPWORDS]
-    counts = Counter(filtered)
-    return [name for name, _count in counts.most_common(limit)]
-
-
-def _normalize_symbol(token: str) -> str:
-    base = token.lower().strip()
-    if not base:
-        return ""
-    return _SYMBOL_ALIASES.get(base, base)
 
 
 def _sanitize_symbol_entities(
@@ -265,57 +216,10 @@ def _sanitize_symbol_entities(
     return sorted(by_key.values(), key=lambda item: item.weight, reverse=True)[:limit]
 
 
-def _fallback_symbol_entities(
-    chunks: list[ChunkCandidate],
-    limit: int = 20,
-) -> list[SymbolEntityCandidate]:
-    candidate_chunks: dict[str, list[int]] = defaultdict(list)
-    scores = Counter()
-    for chunk in chunks:
-        for symbol in extract_symbols(chunk.text, limit=6):
-            canonical = _normalize_symbol(symbol)
-            if not _is_entity_token_allowed(canonical):
-                continue
-            candidate_chunks[canonical].append(chunk.index)
-            scores[canonical] += 1
-
-    entities: list[SymbolEntityCandidate] = []
-    for canonical, count in scores.most_common(limit):
-        display_label = f"образ {canonical}"
-        entities.append(
-            SymbolEntityCandidate(
-                canonical_name=canonical,
-                display_label=display_label,
-                entity_type="symbol",
-                weight=max(0.1, min(1.0, count / 5)),
-                source_chunk_indexes=sorted(set(candidate_chunks.get(canonical, []))),
-                related_archetypes=[],
-            )
-        )
-    return entities
-
-
 def _normalize_display_label(value: str) -> str:
-    words = []
-    for token in _ENTITY_WORD_RE.findall((value or "").lower()):
-        normalized = _normalize_symbol(token)
-        if not _is_entity_token_allowed(normalized):
-            continue
-        words.append(normalized)
-    if not words:
-        return ""
-    return " ".join(words[:3])
-
-
-def _is_entity_token_allowed(token: str) -> bool:
-    value = _normalize_symbol((token or "").strip().lower())
-    if len(value) < 3:
-        return False
-    if value in _ENTITY_STOPWORDS:
-        return False
-    if value.isdigit():
-        return False
-    return True
+    # Keep surface word forms (adjectives like "чёрная" stay intact); grouping
+    # is handled by canonical_name via normalize_symbol elsewhere.
+    return clean_label(value)
 
 
 async def rebuild_dream_memory(
@@ -398,14 +302,15 @@ async def rebuild_dream_memory(
             )
         )
 
+    # LLM is the SOLE source of dream-symbol entities (#6 / docs §3.6). When the
+    # LLM returns nothing we create no entities — no frequency fallback, no
+    # garbage nodes on the map. Unanalyzed dreams simply contribute no symbols.
     entities = _sanitize_symbol_entities(
         symbol_entities,
         dream_text=dream.content,
         chunks=current_chunks,
         archetypes_delta=archetypes_delta or {},
     )
-    if not entities:
-        entities = _fallback_symbol_entities(current_chunks)
 
     for entity in entities:
         linked = {

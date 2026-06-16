@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -26,16 +27,24 @@ from schemas.map import (
     DreamMapMetaResponse,
     DreamMapNodeResponse,
     DreamMapOccurrenceResponse,
+    DreamMapRelatedSymbolResponse,
     DreamMapResponse,
     DreamMapSymbolDetailResponse,
 )
 from services.embedding_service import (
     cosine_similarity,
     deserialize_embedding,
+    greedy_cosine_cluster,
     request_embedding,
     serialize_embedding,
 )
-from services.rag_service import _normalize_symbol, rebuild_dream_memory
+from services.rag_service import rebuild_dream_memory
+from services.text_normalization import (
+    STOPWORDS,
+    clean_label,
+    is_meaningful_symbol,
+    normalize_symbol as _normalize_symbol,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,87 +61,17 @@ except Exception:  # pragma: no cover
 MIN_SYMBOLS_REQUIRED = 5
 DEFAULT_STREAM_BATCH_SIZE = 20
 _CACHE_PREFIX = "dream-map:v4"
+_CONCEPT_EMB_PREFIX = "concept-emb:v1"
+_CONCEPT_EMB_TTL_SECONDS = 7 * 24 * 3600
+_CONCEPT_EMB_CONCURRENCY = 8
+# Cosine threshold above which two symbol concepts are treated as the SAME node
+# (merges "озеро" ≈ "озеро с островами"). EMPIRICAL — must be tuned on real
+# text-embedding-3-small vectors; too high = duplicate nodes, too low = distinct
+# images collapse. See docs/SYMBOLS_RAG_CORE.md §3.4.
+_SYMBOL_MERGE_THRESHOLD = 0.82
 _PREVIEW_LIMIT = 80
 _WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё-]{2,}", re.UNICODE)
-_LABEL_STOPWORDS = {
-    "потом",
-    "кстати",
-    "типа",
-    "кто",
-    "мне",
-    "меня",
-    "было",
-    "были",
-    "такой",
-    "такая",
-    "вот",
-    "это",
-    "как",
-    "что",
-    "где",
-    "когда",
-    "или",
-    "для",
-    "ещё",
-    "еще",
-}
-_GENERIC_SYMBOLS = {
-    "где",
-    "чуть",
-    "следующий",
-    "следующая",
-    "следующее",
-    "находит",
-    "находить",
-    "сон",
-    "сны",
-    "сна",
-    "сне",
-    "который",
-    "которая",
-    "которые",
-    "какой",
-    "какая",
-    "какие",
-    "какое",
-    "потом",
-    "кстати",
-    "типа",
-    "вроде",
-    "такой",
-    "такая",
-    "такие",
-    "единственное",
-    "просто",
-    "вообще",
-    "сразу",
-    "человек",
-    "люди",
-    "место",
-    "штука",
-    "вещь",
-    "трекинг",
-    "tracking",
-    "gps",
-    "людей",
-    "люди",
-    "человек",
-    "компании",
-    "компания",
-    "каких",
-    "какой",
-    "какая",
-    "какие",
-    "возможно",
-    "возможный",
-    "возможная",
-    "возможные",
-    "эльфов",
-    "эльфы",
-    "фей",
-    "фея",
-    "феи",
-}
+# Stopwords / generic-symbol filtering now live in text_normalization (STOPWORDS).
 
 _ARCHETYPE_COLORS = {
     "Самость": "#F4B266",
@@ -377,7 +316,8 @@ async def get_map_symbol_detail(
         return None
 
     dream_ids = {item.entity.dream_id for item in occurrences_sorted}
-    related_symbols = Counter()
+    related_counts: Counter = Counter()
+    related_labels: dict[str, Counter] = defaultdict(Counter)
     if dream_ids:
         rows = list(
             (
@@ -400,7 +340,18 @@ async def get_map_symbol_detail(
                 continue
             if label == runtime.display_label:
                 continue
-            related_symbols[label] += 1
+            # Key by canonical (matches node grouping) so the emitted id lines up
+            # with the corresponding map node and the web client can navigate to it.
+            related_counts[canonical] += 1
+            related_labels[canonical][label] += 1
+    related_symbols = [
+        DreamMapRelatedSymbolResponse(
+            id=_build_symbol_id(user_id, canonical),
+            symbol_name=canonical,
+            display_label=related_labels[canonical].most_common(1)[0][0],
+        )
+        for canonical, _count in related_counts.most_common(5)
+    ]
 
     return DreamMapSymbolDetailResponse(
         id=runtime.id,
@@ -416,7 +367,7 @@ async def get_map_symbol_detail(
         size_weight=node.size_weight,
         last_seen_at=runtime.last_seen_at.strftime("%Y-%m-%d"),
         related_archetypes=_top_values(runtime.archetypes, limit=4),
-        related_symbols=[name for name, _count in related_symbols.most_common(5)],
+        related_symbols=related_symbols,
         occurrences=occurrence_items,
     )
 
@@ -520,7 +471,7 @@ async def _load_symbol_runtimes(db: AsyncSession, user_id: UUID) -> list[_Symbol
             _SymbolOccurrence(entity=row, chunk=chunk_runtime)
         )
 
-    runtimes: list[_SymbolRuntime] = []
+    pending: list[dict[str, Any]] = []
     for symbol_name, occurrences in occurrences_by_symbol.items():
         if not occurrences:
             continue
@@ -557,31 +508,85 @@ async def _load_symbol_runtimes(db: AsyncSession, user_id: UUID) -> list[_Symbol
         if not display_label:
             display_label = f"мотив {symbol_name}"
 
-        if vectors:
-            embedding = np.mean(np.array(vectors, dtype=float), axis=0).tolist()
-        else:
-            try:
-                embedding = await request_embedding(display_label)
-            except Exception as exc:  # pragma: no cover
-                logger.warning("Failed to embed symbol entity '%s': %s", symbol_name, exc)
-                continue
+        pending.append(
+            {
+                "symbol_name": symbol_name,
+                "display_label": display_label,
+                "vectors": vectors,
+                "previews": previews,
+                "timestamps": timestamps,
+                "dream_ids": dream_ids,
+                "archetypes": archetypes,
+                "occurrences": occurrences,
+            }
+        )
 
-        preview_text = _preview(previews[0] if previews else display_label)
+    # A node's position must reflect the MEANING of the symbol, not which dream it
+    # came from. Embedding the concept label keeps recurring and semantically-near
+    # symbols together across dreams; the old chunk-mean collapsed every symbol of
+    # one dream onto a single point, producing isolated per-dream blobs on the map.
+    concept_embeddings = await _resolve_concept_embeddings(
+        {item["display_label"] for item in pending}
+    )
+
+    # Attach an embedding to every pending symbol (concept embedding, falling
+    # back to chunk-mean) and drop ones we cannot place.
+    embeddable: list[dict[str, Any]] = []
+    for item in pending:
+        embedding = concept_embeddings.get(_clean_concept_text(item["display_label"]))
+        if embedding is None:
+            if item["vectors"]:
+                embedding = np.mean(np.array(item["vectors"], dtype=float), axis=0).tolist()
+            else:
+                logger.warning("No embedding for symbol concept '%s'", item["display_label"])
+                continue
+        item["embedding"] = embedding
+        embeddable.append(item)
+
+    # Merge near-synonym symbols the LLM phrased differently ("озеро" ≈ "озеро с
+    # островами") by clustering their concept embeddings. Seed clusters with the
+    # most prominent symbols first so the dominant phrasing wins, deterministically.
+    embeddable.sort(
+        key=lambda it: (len(it["dream_ids"]), len(it["occurrences"])),
+        reverse=True,
+    )
+    cluster_labels = greedy_cosine_cluster(
+        [it["embedding"] for it in embeddable],
+        _SYMBOL_MERGE_THRESHOLD,
+    )
+    clusters: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    for item, label in zip(embeddable, cluster_labels):
+        clusters[label].append(item)
+
+    runtimes: list[_SymbolRuntime] = []
+    for members in clusters.values():
+        head = members[0]  # most prominent — list was pre-sorted by prominence
+        occurrences = [occ for member in members for occ in member["occurrences"]]
+        timestamps = [ts for member in members for ts in member["timestamps"]]
+        previews = [pv for member in members for pv in member["previews"]]
+        archetypes = [a for member in members for a in member["archetypes"]]
+        dream_ids: set[UUID] = set()
+        for member in members:
+            dream_ids |= member["dream_ids"]
+        embedding = np.mean(
+            np.array([member["embedding"] for member in members], dtype=float), axis=0
+        ).tolist()
+        preview_text = _preview(previews[0] if previews else head["display_label"])
         last_seen_at = max(timestamps) if timestamps else datetime.utcnow()
 
         runtimes.append(
             _SymbolRuntime(
-                id=_build_symbol_id(user_id, symbol_name),
-                symbol_name=symbol_name,
-                display_label=display_label,
+                id=_build_symbol_id(user_id, head["symbol_name"]),
+                symbol_name=head["symbol_name"],
+                display_label=head["display_label"],
                 embedding=embedding,
                 archetypes=archetypes,
                 occurrences=sorted(
                     occurrences,
-                    key=lambda item: (
-                        item.chunk.dream.created_at
-                        if item.chunk is not None
-                        else item.entity.created_at
+                    key=lambda occ: (
+                        occ.chunk.dream.created_at
+                        if occ.chunk is not None
+                        else occ.entity.created_at
                     ),
                     reverse=True,
                 ),
@@ -855,7 +860,7 @@ def _build_symbol_display_label(
             parts = [
                 part
                 for part in [left, current, right]
-                if part and part not in _LABEL_STOPWORDS
+                if part and part not in STOPWORDS
             ]
             if len(parts) >= 2:
                 phrases[" ".join(parts[:3])] += 1
@@ -877,7 +882,7 @@ def _build_symbol_display_label(
             continue
         for word in _WORD_RE.findall(occurrence.chunk.chunk.text.lower()):
             normalized = _normalize_symbol(word)
-            if normalized == symbol_name or normalized in _LABEL_STOPWORDS:
+            if normalized == symbol_name or normalized in STOPWORDS:
                 continue
             contexts[normalized] += 1
     if contexts:
@@ -889,33 +894,21 @@ def _build_symbol_display_label(
 
 
 def _clean_display_label(raw: str, symbol_name: str) -> str:
-    words = []
-    for word in _WORD_RE.findall((raw or "").lower()):
-        normalized = _normalize_symbol(word)
-        if not normalized:
-            continue
-        if normalized in _LABEL_STOPWORDS or normalized in _GENERIC_SYMBOLS:
-            continue
-        words.append(normalized)
+    # Keep surface word forms (adjectives like "чёрная" stay intact); use
+    # normalize_symbol only to compare a lone word against the canonical name.
+    label = clean_label(raw, max_words=3)
+    words = label.split()
     if not words:
         return ""
-    words = words[:3]
     if len(words) == 1:
-        if words[0] == symbol_name:
+        if _normalize_symbol(words[0]) == symbol_name:
             return f"мотив {symbol_name}"
         return f"{words[0]} {symbol_name}"[:32].strip()
-    return " ".join(words)
+    return label
 
 
 def _is_symbol_candidate(symbol_name: str) -> bool:
-    normalized = _normalize_symbol((symbol_name or "").strip().lower())
-    if not normalized or len(normalized) < 3:
-        return False
-    if normalized in _GENERIC_SYMBOLS or normalized in _LABEL_STOPWORDS:
-        return False
-    if normalized.isdigit():
-        return False
-    return True
+    return is_meaningful_symbol(symbol_name)
 
 
 def _preview(text: str, limit: int = _PREVIEW_LIMIT) -> str:
@@ -990,6 +983,84 @@ async def _set_cached_map(cache_key: str, dream_map: DreamMapResponse) -> None:
         logger.warning("Failed to write dream map cache %s: %s", cache_key, exc)
     finally:
         await _close_redis_client(client)
+
+
+def _clean_concept_text(label: str) -> str:
+    return " ".join((label or "").split())
+
+
+def _concept_cache_key(label: str) -> str:
+    digest = hashlib.sha1(label.encode("utf-8")).hexdigest()[:16]
+    return f"{_CONCEPT_EMB_PREFIX}:{digest}"
+
+
+async def _resolve_concept_embeddings(labels: set[str]) -> dict[str, list[float]]:
+    """Embed each symbol concept label once, cached in Redis across map builds.
+
+    Keyed by the cleaned label so recurring/identical concepts reuse one vector.
+    Returns {cleaned_label: embedding}; missing/failed labels are simply absent
+    and callers fall back to chunk-mean.
+    """
+    clean_labels = {_clean_concept_text(label) for label in labels}
+    clean_labels.discard("")
+    if not clean_labels:
+        return {}
+
+    result: dict[str, list[float]] = {}
+    misses: list[str] = []
+    client = await _get_redis_client()
+
+    if client is not None:
+        try:
+            label_list = list(clean_labels)
+            raw_values = await client.mget([_concept_cache_key(label) for label in label_list])
+            for label, raw in zip(label_list, raw_values):
+                if isinstance(raw, bytes):
+                    raw = raw.decode("utf-8")
+                vec = deserialize_embedding(raw) if raw else None
+                if vec:
+                    result[label] = vec
+                else:
+                    misses.append(label)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Concept embedding cache read failed: %s", exc)
+            misses = list(clean_labels)
+    else:
+        misses = list(clean_labels)
+
+    if misses:
+        semaphore = asyncio.Semaphore(_CONCEPT_EMB_CONCURRENCY)
+
+        async def _embed(label: str) -> tuple[str, list[float] | None]:
+            async with semaphore:
+                try:
+                    return label, await request_embedding(label)
+                except Exception as exc:  # pragma: no cover
+                    logger.warning("Failed to embed concept '%s': %s", label, exc)
+                    return label, None
+
+        embedded = await asyncio.gather(*(_embed(label) for label in misses))
+        to_store: dict[str, list[float]] = {}
+        for label, vec in embedded:
+            if vec:
+                result[label] = vec
+                to_store[label] = vec
+
+        if client is not None and to_store:
+            try:
+                pipe = client.pipeline()
+                for label, vec in to_store.items():
+                    pipe.set(
+                        _concept_cache_key(label),
+                        serialize_embedding(vec),
+                        ex=_CONCEPT_EMB_TTL_SECONDS,
+                    )
+                await pipe.execute()
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Concept embedding cache write failed: %s", exc)
+
+    await _close_redis_client(client)
+    return result
 
 
 async def _get_redis_client():

@@ -125,6 +125,13 @@ async def test_get_user_stats_aggregates_counts(monkeypatch):
 
     monkeypatch.setattr(stats_service, "get_user_timezone", fake_get_user_timezone)
 
+    # recurring_symbols is exercised via the map runtimes elsewhere; this test
+    # focuses on count aggregation, so stub it out to keep the FakeDb sequence tight.
+    async def fake_get_recurring_symbols(_db, _user_id, limit=24):
+        return []
+
+    monkeypatch.setattr(stats_service, "get_recurring_symbols", fake_get_recurring_symbols)
+
     now = datetime.now(timezone.utc).replace(hour=6, minute=0, second=0, microsecond=0)
     rows = [
         now,

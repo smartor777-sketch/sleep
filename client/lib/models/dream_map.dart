@@ -227,7 +227,14 @@ class DreamMapSymbolDetail {
       sizeWeight: (json['size_weight'] as num?)?.toDouble() ?? 0.0,
       lastSeenAt: DateTime.parse(json['last_seen_at'] as String),
       relatedArchetypes: rawArchetypes.map((item) => item.toString()).toList(),
-      relatedSymbols: rawSymbols.map((item) => item.toString()).toList(),
+      relatedSymbols: rawSymbols.map((item) {
+        // Backend returns related symbols as objects {id, symbol_name,
+        // display_label}; tolerate the legacy plain-string shape too.
+        if (item is Map<String, dynamic>) {
+          return (item['display_label'] ?? item['symbol_name'] ?? '').toString();
+        }
+        return item.toString();
+      }).toList(),
       occurrences: occurrencesJson
           .map(
             (item) => DreamMapOccurrence.fromJson(item as Map<String, dynamic>),

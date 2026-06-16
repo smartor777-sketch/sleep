@@ -140,5 +140,6 @@ export interface UserStats {
   dreams_by_weekday: Record<string, number>;
   dreams_last_14_days: { date: string; count: number }[];
   archetypes_top: { name: string; count: number }[];
+  recurring_symbols: { symbol_name: string; display_label: string; dream_count: number; occurrence_count: number }[];
   avg_time_of_day: string | null;
 }

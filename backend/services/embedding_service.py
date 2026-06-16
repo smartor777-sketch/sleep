@@ -50,6 +50,46 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
+def greedy_cosine_cluster(
+    vectors: list[list[float]], threshold: float
+) -> list[int]:
+    """Deterministic single-pass clustering by cosine similarity.
+
+    Each vector joins the existing cluster whose running-mean centroid is the
+    most similar, provided that similarity is >= threshold; otherwise it starts
+    a new cluster. Returns a cluster id (0..k-1) per input vector, in input
+    order.
+
+    Order-dependent BY DESIGN: feed vectors in a stable priority order (e.g.
+    most-frequent symbol first) so the dominant concept seeds each cluster and
+    results are reproducible. Used to merge near-synonym dream symbols
+    ("озеро" ≈ "озеро с островами") that the LLM phrased differently.
+    """
+    centroids: list[list[float]] = []
+    counts: list[int] = []
+    labels: list[int] = []
+    for vec in vectors:
+        best_idx = -1
+        best_sim = threshold
+        for idx, centroid in enumerate(centroids):
+            sim = cosine_similarity(vec, centroid)
+            if sim >= best_sim:
+                best_sim = sim
+                best_idx = idx
+        if best_idx == -1:
+            centroids.append(list(vec))
+            counts.append(1)
+            labels.append(len(centroids) - 1)
+        else:
+            n = counts[best_idx]
+            centroids[best_idx] = [
+                (c * n + v) / (n + 1) for c, v in zip(centroids[best_idx], vec)
+            ]
+            counts[best_idx] = n + 1
+            labels.append(best_idx)
+    return labels
+
+
 def build_dream_embedding_text(dream: Dream) -> str:
     parts = [dream.title or "", dream.content, dream.comment or ""]
     return " ".join(p for p in parts if p).strip()

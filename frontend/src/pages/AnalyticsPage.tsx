@@ -4,20 +4,6 @@ import { useApp } from '../lib/store';
 import { DreamsBarChart, ArchetypesDonut } from '../components/Charts';
 import { ArrowRight, BarChart3, CircleDot, Map as MapIcon } from 'lucide-react';
 
-function extractMotifs(dreams: { content: string }[]) {
-  const stop = new Set(['и', 'в', 'во', 'на', 'не', 'я', 'мы', 'он', 'она', 'это', 'как', 'что', 'the', 'and', 'was', 'were', 'with', 'that', 'this']);
-  const counts = new Map<string, number>();
-  dreams.forEach((d) => {
-    d.content
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
-      .split(/\s+/)
-      .filter((w) => w.length > 3 && !stop.has(w))
-      .forEach((w) => counts.set(w, (counts.get(w) || 0) + 1));
-  });
-  return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8);
-}
-
 export default function AnalyticsPage() {
   const lang = useApp((s) => s.lang);
   const stats = useApp((s) => s.stats);
@@ -31,9 +17,14 @@ export default function AnalyticsPage() {
     if (!dreamsLoaded) loadDreams(true).catch(() => {});
   }, [dreamsLoaded, loadDreams, refreshStats]);
 
-  const motifs = useMemo(() => extractMotifs(dreams), [dreams]);
+  // Recurring symbols from the backend (LLM-extracted, normalized, 2+ dreams),
+  // kept as [label, dreamCount] tuples — see docs/SYMBOLS_RAG_CORE.md §3.1.
+  const motifs = useMemo<[string, number][]>(
+    () => (stats?.recurring_symbols ?? []).map((s) => [s.display_label, s.dream_count]),
+    [stats],
+  );
   const analyzedCount = dreams.filter((d) => d.analysis_status === 'analyzed').length;
-  const recurringCount = motifs.filter(([, count]) => count > 1).length;
+  const recurringCount = motifs.length;
 
   return (
     <div className="space-y-6 max-w-6xl" data-testid="analytics-page">
@@ -81,7 +72,7 @@ export default function AnalyticsPage() {
           </div>
           {motifs.length > 0 ? (
             <div className="space-y-3">
-              {motifs.map(([name, count], i) => (
+              {motifs.slice(0, 8).map(([name, count], i) => (
                 <div key={name} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="truncate">{name.charAt(0).toUpperCase() + name.slice(1)}</span>

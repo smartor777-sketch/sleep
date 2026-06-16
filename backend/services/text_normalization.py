@@ -45,6 +45,10 @@ STOPWORDS = {
     "кстати", "вроде", "каких", "какой", "какая", "какие", "какое", "возможно",
     "возможный", "возможная", "возможные", "такой", "такая", "такие",
     "единственное", "просто", "вообще", "сразу", "кто", "вот", "ещё", "еще",
+    # short prepositions / particles that leak into multi-word labels (label
+    # cleaning matches 2+ letters, so these must be filtered explicitly)
+    "на", "во", "со", "из", "по", "за", "до", "от", "об", "ко", "не", "ну",
+    "же", "бы", "ли", "уж", "то",
     # latin function words
     "the", "and", "with", "from", "into", "that", "this", "have", "then", "they",
     "them", "was", "were", "about", "because", "while", "where", "there", "you",

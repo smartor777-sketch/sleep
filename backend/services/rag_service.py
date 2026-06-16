@@ -139,15 +139,13 @@ def _sanitize_symbol_entities(
         if not _is_entity_token_allowed(canonical):
             continue
 
+        # Label is the human-readable surface phrase; fall back to the canonical
+        # noun itself (no "образ X" prefix artifact). Single-word labels are fine.
         display_label = _normalize_display_label(str(item.get("display_label") or ""))
         if not display_label:
-            display_label = f"образ {canonical}"
-        if len(display_label.split()) < 2:
-            display_label = f"образ {canonical}"
+            display_label = canonical
         if len(display_label.split()) > 3:
             display_label = " ".join(display_label.split()[:3])
-        if len(display_label.split()) < 1:
-            continue
 
         entity_type = str(item.get("entity_type") or "symbol").strip().lower()
         if entity_type not in _ALLOWED_ENTITY_TYPES:

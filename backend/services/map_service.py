@@ -65,10 +65,11 @@ _CONCEPT_EMB_PREFIX = "concept-emb:v1"
 _CONCEPT_EMB_TTL_SECONDS = 7 * 24 * 3600
 _CONCEPT_EMB_CONCURRENCY = 8
 # Cosine threshold above which two symbol concepts are treated as the SAME node
-# (merges "озеро" ≈ "озеро с островами"). EMPIRICAL — must be tuned on real
-# text-embedding-3-small vectors; too high = duplicate nodes, too low = distinct
-# images collapse. See docs/SYMBOLS_RAG_CORE.md §3.4.
-_SYMBOL_MERGE_THRESHOLD = 0.82
+# (merges "озеро" ≈ "озеро с островами"). EMPIRICAL — text-embedding-3-small puts
+# near-synonyms around ~0.5-0.7, so 0.82 merged almost nothing (recurrence never
+# triggered). 0.6 is the working PoC value; too high = duplicate nodes + empty
+# "recurring" widget, too low = distinct images collapse. See docs §3.4.
+_SYMBOL_MERGE_THRESHOLD = 0.6
 _PREVIEW_LIMIT = 80
 _WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё-]{2,}", re.UNICODE)
 # Stopwords / generic-symbol filtering now live in text_normalization (STOPWORDS).
@@ -336,8 +337,8 @@ async def get_map_symbol_detail(
             if not _is_symbol_candidate(canonical):
                 continue
             label = _clean_display_label(row.display_label, canonical)
-            if len(label.split()) < 2:
-                continue
+            if not label:
+                label = canonical
             if label == runtime.display_label:
                 continue
             # Key by canonical (matches node grouping) so the emitted id lines up
@@ -506,7 +507,7 @@ async def _load_symbol_runtimes(db: AsyncSession, user_id: UUID) -> list[_Symbol
         else:
             display_label = _build_symbol_display_label(symbol_name, occurrences)
         if not display_label:
-            display_label = f"мотив {symbol_name}"
+            display_label = symbol_name
 
         pending.append(
             {
@@ -890,21 +891,13 @@ def _build_symbol_display_label(
         label = f"{other} {symbol_name}".strip()
         if len(label.split()) >= 2:
             return label
-    return f"мотив {symbol_name}"
+    return symbol_name
 
 
 def _clean_display_label(raw: str, symbol_name: str) -> str:
-    # Keep surface word forms (adjectives like "чёрная" stay intact); use
-    # normalize_symbol only to compare a lone word against the canonical name.
-    label = clean_label(raw, max_words=3)
-    words = label.split()
-    if not words:
-        return ""
-    if len(words) == 1:
-        if _normalize_symbol(words[0]) == symbol_name:
-            return f"мотив {symbol_name}"
-        return f"{words[0]} {symbol_name}"[:32].strip()
-    return label
+    # Surface word forms (adjectives like "чёрная" stay intact), stopwords
+    # dropped, <=3 words. Single-word labels are fine — no "мотив X" prefix.
+    return clean_label(raw, max_words=3)
 
 
 def _is_symbol_candidate(symbol_name: str) -> bool:

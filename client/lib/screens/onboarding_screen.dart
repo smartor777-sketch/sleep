@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
@@ -18,12 +19,12 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   static const _stepCount = 5;
-  static final _ages = [for (var age = 12; age <= 90; age++) '$age'];
 
   final _occupationController = TextEditingController();
   final _familyController = TextEditingController();
   final _interestsController = TextEditingController();
   final _lifeContextController = TextEditingController();
+  final _ageController = TextEditingController();
 
   int _step = 0;
   bool _loading = false;
@@ -36,6 +37,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _familyController.dispose();
     _interestsController.dispose();
     _lifeContextController.dispose();
+    _ageController.dispose();
     super.dispose();
   }
 
@@ -263,30 +265,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: genders.map(genderButton).toList(),
         ),
         const SizedBox(height: 18),
-        DropdownButtonFormField<String>(
-          initialValue: _age,
-          items: _ages
-              .map(
-                (age) => DropdownMenuItem<String>(value: age, child: Text(age)),
-              )
-              .toList(),
-          onChanged: _loading
-              ? null
-              : (value) {
-                  setState(() {
-                    _age = value;
-                  });
-                },
-          decoration: InputDecoration(
-            labelText: AppLocalizations.of(context)!.ageLabel,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+        Text(
+          AppLocalizations.of(context)!.ageLabel,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurface.withOpacity(0.7),
           ),
+        ),
+        const SizedBox(height: 10),
+        _AgePicker(
+          controller: _ageController,
+          enabled: !_loading,
+          onChanged: (value) => setState(() => _age = value),
         ),
       ],
     );
@@ -338,6 +327,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       if (_step == 0) {
         _gender = null;
         _age = null;
+        _ageController.clear();
       } else if (_step == 1) {
         _occupationController.clear();
       } else if (_step == 2) {
@@ -413,5 +403,128 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       default:
         return l10n.genderUnspecified;
     }
+  }
+}
+
+class _AgePicker extends StatelessWidget {
+  final TextEditingController controller;
+  final bool enabled;
+  final ValueChanged<String?> onChanged;
+
+  const _AgePicker({
+    required this.controller,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  static const int _min = 12;
+  static const int _max = 90;
+  static const int _default = 25;
+
+  int? _parsed() {
+    final raw = controller.text.trim();
+    if (raw.isEmpty) return null;
+    return int.tryParse(raw);
+  }
+
+  void _bump(int delta) {
+    final current = _parsed() ?? _default;
+    final next = (current + delta).clamp(_min, _max);
+    controller.text = next.toString();
+    controller.selection = TextSelection.collapsed(offset: controller.text.length);
+    onChanged(controller.text);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          _RoundIconButton(
+            icon: Icons.remove,
+            onPressed: enabled ? () => _bump(-1) : null,
+            accent: accent,
+          ),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              enabled: enabled,
+              keyboardType: const TextInputType.numberWithOptions(decimal: false, signed: false),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(2),
+              ],
+              textAlign: TextAlign.center,
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+              decoration: const InputDecoration(
+                hintText: '—',
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 4),
+              ),
+              onChanged: (raw) {
+                if (raw.isEmpty) {
+                  onChanged(null);
+                  return;
+                }
+                final n = int.tryParse(raw);
+                if (n == null) {
+                  onChanged(null);
+                  return;
+                }
+                final clamped = n.clamp(_min, _max);
+                if (clamped != n) {
+                  final s = clamped.toString();
+                  controller.text = s;
+                  controller.selection = TextSelection.collapsed(offset: s.length);
+                  onChanged(s);
+                } else {
+                  onChanged(raw);
+                }
+              },
+            ),
+          ),
+          _RoundIconButton(
+            icon: Icons.add,
+            onPressed: enabled ? () => _bump(1) : null,
+            accent: accent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoundIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color accent;
+  const _RoundIconButton({required this.icon, required this.onPressed, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: accent.withOpacity(0.12),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onPressed,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: accent),
+        ),
+      ),
+    );
   }
 }

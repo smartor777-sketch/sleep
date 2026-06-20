@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/billing_provider.dart';
+import '../utils/plans.dart';
 
 class PaywallScreen extends StatelessWidget {
   const PaywallScreen({super.key});
@@ -89,12 +90,39 @@ class PaywallScreen extends StatelessWidget {
                   //   child: Text(l10n.premiumRestore),
                   // ),
 
+                  // Pricing tiers — display only; buttons disabled until
+                  // billing is wired up.
+                  Builder(
+                    builder: (context) {
+                      final lang = Localizations.localeOf(context).languageCode;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final p in plans) ...[
+                            _PlanCard(plan: p, lang: lang),
+                            const SizedBox(height: 10),
+                          ],
+                          const SizedBox(height: 6),
+                          Text(
+                            lang == 'ru'
+                                ? 'Сначала 7 дней Pro бесплатно. После триала аккаунт переходит на Free, пока не оформите подписку.'
+                                : 'Starts with a 7-day Pro trial. After the trial your account goes to Free until you subscribe.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
                   // Placeholder shown while purchases are unavailable.
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Text(
                       l10n.premiumComingSoon,
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.center,
@@ -233,3 +261,137 @@ class _FeatureRow extends StatelessWidget {
 //     );
 //   }
 // }
+
+class _PlanCard extends StatelessWidget {
+  final Plan plan;
+  final String lang;
+  const _PlanCard({required this.plan, required this.lang});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    final isBest = plan.highlight == PlanHighlight.best;
+    final isPopular = plan.highlight == PlanHighlight.popular;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isBest ? accent : theme.colorScheme.outlineVariant.withOpacity(0.4),
+              width: isBest ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      plan.periodLabel(lang),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          formatPrice(plan.price, lang),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (plan.months > 1) ...[
+                          const SizedBox(width: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              lang == 'ru'
+                                  ? '${formatPrice(plan.perMonth, lang)}/мес'
+                                  : '${formatPrice(plan.perMonth, lang)}/mo',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                          if (plan.discountPct > 0) ...[
+                            const SizedBox(width: 6),
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text(
+                                '−${plan.discountPct}%',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: accent,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                onPressed: null,
+                child: Text(lang == 'ru' ? 'Скоро' : 'Soon'),
+              ),
+            ],
+          ),
+        ),
+        if (isBest)
+          Positioned(
+            top: -8,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                lang == 'ru' ? 'ВЫГОДА' : 'BEST',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+          ),
+        if (isPopular)
+          Positioned(
+            top: -8,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                lang == 'ru' ? 'ПОПУЛЯРНО' : 'POPULAR',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}

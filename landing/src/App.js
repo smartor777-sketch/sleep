@@ -76,6 +76,7 @@ const Nav = () => {
     { href: "#how", label: t.nav.how, testid: "nav-how" },
     { href: "#map", label: t.nav.map, testid: "nav-map" },
     { href: "#reading", label: t.nav.reading, testid: "nav-reading" },
+    { href: "#pricing", label: t.nav.pricing, testid: "nav-pricing" },
     { href: "#faq", label: t.nav.faq, testid: "nav-faq" },
   ];
 
@@ -485,6 +486,121 @@ const FAQItem = ({ q, a, lang, i }) => (
   </details>
 );
 
+// Pricing tiers — mirror of frontend/src/lib/plans.ts. Update both together.
+const PRICING_PLANS = [
+  { months: 1,  rub: 749,  usd: 10, highlight: null },
+  { months: 3,  rub: 1899, usd: 25, highlight: 'popular' },
+  { months: 6,  rub: 2999, usd: 40, highlight: null },
+  { months: 12, rub: 5249, usd: 70, highlight: 'best' },
+].map((p) => {
+  const fullRub = 749 * p.months;
+  const discountPct = Math.round(((fullRub - p.rub) / fullRub) * 100);
+  return {
+    ...p,
+    perMonthRub: Math.round(p.rub / p.months),
+    perMonthUsd: Math.round((p.usd / p.months) * 100) / 100,
+    discountPct,
+  };
+});
+
+const PricingSection = () => {
+  const { lang } = useLang();
+  const isRu = lang === 'ru';
+  const periodLabel = (n) => {
+    if (isRu) {
+      if (n === 1) return '1 месяц';
+      if (n === 3) return '3 месяца';
+      if (n === 6) return '6 месяцев';
+      return '12 месяцев';
+    }
+    return n === 1 ? '1 month' : `${n} months`;
+  };
+  const fmt = (rub, usd) => isRu ? `${rub.toLocaleString('ru-RU')} ₽` : `$${usd}`;
+  const perMonth = (rub, usd) =>
+    isRu ? `${rub.toLocaleString('ru-RU')} ₽/мес` : `$${usd}/mo`;
+
+  return (
+    <Section id="pricing" bg="ink" className="fade-in" testid="section-pricing">
+      <div className="container-ms w-full py-24 md:py-32">
+        <div className="mb-12 md:mb-16 max-w-[820px]">
+          <div className="text-[11px] md:text-[12px] tracking-[0.32em] uppercase mb-6" style={{ color: 'var(--copper)' }}>
+            {isRu ? 'Тарифы' : 'Pricing'}
+          </div>
+          <h2 className="font-serif text-[33px] sm:text-[45px] md:text-[57px] leading-[1.04] tracking-[-0.01em]">
+            {isRu ? 'Семь дней Pro в подарок' : 'Seven days of Pro on us'}
+          </h2>
+          <p className="mt-5 text-[16px] md:text-[18px] max-w-[640px]" style={{ color: 'var(--cream-dim)' }}>
+            {isRu
+              ? 'Регистрируешься — получаешь неделю безлимитного Pro. Дальше Free или подписка, выбор за тобой. Цены ниже — что мы предложим, когда оплата откроется.'
+              : 'Sign up and you get a week of unlimited Pro. After that — Free or a subscription, your call. Below is what we will offer when checkout opens.'}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+          {PRICING_PLANS.map((p) => {
+            const isBest = p.highlight === 'best';
+            const isPopular = p.highlight === 'popular';
+            return (
+              <div
+                key={p.months}
+                data-testid={`pricing-${p.months}m`}
+                className="relative rounded-[2px] px-5 py-6 flex flex-col"
+                style={{
+                  background: 'rgba(232, 225, 212, 0.03)',
+                  border: `1px solid ${isBest ? 'var(--copper)' : 'var(--hairline)'}`,
+                  borderWidth: isBest ? 2 : 1,
+                }}
+              >
+                {isBest && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.18em] uppercase" style={{ background: 'var(--copper)', color: 'var(--ink)' }}>
+                    {isRu ? 'Выгода' : 'Best value'}
+                  </div>
+                )}
+                {isPopular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.18em] uppercase" style={{ background: 'var(--ink-3)', color: 'var(--cream)', border: '1px solid var(--hairline)' }}>
+                    {isRu ? 'Популярно' : 'Popular'}
+                  </div>
+                )}
+                <div className="text-[11px] tracking-[0.16em] uppercase mb-3" style={{ color: 'var(--stone)' }}>
+                  {periodLabel(p.months)}
+                </div>
+                <div className="font-serif text-[34px] sm:text-[38px] leading-[1.04] tabular-nums" style={{ color: 'var(--cream)' }}>
+                  {fmt(p.rub, p.usd)}
+                </div>
+                {p.months > 1 && (
+                  <div className="mt-1 text-[12px] tabular-nums" style={{ color: 'var(--stone)' }}>
+                    {perMonth(p.perMonthRub, p.perMonthUsd)}
+                    {p.discountPct > 0 && (
+                      <span className="ml-2" style={{ color: 'var(--copper-bright)' }}>
+                        −{p.discountPct}%
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="flex-1" />
+                <button
+                  type="button"
+                  disabled
+                  title={isRu ? 'Скоро' : 'Coming soon'}
+                  className="btn-ghost mt-6 opacity-60 cursor-not-allowed"
+                  style={{ borderBottomColor: 'var(--hairline)' }}
+                  data-testid={`pricing-${p.months}m-cta`}
+                >
+                  {isRu ? 'Скоро' : 'Coming soon'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-10 text-[13px] md:text-[14px] max-w-[760px]" style={{ color: 'var(--stone)' }}>
+          {isRu
+            ? 'После триала аккаунт автоматически переходит на Free, пока ты сам не оформишь подписку. Никаких автосписаний без твоего подтверждения.'
+            : 'After the trial your account drops to Free until you subscribe yourself. No silent auto-charges.'}
+        </div>
+      </div>
+    </Section>
+  );
+};
+
 const FAQSection = () => {
   const { t, lang } = useLang();
   return (
@@ -578,6 +694,7 @@ function AppInner() {
         <Tool />
         <MapAndPrivacy />
         <Reading />
+        <PricingSection />
         <FAQSection />
         <FinalCTA />
       </main>

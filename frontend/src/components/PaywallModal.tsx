@@ -46,10 +46,10 @@ export default function PaywallModal() {
     <Modal open={open} onClose={close} size="md" testId="paywall-modal" closable>
       <div className="text-center pt-2 pb-3">
         <img
-          src="/icon-background.png"
+          src="/icon.png"
           alt=""
           aria-hidden="true"
-          className="mx-auto w-16 h-16 rounded-full object-cover mb-4"
+          className="mx-auto w-16 h-16 object-contain mb-4"
         />
         <h2 className="font-display text-2xl mb-2">{t('paywall.title', lang)}</h2>
         <p className="muted-text max-w-md mx-auto text-sm">{t('paywall.sub', lang)}</p>

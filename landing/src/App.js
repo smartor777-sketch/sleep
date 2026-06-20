@@ -506,6 +506,8 @@ const PRICING_PLANS = [
 const PricingSection = () => {
   const { lang } = useLang();
   const isRu = lang === 'ru';
+  const defaultId = (PRICING_PLANS.find((x) => x.highlight === 'best') || PRICING_PLANS[PRICING_PLANS.length - 1]).months;
+  const [selected, setSelected] = useState(defaultId);
   const periodLabel = (n) => {
     if (isRu) {
       if (n === 1) return '1 месяц';
@@ -535,23 +537,40 @@ const PricingSection = () => {
               : 'Sign up and you get a week of unlimited Pro. After that — Free or a subscription, your call. Below is what we will offer when checkout opens.'}
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
+        <div
+          role="radiogroup"
+          aria-label={isRu ? 'Выбрать тариф' : 'Choose a plan'}
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 max-w-[820px]"
+        >
           {PRICING_PLANS.map((p) => {
             const isBest = p.highlight === 'best';
             const isPopular = p.highlight === 'popular';
+            const isSelected = selected === p.months;
+            const accent = 'var(--copper)';
             return (
-              <div
+              <button
+                type="button"
+                role="radio"
+                aria-checked={isSelected}
                 key={p.months}
+                onClick={() => setSelected(p.months)}
                 data-testid={`pricing-${p.months}m`}
-                className="relative rounded-[2px] px-5 py-6 flex flex-col"
+                className="relative rounded-[2px] px-5 py-6 flex flex-col text-left transition-colors focus:outline-none focus-visible:ring-2"
                 style={{
-                  background: 'rgba(232, 225, 212, 0.03)',
-                  border: `1px solid ${isBest ? 'var(--copper)' : 'var(--hairline)'}`,
-                  borderWidth: isBest ? 2 : 1,
+                  background: isSelected
+                    ? 'rgba(184, 115, 51, 0.10)'
+                    : 'rgba(232, 225, 212, 0.03)',
+                  borderColor: isSelected
+                    ? accent
+                    : isBest
+                      ? accent
+                      : 'var(--hairline)',
+                  borderWidth: isSelected || isBest ? 2 : 1,
+                  borderStyle: 'solid',
                 }}
               >
                 {isBest && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.18em] uppercase" style={{ background: 'var(--copper)', color: 'var(--ink)' }}>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.18em] uppercase" style={{ background: accent, color: 'var(--ink)' }}>
                     {isRu ? 'Выгода' : 'Best value'}
                   </div>
                 )}
@@ -560,38 +579,59 @@ const PricingSection = () => {
                     {isRu ? 'Популярно' : 'Popular'}
                   </div>
                 )}
-                <div className="text-[11px] tracking-[0.16em] uppercase mb-3" style={{ color: 'var(--stone)' }}>
-                  {periodLabel(p.months)}
-                </div>
-                <div className="font-serif text-[34px] sm:text-[38px] leading-[1.04] tabular-nums" style={{ color: 'var(--cream)' }}>
-                  {fmt(p.rub, p.usd)}
-                </div>
-                {p.months > 1 && (
-                  <div className="mt-1 text-[12px] tabular-nums" style={{ color: 'var(--stone)' }}>
-                    {perMonth(p.perMonthRub, p.perMonthUsd)}
-                    {p.discountPct > 0 && (
-                      <span className="ml-2" style={{ color: 'var(--copper-bright)' }}>
-                        −{p.discountPct}%
-                      </span>
+                <div className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="mt-1 w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                    style={{
+                      border: `2px solid ${isSelected ? accent : 'var(--hairline-strong)'}`,
+                    }}
+                  >
+                    {isSelected && (
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ background: accent }}
+                      />
+                    )}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] tracking-[0.16em] uppercase mb-2" style={{ color: 'var(--stone)' }}>
+                      {periodLabel(p.months)}
+                    </div>
+                    <div className="font-serif text-[30px] sm:text-[36px] leading-[1.04] tabular-nums" style={{ color: 'var(--cream)' }}>
+                      {fmt(p.rub, p.usd)}
+                    </div>
+                    {p.months > 1 && (
+                      <div className="mt-1 text-[12px] tabular-nums" style={{ color: 'var(--stone)' }}>
+                        {perMonth(p.perMonthRub, p.perMonthUsd)}
+                        {p.discountPct > 0 && (
+                          <span className="ml-2" style={{ color: 'var(--copper-bright)' }}>
+                            −{p.discountPct}%
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-                <div className="flex-1" />
-                <button
-                  type="button"
-                  disabled
-                  title={isRu ? 'Скоро' : 'Coming soon'}
-                  className="btn-ghost mt-6 opacity-60 cursor-not-allowed"
-                  style={{ borderBottomColor: 'var(--hairline)' }}
-                  data-testid={`pricing-${p.months}m-cta`}
-                >
-                  {isRu ? 'Скоро' : 'Coming soon'}
-                </button>
-              </div>
+                </div>
+              </button>
             );
           })}
         </div>
-        <div className="mt-10 text-[13px] md:text-[14px] max-w-[760px]" style={{ color: 'var(--stone)' }}>
+        <div className="mt-10 max-w-[820px] flex flex-col items-start gap-3">
+          <button
+            type="button"
+            disabled
+            title={isRu ? 'Скоро' : 'Coming soon'}
+            className="btn-copper opacity-60 cursor-not-allowed"
+            data-testid="pricing-subscribe-cta"
+          >
+            {isRu ? 'Подписаться' : 'Subscribe'}
+          </button>
+          <div className="text-[12px] tracking-[0.04em]" style={{ color: 'var(--stone)' }}>
+            {isRu ? 'Оплата скоро будет доступна.' : 'Checkout coming soon.'}
+          </div>
+        </div>
+        <div className="mt-8 text-[13px] md:text-[14px] max-w-[760px]" style={{ color: 'var(--stone)' }}>
           {isRu
             ? 'После триала аккаунт автоматически переходит на Free, пока ты сам не оформишь подписку. Никаких автосписаний без твоего подтверждения.'
             : 'After the trial your account drops to Free until you subscribe yourself. No silent auto-charges.'}

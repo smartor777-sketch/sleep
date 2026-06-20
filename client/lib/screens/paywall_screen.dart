@@ -8,7 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../providers/billing_provider.dart';
 import '../utils/plans.dart';
 
-class PaywallScreen extends StatelessWidget {
+class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
 
   static Future<void> show(BuildContext context) {
@@ -16,6 +16,18 @@ class PaywallScreen extends StatelessWidget {
       MaterialPageRoute(builder: (_) => const PaywallScreen()),
     );
   }
+
+  @override
+  State<PaywallScreen> createState() => _PaywallScreenState();
+}
+
+class _PaywallScreenState extends State<PaywallScreen> {
+  late PlanId _selected = plans
+      .firstWhere(
+        (p) => p.highlight == PlanHighlight.best,
+        orElse: () => plans.last,
+      )
+      .id;
 
   @override
   Widget build(BuildContext context) {
@@ -90,19 +102,75 @@ class PaywallScreen extends StatelessWidget {
                   //   child: Text(l10n.premiumRestore),
                   // ),
 
-                  // Pricing tiers — display only; buttons disabled until
-                  // billing is wired up.
+                  // Pricing tiers — 2×2 grid, radio-style. Subscribe button below.
                   Builder(
                     builder: (context) {
                       final lang = Localizations.localeOf(context).languageCode;
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          for (final p in plans) ...[
-                            _PlanCard(plan: p, lang: lang),
-                            const SizedBox(height: 10),
-                          ],
-                          const SizedBox(height: 6),
+                          for (int i = 0; i < plans.length; i += 2)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: _PlanCard(
+                                      plan: plans[i],
+                                      lang: lang,
+                                      selected: _selected == plans[i].id,
+                                      onTap: () => setState(() => _selected = plans[i].id),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  if (i + 1 < plans.length)
+                                    Expanded(
+                                      child: _PlanCard(
+                                        plan: plans[i + 1],
+                                        lang: lang,
+                                        selected: _selected == plans[i + 1].id,
+                                        onTap: () => setState(() => _selected = plans[i + 1].id),
+                                      ),
+                                    )
+                                  else
+                                    const Expanded(child: SizedBox.shrink()),
+                                ],
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor:
+                                    theme.colorScheme.primary.withOpacity(0.5),
+                                disabledForegroundColor: Colors.white,
+                              ),
+                              onPressed: null,
+                              child: Text(
+                                lang == 'ru' ? 'Подписаться' : 'Subscribe',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            lang == 'ru'
+                                ? 'Оплата скоро будет доступна.'
+                                : 'Checkout coming soon.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
                           Text(
                             lang == 'ru'
                                 ? 'Сначала 7 дней Pro бесплатно. После триала аккаунт переходит на Free, пока не оформите подписку.'
@@ -115,18 +183,6 @@ class PaywallScreen extends StatelessWidget {
                         ],
                       );
                     },
-                  ),
-
-                  // Placeholder shown while purchases are unavailable.
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text(
-                      l10n.premiumComingSoon,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                   ),
 
                   if (billing.error != null)
@@ -265,7 +321,14 @@ class _FeatureRow extends StatelessWidget {
 class _PlanCard extends StatelessWidget {
   final Plan plan;
   final String lang;
-  const _PlanCard({required this.plan, required this.lang});
+  final bool selected;
+  final VoidCallback onTap;
+  const _PlanCard({
+    required this.plan,
+    required this.lang,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -273,125 +336,162 @@ class _PlanCard extends StatelessWidget {
     final accent = theme.colorScheme.primary;
     final isBest = plan.highlight == PlanHighlight.best;
     final isPopular = plan.highlight == PlanHighlight.popular;
+    final borderColor = selected
+        ? accent
+        : isBest
+            ? accent
+            : theme.colorScheme.outlineVariant.withOpacity(0.4);
+    final borderWidth = selected || isBest ? 2.0 : 1.0;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+    return Semantics(
+      button: true,
+      checked: selected,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isBest ? accent : theme.colorScheme.outlineVariant.withOpacity(0.4),
-              width: isBest ? 2 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      plan.periodLabel(lang),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          formatPrice(plan.price, lang),
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+              decoration: BoxDecoration(
+                color: selected
+                    ? accent.withOpacity(0.10)
+                    : theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: borderColor, width: borderWidth),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _Radio(selected: selected, accent: accent),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          plan.periodLabel(lang),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        if (plan.months > 1) ...[
-                          const SizedBox(width: 8),
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Text(
-                              lang == 'ru'
-                                  ? '${formatPrice(plan.perMonth, lang)}/мес'
-                                  : '${formatPrice(plan.perMonth, lang)}/mo',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    formatPrice(plan.price, lang),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (plan.months > 1) ...[
+                    const SizedBox(height: 2),
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6,
+                      children: [
+                        Text(
+                          lang == 'ru'
+                              ? '${formatPrice(plan.perMonth, lang)}/мес'
+                              : '${formatPrice(plan.perMonth, lang)}/mo',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        if (plan.discountPct > 0)
+                          Text(
+                            '−${plan.discountPct}%',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: accent,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (plan.discountPct > 0) ...[
-                            const SizedBox(width: 6),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Text(
-                                '−${plan.discountPct}%',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: accent,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
                       ],
                     ),
                   ],
+                ],
+              ),
+            ),
+          ),
+          if (isBest)
+            Positioned(
+              top: -8,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  lang == 'ru' ? 'ВЫГОДА' : 'BEST',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton(
-                onPressed: null,
-                child: Text(lang == 'ru' ? 'Скоро' : 'Soon'),
+            ),
+          if (isPopular)
+            Positioned(
+              top: -8,
+              left: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  lang == 'ru' ? 'ПОПУЛЯРНО' : 'POPULAR',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                  ),
+                ),
               ),
-            ],
-          ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Radio extends StatelessWidget {
+  final bool selected;
+  final Color accent;
+  const _Radio({required this.selected, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: selected ? accent : theme.colorScheme.outlineVariant,
+          width: 2,
         ),
-        if (isBest)
-          Positioned(
-            top: -8,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: accent,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                lang == 'ru' ? 'ВЫГОДА' : 'BEST',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
+      ),
+      child: Center(
+        child: selected
+            ? Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: accent,
+                  shape: BoxShape.circle,
                 ),
-              ),
-            ),
-          ),
-        if (isPopular)
-          Positioned(
-            top: -8,
-            left: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                lang == 'ru' ? 'ПОПУЛЯРНО' : 'POPULAR',
-                style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.6,
-                ),
-              ),
-            ),
-          ),
-      ],
+              )
+            : null,
+      ),
     );
   }
 }

@@ -1,14 +1,24 @@
+import { useEffect, useState } from 'react';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import Modal from './Modal';
 import { Infinity as InfIcon, MessageCircle, Map as MapIcon, BookHeart, Lock, Star, Sparkles } from 'lucide-react';
-import { PLANS, formatPrice } from '../lib/plans';
+import { PLANS, PlanId, formatPrice } from '../lib/plans';
 
 export default function PaywallModal() {
   const open = useApp((s) => s.paywallOpen);
   const close = useApp((s) => s.closePaywall);
   const reason = useApp((s) => s.paywallReason);
   const lang = useApp((s) => s.lang);
+  const [selected, setSelected] = useState<PlanId>(
+    PLANS.find((p) => p.highlight === 'best')?.id ?? PLANS[0].id
+  );
+
+  useEffect(() => {
+    if (!open) {
+      setSelected(PLANS.find((p) => p.highlight === 'best')?.id ?? PLANS[0].id);
+    }
+  }, [open]);
 
   const features = [
     { icon: InfIcon, label: t('paywall.feature.unlimited', lang) },
@@ -33,7 +43,7 @@ export default function PaywallModal() {
   }
 
   return (
-    <Modal open={open} onClose={close} size="lg" testId="paywall-modal" closable>
+    <Modal open={open} onClose={close} size="md" testId="paywall-modal" closable>
       <div className="text-center pt-2 pb-3">
         <img
           src="/icon-background.png"
@@ -66,16 +76,34 @@ export default function PaywallModal() {
         ))}
       </ul>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4" data-testid="paywall-plans">
+      <div
+        role="radiogroup"
+        aria-label={lang === 'ru' ? 'Выбрать тариф' : 'Choose a plan'}
+        className="grid grid-cols-2 gap-2 mb-4"
+        data-testid="paywall-plans"
+      >
         {PLANS.map((p) => {
           const isBest = p.highlight === 'best';
           const isPopular = p.highlight === 'popular';
+          const isSelected = selected === p.id;
           return (
-            <div
+            <button
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
               key={p.id}
               data-testid={`plan-${p.id}`}
-              className="relative card-surface rounded-2xl px-3 py-3.5 flex flex-col"
-              style={isBest ? { borderColor: 'rgb(var(--accent))', borderWidth: 2 } : undefined}
+              onClick={() => setSelected(p.id)}
+              className="relative card-surface rounded-2xl px-3 py-3.5 flex flex-col text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+              style={{
+                borderColor: isSelected
+                  ? 'rgb(var(--accent))'
+                  : isBest
+                    ? 'rgba(var(--accent), 0.4)'
+                    : undefined,
+                borderWidth: isSelected || isBest ? 2 : undefined,
+                background: isSelected ? 'rgba(var(--accent), 0.08)' : undefined,
+              }}
             >
               {isBest && (
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide accent-bg text-white flex items-center gap-1">
@@ -87,28 +115,38 @@ export default function PaywallModal() {
                   <Sparkles className="w-3 h-3" /> {lang === 'ru' ? 'популярно' : 'popular'}
                 </span>
               )}
-              <div className="text-xs muted-text mb-1">{periodLabel(p.months)}</div>
-              <div className="font-display text-xl leading-tight tabular-nums">
-                {formatPrice(p.price, lang)}
-              </div>
-              {p.months > 1 && (
-                <div className="text-[11px] muted-text tabular-nums mt-0.5">
-                  {perMonthLabel(p.perMonth)}
-                  {p.discountPct > 0 && (
-                    <span className="ml-1 accent-text">−{p.discountPct}%</span>
+
+              <div className="flex items-start gap-2">
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors"
+                  style={{
+                    borderColor: isSelected ? 'rgb(var(--accent))' : 'rgba(var(--accent), 0.35)',
+                  }}
+                >
+                  {isSelected && (
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: 'rgb(var(--accent))' }}
+                    />
+                  )}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs muted-text mb-1">{periodLabel(p.months)}</div>
+                  <div className="font-display text-xl leading-tight tabular-nums">
+                    {formatPrice(p.price, lang)}
+                  </div>
+                  {p.months > 1 && (
+                    <div className="text-[11px] muted-text tabular-nums mt-0.5">
+                      {perMonthLabel(p.perMonth)}
+                      {p.discountPct > 0 && (
+                        <span className="ml-1 accent-text">−{p.discountPct}%</span>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-              <button
-                type="button"
-                disabled
-                title={lang === 'ru' ? 'Скоро' : 'Coming soon'}
-                className="btn-pill btn-soft !py-1.5 mt-2 text-xs justify-center cursor-not-allowed opacity-60"
-                data-testid={`plan-${p.id}-cta`}
-              >
-                {lang === 'ru' ? 'Скоро' : 'Soon'}
-              </button>
-            </div>
+              </div>
+            </button>
           );
         })}
       </div>
@@ -119,8 +157,24 @@ export default function PaywallModal() {
           : 'Starts with a 7-day Pro trial. After the trial your account goes to Free until you subscribe.'}
       </div>
 
-      <div className="flex justify-center">
-        <button onClick={close} className="btn-pill btn-ghost px-6" data-testid="paywall-close-btn">
+      <div className="flex flex-col items-center gap-2">
+        <button
+          type="button"
+          disabled
+          title={lang === 'ru' ? 'Скоро' : 'Coming soon'}
+          className="btn-pill btn-primary px-8 w-full max-w-[280px] cursor-not-allowed opacity-70"
+          data-testid="paywall-subscribe-btn"
+        >
+          {lang === 'ru' ? 'Подписаться' : 'Subscribe'}
+        </button>
+        <span className="muted-text text-[11px]">
+          {lang === 'ru' ? 'Оплата скоро будет доступна' : 'Checkout coming soon'}
+        </span>
+        <button
+          onClick={close}
+          className="btn-pill btn-ghost px-6 mt-1"
+          data-testid="paywall-close-btn"
+        >
           {t('paywall.close', lang)}
         </button>
       </div>

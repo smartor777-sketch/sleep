@@ -159,7 +159,7 @@ export default function ProfilePage() {
 
       {/* Account section */}
       <section className="card-surface rounded-3xl p-5">
-        {user?.is_anonymous ? (
+        {(!user || user.is_anonymous) ? (
           <>
             <div className="font-display text-lg mb-1">{t('profile.createAccount', lang)}</div>
             <p className="muted-text text-sm mb-4">{t('profile.createAccountDesc', lang)}</p>
@@ -187,7 +187,11 @@ export default function ProfilePage() {
                       ? 'Telegram'
                       : user?.linked_providers?.includes('google')
                         ? 'Google'
-                        : (lang === 'ru' ? 'Авторизован' : 'Signed in'))}
+                        : user?.linked_providers?.includes('yandex')
+                          ? 'Яндекс'
+                          : user?.linked_providers?.includes('vk')
+                            ? 'VK'
+                            : (lang === 'ru' ? 'Авторизован' : 'Signed in'))}
               </div>
             </div>
             <button onClick={signOut} className="btn-pill btn-ghost shrink-0" data-testid="signout-btn">

@@ -149,7 +149,7 @@ function MapPreview({ lang, hasDreams }: { lang: 'ru' | 'en'; hasDreams: boolean
   const user = useApp((s) => s.user);
   const billing = useApp((s) => s.billing);
   const theme = useApp((s) => s.theme);
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const isDark = theme === 'dark';
   const isPro = billing?.sub_type === 'pro' || billing?.sub_type === 'trial';
   const [previewMap, setPreviewMap] = useState<DreamMap | null>(null);
   const [loading, setLoading] = useState(false);

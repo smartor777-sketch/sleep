@@ -171,7 +171,7 @@ export default function PaywallModal() {
 
       <div className="text-center muted-text text-xs mb-4 max-w-md mx-auto">
         {lang === 'ru'
-          ? 'Сначала 14 дней Pro бесплатно. После триала аккаунт переходит на Free, пока вы не оформите подписку.'
+          ? 'Сначала 14 дней Pro бесплатно. После пробного периода аккаунт переходит на Free, пока вы не оформите подписку.'
           : 'Starts with a 14-day Pro trial. After the trial your account goes to Free until you subscribe.'}
       </div>
 

@@ -121,7 +121,7 @@ export default function ProfilePage() {
             )}
             {tier === 'trial' && billing?.trial_days_left !== undefined && (
               <div className="muted-text text-sm mt-1">
-                {lang === 'ru' ? `Дней триала осталось: ${billing.trial_days_left}` : `Trial days left: ${billing.trial_days_left}`}
+                {lang === 'ru' ? `Дней пробного периода осталось: ${billing.trial_days_left}` : `Trial days left: ${billing.trial_days_left}`}
               </div>
             )}
             {tier !== 'pro' && (

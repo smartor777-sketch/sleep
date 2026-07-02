@@ -176,7 +176,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                           const SizedBox(height: 16),
                           Text(
                             lang == 'ru'
-                                ? 'Сначала 14 дней Pro бесплатно. После триала аккаунт переходит на Free, пока не оформите подписку.'
+                                ? 'Сначала 14 дней Pro бесплатно. После пробного периода аккаунт переходит на Free, пока не оформите подписку.'
                                 : 'Starts with a 14-day Pro trial. After the trial your account goes to Free until you subscribe.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,

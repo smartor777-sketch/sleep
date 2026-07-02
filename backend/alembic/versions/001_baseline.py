@@ -1,8 +1,8 @@
-"""Baseline: create full initial schema.
+"""Full schema baseline (squashed 001-005).
 
 Revision ID: 001_baseline
 Revises: None
-Create Date: 2026-03-22
+Create Date: 2026-07-02
 """
 from typing import Sequence, Union
 
@@ -17,9 +17,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # ------------------------------------------------------------------
     # users
-    # ------------------------------------------------------------------
     op.create_table(
         "users",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -40,13 +38,14 @@ def upgrade() -> None:
         sa.Column("sub_expires_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("self_description", sa.Text, nullable=True),
         sa.Column("onboarding_completed", sa.Boolean, nullable=False, server_default="false"),
+        sa.Column("trial_started_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("analyses_week_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("analyses_week_reset_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.create_index("ix_users_email", "users", ["email"])
     op.create_index("ix_users_device_id", "users", ["device_id"])
 
-    # ------------------------------------------------------------------
     # user_archetypes
-    # ------------------------------------------------------------------
     op.create_table(
         "user_archetypes",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -60,9 +59,7 @@ def upgrade() -> None:
     op.create_index("ix_user_archetypes_user_id", "user_archetypes", ["user_id"])
     op.create_index("ix_user_archetypes_name", "user_archetypes", ["name"])
 
-    # ------------------------------------------------------------------
     # oauth_identities
-    # ------------------------------------------------------------------
     op.create_table(
         "oauth_identities",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -76,9 +73,7 @@ def upgrade() -> None:
     op.create_index("ix_oauth_identities_user_id", "oauth_identities", ["user_id"])
     op.create_index("ix_oauth_identities_provider", "oauth_identities", ["provider"])
 
-    # ------------------------------------------------------------------
     # email_verifications
-    # ------------------------------------------------------------------
     op.create_table(
         "email_verifications",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -90,9 +85,7 @@ def upgrade() -> None:
     op.create_index("ix_email_verifications_user_id", "email_verifications", ["user_id"])
     op.create_index("ix_email_verifications_token", "email_verifications", ["token"])
 
-    # ------------------------------------------------------------------
     # password_resets
-    # ------------------------------------------------------------------
     op.create_table(
         "password_resets",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -105,9 +98,7 @@ def upgrade() -> None:
     op.create_index("ix_password_resets_user_id", "password_resets", ["user_id"])
     op.create_index("ix_password_resets_token", "password_resets", ["token"])
 
-    # ------------------------------------------------------------------
     # dreams
-    # ------------------------------------------------------------------
     op.create_table(
         "dreams",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -128,9 +119,7 @@ def upgrade() -> None:
     op.create_index("ix_dreams_user_id", "dreams", ["user_id"])
     op.create_index("ix_dreams_recorded_at", "dreams", ["recorded_at"])
 
-    # ------------------------------------------------------------------
     # analyses
-    # ------------------------------------------------------------------
     op.create_table(
         "analyses",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -148,9 +137,7 @@ def upgrade() -> None:
     op.create_index("ix_analyses_status", "analyses", ["status"])
     op.create_index("ix_analyses_celery_task_id", "analyses", ["celery_task_id"])
 
-    # ------------------------------------------------------------------
-    # dream_chunks  (temporal fields added in 003_temporal)
-    # ------------------------------------------------------------------
+    # dream_chunks (includes temporal fields)
     op.create_table(
         "dream_chunks",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -162,13 +149,14 @@ def upgrade() -> None:
         sa.Column("embedding_model", sa.String(128), nullable=True),
         sa.Column("metadata_json", JSONB, nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("source_recorded_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("source_created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
+        sa.Column("source_order", sa.Integer(), nullable=False, server_default="0"),
     )
     op.create_index("ix_dream_chunks_dream_id", "dream_chunks", ["dream_id"])
     op.create_index("ix_dream_chunks_user_id", "dream_chunks", ["user_id"])
 
-    # ------------------------------------------------------------------
     # analysis_messages
-    # ------------------------------------------------------------------
     op.create_table(
         "analysis_messages",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -181,9 +169,7 @@ def upgrade() -> None:
     op.create_index("ix_analysis_messages_user_created", "analysis_messages", ["user_id", "created_at"])
     op.create_index("ix_analysis_messages_user_dream_created", "analysis_messages", ["user_id", "dream_id", "created_at"])
 
-    # ------------------------------------------------------------------
     # dream_symbols
-    # ------------------------------------------------------------------
     op.create_table(
         "dream_symbols",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -199,9 +185,7 @@ def upgrade() -> None:
     op.create_index("ix_dream_symbols_chunk_id", "dream_symbols", ["chunk_id"])
     op.create_index("ix_dream_symbols_symbol_name", "dream_symbols", ["symbol_name"])
 
-    # ------------------------------------------------------------------
     # dream_archetypes
-    # ------------------------------------------------------------------
     op.create_table(
         "dream_archetypes",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -215,9 +199,7 @@ def upgrade() -> None:
     op.create_index("ix_dream_archetypes_dream_id", "dream_archetypes", ["dream_id"])
     op.create_index("ix_dream_archetypes_archetype_name", "dream_archetypes", ["archetype_name"])
 
-    # ------------------------------------------------------------------
     # dream_symbol_entities
-    # ------------------------------------------------------------------
     op.create_table(
         "dream_symbol_entities",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -236,8 +218,36 @@ def upgrade() -> None:
     op.create_index("ix_dream_symbol_entities_chunk_id", "dream_symbol_entities", ["chunk_id"])
     op.create_index("ix_dream_symbol_entities_canonical_name", "dream_symbol_entities", ["canonical_name"])
 
+    # user_memory_docs
+    op.create_table(
+        "user_memory_docs",
+        sa.Column("id", UUID(as_uuid=True), primary_key=True),
+        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False),
+        sa.Column("content_md", sa.Text(), nullable=False, server_default=""),
+        sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")),
+    )
+    op.create_index("ix_user_memory_docs_user_id", "user_memory_docs", ["user_id"], unique=True)
+
+    # subscriptions (provider_payment_id — final name)
+    op.create_table(
+        "subscriptions",
+        sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column("user_id", UUID(as_uuid=True), sa.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column("provider", sa.String(32), nullable=False),
+        sa.Column("product_id", sa.String(128), nullable=False),
+        sa.Column("provider_payment_id", sa.Text(), nullable=False, unique=True),
+        sa.Column("status", sa.String(32), nullable=False),
+        sa.Column("starts_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("now()")),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table("subscriptions")
+    op.drop_table("user_memory_docs")
     op.drop_table("dream_symbol_entities")
     op.drop_table("dream_archetypes")
     op.drop_table("dream_symbols")

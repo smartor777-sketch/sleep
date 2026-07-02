@@ -421,7 +421,9 @@ def start_trial(user: User) -> bool:
     """Start a one-shot trial for a fresh registered user."""
     if user.is_anonymous:
         return False
-    if user.sub_type != "free":
+    # A freshly-constructed User() has no Python-side sub_type yet (only a
+    # server_default), so it reads as None until the row round-trips the DB.
+    if user.sub_type not in ("free", None):
         return False
     if user.trial_started_at is not None:
         return False

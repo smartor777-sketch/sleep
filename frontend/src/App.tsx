@@ -10,6 +10,8 @@ import MapPage from './pages/MapPage';
 import SearchPage from './pages/SearchPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ProfilePage from './pages/ProfilePage';
+import YandexCallbackPage from './pages/YandexCallbackPage';
+import VkCallbackPage from './pages/VkCallbackPage';
 import AuthPromptModal from './components/AuthPromptModal';
 import OnboardingModal from './components/OnboardingModal';
 import PaywallModal from './components/PaywallModal';
@@ -44,6 +46,8 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/auth/callback/yandex" element={<YandexCallbackPage />} />
+        <Route path="/auth/callback/vk" element={<VkCallbackPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <AuthPromptModal />

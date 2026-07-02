@@ -23,17 +23,126 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool _googleBusy = false;
+  bool _yandexBusy = false;
+  bool _yandexWaiting = false;
+  String? _yandexState;
+  bool _vkBusy = false;
+  bool _vkWaiting = false;
+  String? _vkState;
   bool _tgPreparing = false;
   bool _tgWaiting = false;
   String? _error;
 
   TelegramInitResult? _tgInit;
   Timer? _pollTimer;
+  Timer? _yandexPollTimer;
+  Timer? _vkPollTimer;
 
   @override
   void dispose() {
     _pollTimer?.cancel();
+    _yandexPollTimer?.cancel();
+    _vkPollTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _signInYandex() async {
+    setState(() {
+      _yandexBusy = true;
+      _error = null;
+    });
+    final auth = context.read<AuthProvider>();
+    try {
+      final init = await auth.startYandexAuth();
+      _yandexState = init.state;
+      final launched = await launchUrl(
+        Uri.parse(init.authUrl),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        if (!mounted) return;
+        setState(() {
+          _error = 'Не удалось открыть браузер';
+          _yandexBusy = false;
+        });
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _yandexBusy = false;
+        _yandexWaiting = true;
+      });
+      _startYandexPolling(init.state);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _yandexBusy = false;
+      });
+    }
+  }
+
+  Future<void> _signInVk() async {
+    setState(() { _vkBusy = true; _error = null; });
+    final auth = context.read<AuthProvider>();
+    try {
+      final init = await auth.startVkAuth();
+      _vkState = init.state;
+      final launched = await launchUrl(Uri.parse(init.authUrl), mode: LaunchMode.externalApplication);
+      if (!launched) {
+        if (!mounted) return;
+        setState(() { _error = 'Не удалось открыть браузер'; _vkBusy = false; });
+        return;
+      }
+      if (!mounted) return;
+      setState(() { _vkBusy = false; _vkWaiting = true; });
+      _startVkPolling(init.state);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e.toString(); _vkBusy = false; });
+    }
+  }
+
+  void _startVkPolling(String state) {
+    _vkPollTimer?.cancel();
+    _vkPollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted) { timer.cancel(); return; }
+      try {
+        final status = await context.read<AuthProvider>().pollVkAuth(state);
+        if (status == 'completed') {
+          timer.cancel();
+          if (!mounted) return;
+          Navigator.of(context).pop(true);
+        } else if (status == 'expired') {
+          timer.cancel();
+          if (!mounted) return;
+          setState(() { _vkWaiting = false; _vkState = null; _error = 'Время сессии истекло. Попробуй ещё раз.'; });
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _startYandexPolling(String state) {
+    _yandexPollTimer?.cancel();
+    _yandexPollTimer = Timer.periodic(const Duration(seconds: 2), (timer) async {
+      if (!mounted) { timer.cancel(); return; }
+      try {
+        final status = await context.read<AuthProvider>().pollYandexAuth(state);
+        if (status == 'completed') {
+          timer.cancel();
+          if (!mounted) return;
+          Navigator.of(context).pop(true);
+        } else if (status == 'expired') {
+          timer.cancel();
+          if (!mounted) return;
+          setState(() {
+            _yandexWaiting = false;
+            _yandexState = null;
+            _error = 'Время сессии истекло. Попробуй ещё раз.';
+          });
+        }
+      } catch (_) {}
+    });
   }
 
   Future<void> _signInGoogle() async {
@@ -188,10 +297,92 @@ class _AuthScreenState extends State<AuthScreen> {
                     ],
                   ),
                 ),
+              if (_vkWaiting)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0077FF).withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0077FF)),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(child: Text('Завершите вход в браузере…')),
+                    ],
+                  ),
+                ),
               SizedBox(
                 height: 52,
                 child: OutlinedButton.icon(
-                  onPressed: (_googleBusy || _tgWaiting) ? null : _signInGoogle,
+                  onPressed: (_vkBusy || _vkWaiting || _googleBusy || _tgWaiting || _yandexBusy || _yandexWaiting)
+                      ? null
+                      : _signInVk,
+                  icon: _vkBusy
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('VK', style: TextStyle(color: Color(0xFF0077FF), fontWeight: FontWeight.bold, fontSize: 14)),
+                  label: const Text('Войти через VK'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (_yandexWaiting)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFC3F1D).withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: const Color(0xFFFC3F1D),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text('Завершите вход в браузере…'),
+                      ),
+                    ],
+                  ),
+                ),
+              SizedBox(
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: (_yandexBusy || _yandexWaiting || _googleBusy || _tgWaiting)
+                      ? null
+                      : _signInYandex,
+                  icon: _yandexBusy
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Я',
+                          style: TextStyle(
+                            color: Color(0xFFFC3F1D),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                  label: const Text('Войти через Яндекс'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: (_googleBusy || _tgWaiting || _yandexWaiting) ? null : _signInGoogle,
                   icon: _googleBusy
                       ? const SizedBox(
                           width: 16,
@@ -210,7 +401,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     backgroundColor: accent,
                     foregroundColor: Colors.white,
                   ),
-                  onPressed: (_tgPreparing || _tgWaiting || _googleBusy)
+                  onPressed: (_tgPreparing || _tgWaiting || _googleBusy || _yandexBusy || _yandexWaiting)
                       ? null
                       : _signInTelegram,
                   icon: _tgPreparing

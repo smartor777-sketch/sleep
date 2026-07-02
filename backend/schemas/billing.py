@@ -1,12 +1,12 @@
 """Pydantic схемы для биллинга"""
 
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, HttpUrl
 
 
-class VerifyPurchaseRequest(BaseModel):
-    purchase_token: str
-    product_id: str
+class CreatePaymentRequest(BaseModel):
+    plan_id: str = Field(..., min_length=1, max_length=32)
+    return_url: HttpUrl | None = None
 
 
 class SubscriptionInfo(BaseModel):
@@ -22,7 +22,9 @@ class BillingStatusResponse(BaseModel):
     active_subscription: SubscriptionInfo | None = None
 
 
-class VerifyPurchaseResponse(BaseModel):
+class CreatePaymentResponse(BaseModel):
+    payment_id: str
     status: str
-    product_id: str
-    expires_at: datetime
+    plan_id: str
+    confirmation_url: str
+    expires_at: datetime | None = None

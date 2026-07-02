@@ -7,12 +7,14 @@ from dependencies import CurrentUser, DatabaseSession
 from schemas import UserMeResponse, UserProfileResponse, UserSettingsUpdate
 from services.oauth_identity_service import get_user_identities
 from services import user_memory_service
+from services.billing_service import refresh_entitlements
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
 @router.get("/me", response_model=UserMeResponse)
 async def get_me(current_user: CurrentUser, db: DatabaseSession):
+    await refresh_entitlements(db, current_user)
     identities = await get_user_identities(db, current_user)
     linked = sorted({i.provider for i in identities})
 
@@ -38,6 +40,7 @@ async def update_me(
     current_user: CurrentUser,
     db: DatabaseSession,
 ):
+    await refresh_entitlements(db, current_user)
     update = data.model_dump(exclude_unset=True)
     if "self_description" in update:
         current_user.self_description = update["self_description"]

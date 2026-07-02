@@ -18,6 +18,7 @@ from services.map_service import (
     get_map_symbol_detail,
     stream_dream_map,
 )
+from services.billing_service import has_full_access
 
 router = APIRouter(prefix="/map", tags=["Map"])
 
@@ -43,6 +44,11 @@ async def get_dream_map_endpoint(
     jitter: float = Query(0.03, ge=0.0, le=0.2),
 ):
     _ensure_same_user(user_id, current_user.id)
+    if not await has_full_access(db, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="premium_required",
+        )
     return await get_dream_map(
         db,
         user_id=user_id,
@@ -63,6 +69,11 @@ async def get_dream_map_symbol_detail_endpoint(
     db: DatabaseSession,
 ):
     _ensure_same_user(user_id, current_user.id)
+    if not await has_full_access(db, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="premium_required",
+        )
     detail = await get_map_symbol_detail(db, user_id=user_id, symbol_id=symbol_id)
     if detail is None:
         raise HTTPException(
@@ -105,6 +116,9 @@ async def dream_map_stream_endpoint(
             user = (await db.execute(select(User).where(User.id == token_user_id))).scalar_one_or_none()
             if user is None:
                 await websocket.close(code=4404, reason="User not found")
+                return
+            if not await has_full_access(db, user):
+                await websocket.close(code=4402, reason="Premium required")
                 return
             async for message in stream_dream_map(
                 db,

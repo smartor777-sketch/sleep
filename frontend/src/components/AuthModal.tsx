@@ -5,6 +5,8 @@ import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import { Loader2, Send } from 'lucide-react';
 import GoogleSignInButton from './GoogleSignInButton';
+import { saveYandexState } from '../pages/YandexCallbackPage';
+import { saveVkState } from '../pages/VkCallbackPage';
 
 interface Props {
   open: boolean;
@@ -24,6 +26,8 @@ export default function AuthModal({ open, onClose }: Props) {
   const [err, setErr] = useState<string | null>(null);
   const [tg, setTg] = useState<TgPrep>({ kind: 'preparing' });
   const [waitingConfirm, setWaitingConfirm] = useState(false);
+  const [yandexBusy, setYandexBusy] = useState(false);
+  const [vkBusy, setVkBusy] = useState(false);
   const pollRef = useRef<number | null>(null);
 
   function stopPolling() {
@@ -36,10 +40,40 @@ export default function AuthModal({ open, onClose }: Props) {
   function reset() {
     setErr(null);
     setBusy(false);
+    setYandexBusy(false);
+    setVkBusy(false);
     setTg({ kind: 'preparing' });
     setWaitingConfirm(false);
     stopPolling();
   }
+
+  const signInYandex = useCallback(async () => {
+    setYandexBusy(true);
+    setErr(null);
+    try {
+      const { state, auth_url } = await api.yandexInit();
+      saveYandexState(state);
+      window.location.assign(auth_url);
+    } catch (e) {
+      const ae = e as ApiError;
+      setErr(ae.detail || ae.message || 'yandex_init_failed');
+      setYandexBusy(false);
+    }
+  }, []);
+
+  const signInVk = useCallback(async () => {
+    setVkBusy(true);
+    setErr(null);
+    try {
+      const { state, auth_url } = await api.vkInit();
+      saveVkState(state);
+      window.location.assign(auth_url);
+    } catch (e) {
+      const ae = e as ApiError;
+      setErr(ae.detail || ae.message || 'vk_init_failed');
+      setVkBusy(false);
+    }
+  }, []);
 
   useEffect(() => () => stopPolling(), []);
 
@@ -143,7 +177,35 @@ export default function AuthModal({ open, onClose }: Props) {
         )}
 
         <div className="flex flex-col items-center gap-3 pt-1">
-          <GoogleSignInButton onCredential={onGoogleCredential} locale={lang} disabled={busy} />
+          <GoogleSignInButton onCredential={onGoogleCredential} locale={lang} disabled={busy || yandexBusy} />
+
+          <button
+            type="button"
+            onClick={signInYandex}
+            disabled={busy || yandexBusy || vkBusy || waitingConfirm}
+            className="btn-pill btn-soft !py-2 w-full max-w-[280px] justify-center"
+            data-testid="auth-yandex-button"
+          >
+            {yandexBusy
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <span className="font-bold text-[13px] tracking-wide" style={{ color: '#FC3F1D' }}>Я</span>
+            }
+            {lang === 'ru' ? 'Войти через Яндекс' : 'Sign in with Yandex'}
+          </button>
+
+          <button
+            type="button"
+            onClick={signInVk}
+            disabled={busy || yandexBusy || vkBusy || waitingConfirm}
+            className="btn-pill btn-soft !py-2 w-full max-w-[280px] justify-center"
+            data-testid="auth-vk-button"
+          >
+            {vkBusy
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <span className="font-bold text-[12px]" style={{ color: '#0077FF' }}>VK</span>
+            }
+            {lang === 'ru' ? 'Войти через VK' : 'Sign in with VK'}
+          </button>
 
           {tg.kind === 'ready' ? (
             <a

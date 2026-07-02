@@ -5,7 +5,7 @@ import '../services/api_client.dart';
 import '../services/auth_service.dart';
 import '../services/secure_storage_service.dart';
 
-export '../services/auth_service.dart' show UpgradeRequiredException;
+export '../services/auth_service.dart' show UpgradeRequiredException, YandexInitResult, VkInitResult;
 
 class AuthProvider extends ChangeNotifier {
   AuthProvider({
@@ -110,6 +110,40 @@ class AuthProvider extends ChangeNotifier {
     _user = user;
     notifyListeners();
     return user;
+  }
+
+  /// VK ID OAuth — step 1.
+  Future<VkInitResult> startVkAuth() async {
+    return await _authService.vkInit();
+  }
+
+  /// VK ID OAuth — polling.
+  Future<String> pollVkAuth(String state) async {
+    final result = await _authService.vkStatus(state);
+    if (result.status == 'completed') {
+      try { await mergeAnonymous(); } catch (_) {}
+      final user = await _authService.getMe();
+      _user = user;
+      notifyListeners();
+    }
+    return result.status;
+  }
+
+  /// Yandex OAuth — step 1: get state + auth URL.
+  Future<YandexInitResult> startYandexAuth() async {
+    return await _authService.yandexInit();
+  }
+
+  /// Yandex OAuth — polling. Returns 'pending' / 'completed' / 'expired'.
+  Future<String> pollYandexAuth(String state) async {
+    final result = await _authService.yandexStatus(state);
+    if (result.status == 'completed') {
+      try { await mergeAnonymous(); } catch (_) {}
+      final user = await _authService.getMe();
+      _user = user;
+      notifyListeners();
+    }
+    return result.status;
   }
 
   /// Telegram deep-link auth — step 1.

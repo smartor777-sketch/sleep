@@ -496,7 +496,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumRestore => 'Restore purchases';
 
   @override
-  String get premiumComingSoon => 'Payments will be available soon';
+  String get premiumComingSoon => 'Checkout via YooKassa';
 
   @override
   String get premiumActive => 'Pro active';

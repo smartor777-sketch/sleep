@@ -35,6 +35,14 @@ from schemas import (
     TelegramInitResponse,
     TelegramStatusResponse,
     TelegramConfirmRequest,
+    YandexInitResponse,
+    YandexExchangeRequest,
+    YandexExchangeResponse,
+    YandexStatusResponse,
+    VkInitResponse,
+    VkExchangeRequest,
+    VkExchangeResponse,
+    VkStatusResponse,
 )
 from services.auth_service import (
     get_user_by_email,
@@ -692,3 +700,247 @@ async def telegram_confirm(
 
     logger.info("Telegram auth completed for user=%s telegram_id=%s", user.id, body.telegram_id)
     return {"message": "ok"}
+
+
+# === Yandex OAuth ===
+
+import services.yandex_auth_service as yandex_auth
+
+
+@router.post("/yandex/init", response_model=YandexInitResponse)
+async def yandex_init() -> YandexInitResponse:
+    """Шаг 1: создать state-токен и вернуть URL на Яндекс."""
+    try:
+        state = await yandex_auth.create_state()
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+    return YandexInitResponse(
+        state=state,
+        auth_url=yandex_auth.build_auth_url(state),
+        expires_in=yandex_auth.STATE_TTL,
+    )
+
+
+@router.post("/yandex/exchange", response_model=YandexExchangeResponse)
+async def yandex_exchange(
+    data: YandexExchangeRequest,
+    db: DatabaseSession,
+    credentials: HTTPAuthorizationCredentials | None = Security(_optional_bearer),
+) -> YandexExchangeResponse:
+    """
+    Шаг 2: callback-страница обменивает code на JWT.
+    Также сохраняет результат в Redis под state — мобильный клиент подтянет через /status.
+    """
+    state_data = await yandex_auth.get_state_data(data.state)
+    if state_data is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="yandex_state_expired")
+    if state_data.get("status") == "completed":
+        return YandexExchangeResponse(
+            access_token=state_data["access_token"],
+            refresh_token=state_data["refresh_token"],
+        )
+
+    try:
+        token_data = await yandex_auth.exchange_code(data.code)
+    except (ValueError, RuntimeError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    yandex_access_token = token_data.get("access_token")
+    if not yandex_access_token:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="yandex_no_access_token")
+
+    try:
+        user_info = await yandex_auth.get_user_info(yandex_access_token)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    provider_subject = str(user_info.get("id") or user_info.get("client_id") or "")
+    if not provider_subject:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="yandex_no_user_id")
+
+    email = user_info.get("default_email") or user_info.get("emails", [None])[0]
+
+    existing_identity = await get_identity(db, "yandex", provider_subject)
+    if existing_identity:
+        from sqlalchemy import select as sa_select
+        from models import User as UserModel
+        result = await db.execute(sa_select(UserModel).where(UserModel.id == existing_identity.user_id))
+        user = result.scalar_one_or_none()
+        if not user or not user.is_active:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user_not_found")
+    else:
+        # Попробуем привязать к текущему анонимному пользователю если есть JWT
+        user = None
+        if credentials:
+            try:
+                payload = verify_token(credentials.credentials, token_type="access")
+                uid = payload.get("sub")
+                if uid:
+                    from sqlalchemy import select as sa_select
+                    from models import User as UserModel
+                    result = await db.execute(sa_select(UserModel).where(UserModel.id == UUID(uid)))
+                    user = result.scalar_one_or_none()
+            except Exception:
+                pass
+
+        if user is None:
+            from models import User as UserModel
+            user = UserModel(
+                email=email,
+                is_anonymous=False,
+                email_verified=bool(email),
+                timezone="UTC",
+            )
+            from services.billing_service import start_trial
+            start_trial(user)
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+
+        await create_identity(db, user, "yandex", provider_subject, email)
+        if user.is_anonymous:
+            user.is_anonymous = False
+            from services.billing_service import start_trial
+            start_trial(user)
+        if not user.email and email:
+            user.email = email
+            user.email_verified = True
+        await db.commit()
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    await yandex_auth.complete_state(data.state, access_token, refresh_token)
+    logger.info("Yandex auth completed for user=%s", user.id)
+
+    return YandexExchangeResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.get("/yandex/status", response_model=YandexStatusResponse)
+async def yandex_status(state: str = Query(..., min_length=10, max_length=64)) -> YandexStatusResponse:
+    """Мобильный клиент поллит этот эндпоинт пока callback-страница не завершит обмен."""
+    data = await yandex_auth.get_state_data(state)
+    if data is None:
+        return YandexStatusResponse(status="expired")
+    if data.get("status") == "completed":
+        return YandexStatusResponse(
+            status="completed",
+            access_token=data.get("access_token"),
+            refresh_token=data.get("refresh_token"),
+            token_type=data.get("token_type", "bearer"),
+        )
+    return YandexStatusResponse(status="pending")
+
+
+# === VK ID OAuth ===
+
+import services.vk_auth_service as vk_auth
+
+
+@router.post("/vk/init", response_model=VkInitResponse)
+async def vk_init() -> VkInitResponse:
+    try:
+        state = await vk_auth.create_state()
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+    return VkInitResponse(
+        state=state,
+        auth_url=vk_auth.build_auth_url(state),
+        expires_in=vk_auth.STATE_TTL,
+    )
+
+
+@router.post("/vk/exchange", response_model=VkExchangeResponse)
+async def vk_exchange(
+    data: VkExchangeRequest,
+    db: DatabaseSession,
+    credentials: HTTPAuthorizationCredentials | None = Security(_optional_bearer),
+) -> VkExchangeResponse:
+    state_data = await vk_auth.get_state_data(data.state)
+    if state_data is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="vk_state_expired")
+    if state_data.get("status") == "completed":
+        return VkExchangeResponse(
+            access_token=state_data["access_token"],
+            refresh_token=state_data["refresh_token"],
+        )
+
+    try:
+        token_data = await vk_auth.exchange_code(data.code)
+    except (ValueError, RuntimeError) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    provider_subject = str(token_data.get("user_id", ""))
+    if not provider_subject:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="vk_no_user_id")
+
+    email = token_data.get("email")  # VK returns email in token response if scope=email granted
+
+    existing_identity = await get_identity(db, "vk", provider_subject)
+    if existing_identity:
+        from sqlalchemy import select as sa_select
+        from models import User as UserModel
+        result = await db.execute(sa_select(UserModel).where(UserModel.id == existing_identity.user_id))
+        user = result.scalar_one_or_none()
+        if not user or not user.is_active:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user_not_found")
+    else:
+        user = None
+        if credentials:
+            try:
+                payload = verify_token(credentials.credentials, token_type="access")
+                uid = payload.get("sub")
+                if uid:
+                    from sqlalchemy import select as sa_select
+                    from models import User as UserModel
+                    result = await db.execute(sa_select(UserModel).where(UserModel.id == UUID(uid)))
+                    user = result.scalar_one_or_none()
+            except Exception:
+                pass
+
+        if user is None:
+            from models import User as UserModel
+            user = UserModel(
+                email=email,
+                is_anonymous=False,
+                email_verified=bool(email),
+                timezone="UTC",
+            )
+            from services.billing_service import start_trial
+            start_trial(user)
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+
+        await create_identity(db, user, "vk", provider_subject, email)
+        if user.is_anonymous:
+            user.is_anonymous = False
+            from services.billing_service import start_trial
+            start_trial(user)
+        if not user.email and email:
+            user.email = email
+            user.email_verified = True
+        await db.commit()
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    refresh_token = create_refresh_token(data={"sub": str(user.id)})
+
+    await vk_auth.complete_state(data.state, access_token, refresh_token)
+    logger.info("VK auth completed for user=%s vk_id=%s", user.id, provider_subject)
+
+    return VkExchangeResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.get("/vk/status", response_model=VkStatusResponse)
+async def vk_status(state: str = Query(..., min_length=10, max_length=64)) -> VkStatusResponse:
+    data = await vk_auth.get_state_data(state)
+    if data is None:
+        return VkStatusResponse(status="expired")
+    if data.get("status") == "completed":
+        return VkStatusResponse(
+            status="completed",
+            access_token=data.get("access_token"),
+            refresh_token=data.get("refresh_token"),
+            token_type=data.get("token_type", "bearer"),
+        )
+    return VkStatusResponse(status="pending")

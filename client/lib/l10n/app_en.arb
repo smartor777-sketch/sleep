@@ -201,7 +201,7 @@
   "premiumYearlySave": "Save 40%",
   "premiumSubscribe": "Subscribe",
   "premiumRestore": "Restore purchases",
-  "premiumComingSoon": "Payments will be available soon",
+  "premiumComingSoon": "Checkout via YooKassa",
   "premiumActive": "Pro active",
   "premiumExpiresAt": "Expires: {date}",
   "@premiumExpiresAt": {
@@ -233,5 +233,13 @@
   "telegramWaiting": "Open Telegram and tap Start — we will sign you in.",
   "telegramReopen": "Reopen Telegram",
   "telegramOpenFailed": "Couldn't open Telegram. Is the app installed?",
-  "telegramSessionExpired": "Session expired. Please try again."
+  "telegramSessionExpired": "Session expired. Please try again.",
+
+  "signInWithYandex": "Sign in with Yandex",
+  "yandexWaiting": "Complete sign-in in the browser…",
+  "yandexSessionExpired": "Session expired. Please try again.",
+
+  "signInWithVk": "Sign in with VK",
+  "vkWaiting": "Complete sign-in in the browser…",
+  "vkSessionExpired": "Session expired. Please try again."
 }

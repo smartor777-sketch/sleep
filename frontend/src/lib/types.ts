@@ -134,6 +134,14 @@ export interface BillingStatus {
   active_subscription: { product_id: string; expires_at: string } | null;
 }
 
+export interface PaymentCreateResponse {
+  payment_id: string;
+  status: string;
+  plan_id: string;
+  confirmation_url: string;
+  expires_at: string | null;
+}
+
 export interface UserStats {
   total_dreams: number;
   streak_days: number;

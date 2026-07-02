@@ -11,7 +11,7 @@ from database import Base
 
 
 class Subscription(Base):
-    """Запись о подписке через Google Play"""
+    """Запись о платном периоде доступа через платёжного провайдера."""
 
     __tablename__ = "subscriptions"
 
@@ -24,10 +24,10 @@ class Subscription(Base):
         nullable=False,
         index=True,
     )
-    provider: Mapped[str] = mapped_column(String(32), nullable=False)  # 'google_play'
-    product_id: Mapped[str] = mapped_column(String(128), nullable=False)  # 'pro_monthly'
-    purchase_token: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    status: Mapped[str] = mapped_column(String(32), nullable=False)  # active|expired|cancelled
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)  # 'yookassa'
+    product_id: Mapped[str] = mapped_column(String(128), nullable=False)  # 'monthly'
+    provider_payment_id: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)  # pending|active|expired|cancelled
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(

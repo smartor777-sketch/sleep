@@ -16,6 +16,7 @@ from models import MessageRole
 from services.message_service import create_message, get_messages_for_dream
 from services.message_task_service import get_message_task_status
 from services.dream_service import get_dream_by_id
+from services.billing_service import has_full_access
 
 router = APIRouter(prefix="/messages", tags=["Messages"])
 logger = logging.getLogger(__name__)
@@ -34,6 +35,12 @@ async def send_message(
     - Запускает Celery-задачу для ответа LLM
     - Возвращает task_id для отслеживания
     """
+    if not await has_full_access(db, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="premium_required",
+        )
+
     # Проверяем что сон существует и принадлежит пользователю
     dream = await get_dream_by_id(db, data.dream_id, current_user)
     if not dream:
@@ -87,6 +94,12 @@ async def get_dream_messages(
     - Отфильтровано по dream_id
     - Сортировка по дате (старые первые)
     """
+    if not await has_full_access(db, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="premium_required",
+        )
+
     # Проверяем что сон принадлежит пользователю
     dream = await get_dream_by_id(db, dream_id, current_user)
     if not dream:
@@ -110,8 +123,13 @@ async def get_dream_messages(
 
 
 @router.get("/task/{task_id}")
-async def get_message_task(task_id: str, current_user: CurrentUser):
+async def get_message_task(task_id: str, current_user: CurrentUser, db: DatabaseSession):
     """
     Получить статус задачи ответа LLM для follow-up сообщений.
     """
+    if not await has_full_access(db, current_user):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="premium_required",
+        )
     return get_message_task_status(task_id)

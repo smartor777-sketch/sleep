@@ -142,3 +142,59 @@ class TelegramConfirmRequest(BaseModel):
     first_name: str | None = Field(None, max_length=100)
     last_name: str | None = Field(None, max_length=100)
     photo_url: str | None = None
+
+
+# === VK ID OAuth (polling flow) ===
+
+class VkInitResponse(BaseModel):
+    state: str
+    auth_url: str
+    expires_in: int
+
+
+class VkExchangeRequest(BaseModel):
+    code: str
+    state: str
+
+
+class VkExchangeResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class VkStatusResponse(BaseModel):
+    status: str  # 'pending' | 'completed' | 'expired'
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str | None = None
+
+
+# === Yandex OAuth (polling flow) ===
+
+class YandexInitResponse(BaseModel):
+    """Старт Яндекс-авторизации: state-токен + URL на Яндекс."""
+    state: str
+    auth_url: str
+    expires_in: int
+
+
+class YandexExchangeRequest(BaseModel):
+    """Обмен authorization code на JWT (вызывается callback-страницей)."""
+    code: str
+    state: str
+
+
+class YandexExchangeResponse(BaseModel):
+    """JWT после успешного обмена."""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class YandexStatusResponse(BaseModel):
+    """Поллинг статуса (для мобильного приложения)."""
+    status: str  # 'pending' | 'completed' | 'expired'
+    access_token: str | None = None
+    refresh_token: str | None = None
+    token_type: str | None = None

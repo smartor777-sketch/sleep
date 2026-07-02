@@ -201,7 +201,7 @@
   "premiumYearlySave": "Экономия 40%",
   "premiumSubscribe": "Подписаться",
   "premiumRestore": "Восстановить покупки",
-  "premiumComingSoon": "Оплата скоро будет доступна",
+  "premiumComingSoon": "Оплата через YooKassa",
   "premiumActive": "Pro активен",
   "premiumExpiresAt": "Действует до: {date}",
   "@premiumExpiresAt": {
@@ -233,5 +233,13 @@
   "telegramWaiting": "Открой Telegram и нажми Start — мы тебя сразу залогиним.",
   "telegramReopen": "Открыть Telegram ещё раз",
   "telegramOpenFailed": "Не удалось открыть Telegram. Установлено ли приложение?",
-  "telegramSessionExpired": "Время сессии истекло. Попробуй ещё раз."
+  "telegramSessionExpired": "Время сессии истекло. Попробуй ещё раз.",
+
+  "signInWithYandex": "Войти через Яндекс",
+  "yandexWaiting": "Завершите вход в браузере…",
+  "yandexSessionExpired": "Время сессии истекло. Попробуй ещё раз.",
+
+  "signInWithVk": "Войти через VK",
+  "vkWaiting": "Завершите вход в браузере…",
+  "vkSessionExpired": "Время сессии истекло. Попробуй ещё раз."
 }

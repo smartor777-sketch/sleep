@@ -498,7 +498,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get premiumRestore => 'Восстановить покупки';
 
   @override
-  String get premiumComingSoon => 'Оплата скоро будет доступна';
+  String get premiumComingSoon => 'Оплата через YooKassa';
 
   @override
   String get premiumActive => 'Pro активен';

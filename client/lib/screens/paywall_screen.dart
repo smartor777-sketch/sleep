@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-// --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
-// import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/billing_provider.dart';
@@ -12,9 +10,9 @@ class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
 
   static Future<void> show(BuildContext context) {
-    return Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const PaywallScreen()),
-    );
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const PaywallScreen()));
   }
 
   @override
@@ -28,6 +26,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
         orElse: () => plans.last,
       )
       .id;
+  String? _checkoutError;
 
   @override
   Widget build(BuildContext context) {
@@ -36,10 +35,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     final billing = context.watch<BillingProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.premiumTitle),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(l10n.premiumTitle), centerTitle: true),
       body: billing.loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -47,7 +43,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
               child: Column(
                 children: [
                   // Header
-                  Icon(Icons.auto_awesome, size: 64, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.auto_awesome,
+                    size: 64,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     l10n.premiumTitle,
@@ -66,41 +66,15 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   const SizedBox(height: 32),
 
                   // Features
-                  _FeatureRow(icon: Icons.all_inclusive, text: l10n.premiumFeature1),
+                  _FeatureRow(
+                    icon: Icons.all_inclusive,
+                    text: l10n.premiumFeature1,
+                  ),
                   const SizedBox(height: 12),
                   _FeatureRow(icon: Icons.speed, text: l10n.premiumFeature2),
                   const SizedBox(height: 12),
                   _FeatureRow(icon: Icons.hub, text: l10n.premiumFeature3),
                   const SizedBox(height: 32),
-
-                  // --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
-                  // Product cards, purchase and restore are disabled while the
-                  // Google Play Billing integration is turned off. The plan
-                  // tiers/limits still work; only the purchase flow is hidden.
-                  // if (billing.products.isEmpty)
-                  //   Padding(
-                  //     padding: const EdgeInsets.symmetric(vertical: 24),
-                  //     child: Text(
-                  //       'Products loading...',
-                  //       style: theme.textTheme.bodyMedium?.copyWith(
-                  //         color: theme.colorScheme.onSurfaceVariant,
-                  //       ),
-                  //     ),
-                  //   )
-                  // else
-                  //   ...billing.products.map((product) => _ProductCard(
-                  //         product: product,
-                  //         billing: billing,
-                  //         l10n: l10n,
-                  //       )),
-                  //
-                  // const SizedBox(height: 16),
-                  //
-                  // // Restore
-                  // TextButton(
-                  //   onPressed: billing.purchasing ? null : () => billing.restorePurchases(),
-                  //   child: Text(l10n.premiumRestore),
-                  // ),
 
                   // Pricing tiers — 2×2 grid, radio-style. Subscribe button below.
                   Builder(
@@ -120,7 +94,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                       plan: plans[i],
                                       lang: lang,
                                       selected: _selected == plans[i].id,
-                                      onTap: () => setState(() => _selected = plans[i].id),
+                                      onTap: () => setState(
+                                        () => _selected = plans[i].id,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -130,7 +106,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
                                         plan: plans[i + 1],
                                         lang: lang,
                                         selected: _selected == plans[i + 1].id,
-                                        onTap: () => setState(() => _selected = plans[i + 1].id),
+                                        onTap: () => setState(
+                                          () => _selected = plans[i + 1].id,
+                                        ),
                                       ),
                                     )
                                   else
@@ -146,35 +124,60 @@ class _PaywallScreenState extends State<PaywallScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.colorScheme.primary,
                                 foregroundColor: Colors.white,
-                                disabledBackgroundColor:
-                                    theme.colorScheme.primary.withOpacity(0.5),
+                                disabledBackgroundColor: theme
+                                    .colorScheme
+                                    .primary
+                                    .withOpacity(0.5),
                                 disabledForegroundColor: Colors.white,
                               ),
-                              onPressed: null,
-                              child: Text(
-                                lang == 'ru' ? 'Подписаться' : 'Subscribe',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
+                              onPressed: billing.creatingPayment
+                                  ? null
+                                  : () => _startCheckout(context),
+                              child: billing.creatingPayment
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : Text(
+                                      lang == 'ru'
+                                          ? 'Подписаться'
+                                          : 'Subscribe',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             lang == 'ru'
-                                ? 'Оплата скоро будет доступна.'
-                                : 'Checkout coming soon.',
+                                ? 'Безопасная оплата через YooKassa.'
+                                : 'Secure checkout via YooKassa.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
                             textAlign: TextAlign.center,
                           ),
+                          if (_checkoutError != null) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              _checkoutError!,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           Text(
                             lang == 'ru'
-                                ? 'Сначала 7 дней Pro бесплатно. После триала аккаунт переходит на Free, пока не оформите подписку.'
-                                : 'Starts with a 7-day Pro trial. After the trial your account goes to Free until you subscribe.',
+                                ? 'Сначала 14 дней Pro бесплатно. После триала аккаунт переходит на Free, пока не оформите подписку.'
+                                : 'Starts with a 14-day Pro trial. After the trial your account goes to Free until you subscribe.',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -199,6 +202,26 @@ class _PaywallScreenState extends State<PaywallScreen> {
             ),
     );
   }
+
+  Future<void> _startCheckout(BuildContext context) async {
+    final lang = Localizations.localeOf(context).languageCode;
+    final billing = context.read<BillingProvider>();
+    final plan = plans.firstWhere((p) => p.id == _selected);
+
+    setState(() => _checkoutError = null);
+    try {
+      final url = await billing.createPayment(plan.apiId);
+      if (!mounted) return;
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _checkoutError = lang == 'ru'
+            ? 'Не удалось создать платёж.'
+            : 'Failed to create payment.';
+      });
+    }
+  }
 }
 
 class _FeatureRow extends StatelessWidget {
@@ -213,110 +236,11 @@ class _FeatureRow extends StatelessWidget {
       children: [
         Icon(icon, size: 24, color: theme.colorScheme.primary),
         const SizedBox(width: 12),
-        Expanded(
-          child: Text(text, style: theme.textTheme.bodyLarge),
-        ),
+        Expanded(child: Text(text, style: theme.textTheme.bodyLarge)),
       ],
     );
   }
 }
-
-// --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
-// class _ProductCard extends StatelessWidget {
-//   const _ProductCard({
-//     required this.product,
-//     required this.billing,
-//     required this.l10n,
-//   });
-//   final ProductDetails product;
-//   final BillingProvider billing;
-//   final AppLocalizations l10n;
-//
-//   String _label() {
-//     if (product.id.contains('weekly')) return l10n.premiumWeekly;
-//     if (product.id.contains('yearly')) return l10n.premiumYearly;
-//     return l10n.premiumMonthly;
-//   }
-//
-//   bool get _isYearly => product.id.contains('yearly');
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     final theme = Theme.of(context);
-//     return Card(
-//       margin: const EdgeInsets.only(bottom: 12),
-//       shape: RoundedRectangleBorder(
-//         borderRadius: BorderRadius.circular(12),
-//         side: _isYearly
-//             ? BorderSide(color: theme.colorScheme.primary, width: 2)
-//             : BorderSide.none,
-//       ),
-//       child: InkWell(
-//         borderRadius: BorderRadius.circular(12),
-//         onTap: billing.purchasing ? null : () => billing.buy(product),
-//         child: Padding(
-//           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-//           child: Row(
-//             children: [
-//               Expanded(
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Row(
-//                       children: [
-//                         Text(
-//                           _label(),
-//                           style: theme.textTheme.titleMedium?.copyWith(
-//                             fontWeight: FontWeight.w600,
-//                           ),
-//                         ),
-//                         if (_isYearly) ...[
-//                           const SizedBox(width: 8),
-//                           Container(
-//                             padding: const EdgeInsets.symmetric(
-//                               horizontal: 8,
-//                               vertical: 2,
-//                             ),
-//                             decoration: BoxDecoration(
-//                               color: theme.colorScheme.primaryContainer,
-//                               borderRadius: BorderRadius.circular(8),
-//                             ),
-//                             child: Text(
-//                               l10n.premiumYearlySave,
-//                               style: theme.textTheme.labelSmall?.copyWith(
-//                                 color: theme.colorScheme.onPrimaryContainer,
-//                               ),
-//                             ),
-//                           ),
-//                         ],
-//                       ],
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               Text(
-//                 product.price,
-//                 style: theme.textTheme.titleMedium?.copyWith(
-//                   fontWeight: FontWeight.bold,
-//                   color: theme.colorScheme.primary,
-//                 ),
-//               ),
-//               if (billing.purchasing)
-//                 const Padding(
-//                   padding: EdgeInsets.only(left: 8),
-//                   child: SizedBox(
-//                     width: 16,
-//                     height: 16,
-//                     child: CircularProgressIndicator(strokeWidth: 2),
-//                   ),
-//                 ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
 
 class _PlanCard extends StatelessWidget {
   final Plan plan;
@@ -339,8 +263,8 @@ class _PlanCard extends StatelessWidget {
     final borderColor = selected
         ? accent
         : isBest
-            ? accent
-            : theme.colorScheme.outlineVariant.withOpacity(0.4);
+        ? accent
+        : theme.colorScheme.outlineVariant.withOpacity(0.4);
     final borderWidth = selected || isBest ? 2.0 : 1.0;
 
     return Semantics(
@@ -357,7 +281,9 @@ class _PlanCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: selected
                     ? accent.withOpacity(0.10)
-                    : theme.colorScheme.surfaceContainerHighest.withOpacity(0.4),
+                    : theme.colorScheme.surfaceContainerHighest.withOpacity(
+                        0.4,
+                      ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: borderColor, width: borderWidth),
               ),

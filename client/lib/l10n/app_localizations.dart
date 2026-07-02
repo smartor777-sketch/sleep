@@ -1013,7 +1013,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumComingSoon.
   ///
   /// In ru, this message translates to:
-  /// **'Оплата скоро будет доступна'**
+  /// **'Оплата через YooKassa'**
   String get premiumComingSoon;
 
   /// No description provided for @premiumActive.

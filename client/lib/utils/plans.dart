@@ -1,6 +1,5 @@
-// Pricing plans for InnerCore mobile. Mirrors frontend/src/lib/plans.ts —
-// keep both in sync when editing prices. No real billing yet; the screen
-// only renders these tiers with "Coming soon" buttons.
+// Pricing plans for InnerCore mobile. Mirrors frontend/src/lib/plans.ts and
+// backend/services/billing_service.py — keep these in sync when editing prices.
 
 enum PlanId { monthly, quarter, half, yearly }
 
@@ -14,6 +13,7 @@ class PlanPrice {
 
 class Plan {
   final PlanId id;
+  final String apiId;
   final int months;
   final PlanPrice price;
   final PlanPrice perMonth;
@@ -21,6 +21,7 @@ class Plan {
   final PlanHighlight highlight;
   const Plan({
     required this.id,
+    required this.apiId,
     required this.months,
     required this.price,
     required this.perMonth,
@@ -31,10 +32,14 @@ class Plan {
   String periodLabel(String lang) {
     if (lang == 'ru') {
       switch (months) {
-        case 1: return '1 месяц';
-        case 3: return '3 месяца';
-        case 6: return '6 месяцев';
-        default: return '12 месяцев';
+        case 1:
+          return '1 месяц';
+        case 3:
+          return '3 месяца';
+        case 6:
+          return '6 месяцев';
+        default:
+          return '12 месяцев';
       }
     }
     return months == 1 ? '1 month' : '$months months';
@@ -44,11 +49,23 @@ class Plan {
 const int _monthlyRub = 749;
 const double _monthlyUsd = 10.0;
 
-Plan _mk(PlanId id, int months, int rub, double usd, [PlanHighlight h = PlanHighlight.none]) {
+Plan _mk(
+  PlanId id,
+  int months,
+  int rub,
+  double usd, [
+  PlanHighlight h = PlanHighlight.none,
+]) {
   final fullRub = _monthlyRub * months;
   final discountPct = (((fullRub - rub) / fullRub) * 100).round();
   return Plan(
     id: id,
+    apiId: switch (id) {
+      PlanId.monthly => 'monthly',
+      PlanId.quarter => 'quarter',
+      PlanId.half => 'half',
+      PlanId.yearly => 'yearly',
+    },
     months: months,
     price: PlanPrice(rub: rub, usd: usd),
     perMonth: PlanPrice(

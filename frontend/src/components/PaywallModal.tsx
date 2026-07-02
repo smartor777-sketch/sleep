@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../lib/store';
+import { api, ApiError } from '../lib/api';
 import { t } from '../lib/i18n';
 import Modal from './Modal';
-import { Infinity as InfIcon, MessageCircle, Map as MapIcon, BookHeart, Lock, Star, Sparkles } from 'lucide-react';
+import { Infinity as InfIcon, MessageCircle, Map as MapIcon, BookHeart, Loader2, Lock, Star, Sparkles } from 'lucide-react';
 import { PLANS, PlanId, formatPrice } from '../lib/plans';
 
 export default function PaywallModal() {
@@ -13,10 +14,14 @@ export default function PaywallModal() {
   const [selected, setSelected] = useState<PlanId>(
     PLANS.find((p) => p.highlight === 'best')?.id ?? PLANS[0].id
   );
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!open) {
       setSelected(PLANS.find((p) => p.highlight === 'best')?.id ?? PLANS[0].id);
+      setPaying(false);
+      setError('');
     }
   }, [open]);
 
@@ -40,6 +45,19 @@ export default function PaywallModal() {
   function perMonthLabel(perMonth: { rub: number; usd: number }): string {
     const formatted = formatPrice(perMonth, lang);
     return lang === 'ru' ? `${formatted}/мес` : `${formatted}/mo`;
+  }
+
+  async function subscribe() {
+    setPaying(true);
+    setError('');
+    try {
+      const payment = await api.createPayment(selected, window.location.href);
+      window.location.assign(payment.confirmation_url);
+    } catch (e) {
+      const ae = e as ApiError;
+      setError(ae.detail || (lang === 'ru' ? 'Не удалось создать платёж' : 'Failed to create payment'));
+      setPaying(false);
+    }
   }
 
   return (
@@ -153,23 +171,25 @@ export default function PaywallModal() {
 
       <div className="text-center muted-text text-xs mb-4 max-w-md mx-auto">
         {lang === 'ru'
-          ? 'Сначала 7 дней Pro бесплатно. После триала аккаунт переходит на Free, пока вы не оформите подписку.'
-          : 'Starts with a 7-day Pro trial. After the trial your account goes to Free until you subscribe.'}
+          ? 'Сначала 14 дней Pro бесплатно. После триала аккаунт переходит на Free, пока вы не оформите подписку.'
+          : 'Starts with a 14-day Pro trial. After the trial your account goes to Free until you subscribe.'}
       </div>
 
       <div className="flex flex-col items-center gap-2">
         <button
           type="button"
-          disabled
-          title={lang === 'ru' ? 'Скоро' : 'Coming soon'}
-          className="btn-pill btn-primary px-8 w-full max-w-[280px] cursor-not-allowed opacity-70"
+          disabled={paying}
+          onClick={subscribe}
+          className="btn-pill btn-primary px-8 w-full max-w-[280px] disabled:opacity-70"
           data-testid="paywall-subscribe-btn"
         >
+          {paying && <Loader2 className="w-4 h-4 animate-spin" />}
           {lang === 'ru' ? 'Подписаться' : 'Subscribe'}
         </button>
         <span className="muted-text text-[11px]">
-          {lang === 'ru' ? 'Оплата скоро будет доступна' : 'Checkout coming soon'}
+          {lang === 'ru' ? 'Безопасная оплата через YooKassa' : 'Secure checkout via YooKassa'}
         </span>
+        {error && <span className="text-red-300 text-xs text-center max-w-sm">{error}</span>}
         <button
           onClick={close}
           className="btn-pill btn-ghost px-6 mt-1"

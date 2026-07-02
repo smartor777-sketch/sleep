@@ -40,7 +40,19 @@ Update `~/innercore/deploy/.env` for prod values:
 - `REDIS_URL=redis://redis:6379/0`
 - `S3_ENDPOINT=http://minio:9000`
 - `LLM_SERVICE_URL=http://llm_service:8001`
+- `YANDEX_CLIENT_ID=<client id from Yandex OAuth>`
+- `YANDEX_CLIENT_SECRET=<secret key from Yandex OAuth>`
+- `VK_CLIENT_ID=<web app id from VK ID>`
+- `VK_CLIENT_SECRET=<protected key from VK ID web app>`
+- `YOOKASSA_SHOP_ID=<shop id from YooKassa>`
+- `YOOKASSA_SECRET_KEY=<secret key from YooKassa>`
+- `YOOKASSA_RETURN_URL=https://app.innercore.art/profile`
+- If YooKassa fiscal receipts are enabled: `YOOKASSA_RECEIPTS_ENABLED=true`,
+  `YOOKASSA_VAT_CODE=<vat code>`, optionally `YOOKASSA_TAX_SYSTEM_CODE=<tax system code>`
 - Strong `JWT_SECRET_KEY`, `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`
+
+In YooKassa dashboard configure the webhook URL:
+`https://api.innercore.art/api/v1/billing/webhook`.
 
 First-time start (after images are available in GHCR):
 ```bash

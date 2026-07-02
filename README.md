@@ -98,6 +98,7 @@ Core endpoint groups:
 - `/api/v1/map` - Dream Map nodes, filters, details
 - `/api/v1/users/me` - profile data
 - `/api/v1/stats/me` - personal stats
+- `/api/v1/billing` - tariff status and YooKassa payments
 
 ## Development
 

@@ -66,6 +66,8 @@ _EXEMPT_PATHS = {
     "/", "/health", "/api/v1/app/version",
     # Internal service-to-service: bot_auth → backend (uses Bot secret auth instead)
     "/api/v1/auth/telegram/confirm",
+    # External payment provider webhook.
+    "/api/v1/billing/webhook",
 }
 
 

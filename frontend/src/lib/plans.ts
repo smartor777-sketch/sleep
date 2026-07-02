@@ -1,7 +1,5 @@
-// Pricing plans for the InnerCore web app. Kept as a TS constant rather than
-// fetched from the server because billing is not yet wired up — these values
-// are displayed in the paywall modal and on the marketing site, but no real
-// charge happens. Mirror this list in client/lib/utils/plans.dart.
+// Pricing plans for the InnerCore web app. Mirror this list in
+// client/lib/utils/plans.dart and backend/services/billing_service.py.
 
 export type PlanId = 'monthly' | 'quarter' | 'half' | 'yearly';
 

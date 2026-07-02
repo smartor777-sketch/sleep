@@ -276,6 +276,95 @@ class AuthService {
   }
 }
 
+  Future<VkInitResult> vkInit() async {
+    final response = await _api.post('/api/v1/auth/vk/init', body: const {});
+    if (response.statusCode != 200) throw Exception('vk_init_failed');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return VkInitResult(
+      state: data['state'] as String,
+      authUrl: data['auth_url'] as String,
+      expiresIn: data['expires_in'] as int? ?? 600,
+    );
+  }
+
+  Future<VkStatusResult> vkStatus(String state) async {
+    final response = await _api.get(
+      '/api/v1/auth/vk/status?state=${Uri.encodeQueryComponent(state)}',
+    );
+    if (response.statusCode != 200) throw Exception('vk_status_failed');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final status = data['status'] as String? ?? 'pending';
+    if (status == 'completed') {
+      final access = data['access_token'] as String?;
+      final refresh = data['refresh_token'] as String?;
+      if (access != null && refresh != null) {
+        await _storage.setTokens(accessToken: access, refreshToken: refresh);
+      }
+      return VkStatusResult(status: 'completed');
+    }
+    return VkStatusResult(status: status);
+  }
+
+  Future<YandexInitResult> yandexInit() async {
+    final response = await _api.post('/api/v1/auth/yandex/init', body: const {});
+    if (response.statusCode != 200) throw Exception('yandex_init_failed');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return YandexInitResult(
+      state: data['state'] as String,
+      authUrl: data['auth_url'] as String,
+      expiresIn: data['expires_in'] as int? ?? 600,
+    );
+  }
+
+  Future<YandexStatusResult> yandexStatus(String state) async {
+    final response = await _api.get(
+      '/api/v1/auth/yandex/status?state=${Uri.encodeQueryComponent(state)}',
+    );
+    if (response.statusCode != 200) throw Exception('yandex_status_failed');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final status = data['status'] as String? ?? 'pending';
+    if (status == 'completed') {
+      final access = data['access_token'] as String?;
+      final refresh = data['refresh_token'] as String?;
+      if (access != null && refresh != null) {
+        await _storage.setTokens(accessToken: access, refreshToken: refresh);
+      }
+      return YandexStatusResult(status: 'completed');
+    }
+    return YandexStatusResult(status: status);
+  }
+}
+
+class VkInitResult {
+  final String state;
+  final String authUrl;
+  final int expiresIn;
+
+  VkInitResult({required this.state, required this.authUrl, required this.expiresIn});
+}
+
+class VkStatusResult {
+  final String status;
+  VkStatusResult({required this.status});
+}
+
+class YandexInitResult {
+  final String state;
+  final String authUrl;
+  final int expiresIn;
+
+  YandexInitResult({
+    required this.state,
+    required this.authUrl,
+    required this.expiresIn,
+  });
+}
+
+class YandexStatusResult {
+  final String status;
+  YandexStatusResult({required this.status});
+}
+
 class TelegramInitResult {
   final String authToken;
   final String deeplink;

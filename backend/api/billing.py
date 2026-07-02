@@ -1,21 +1,19 @@
-"""API эндпоинты для биллинга"""
+"""API эндпоинты для биллинга."""
 
-import base64
-import json
 import logging
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from dependencies import DatabaseSession, CurrentUser
+from dependencies import CurrentUser, DatabaseSession
 from schemas.billing import (
-    VerifyPurchaseRequest,
-    VerifyPurchaseResponse,
     BillingStatusResponse,
+    CreatePaymentRequest,
+    CreatePaymentResponse,
 )
 from services.billing_service import (
-    verify_purchase,
+    create_payment,
     get_billing_status,
-    handle_rtdn_notification,
+    handle_yookassa_webhook,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,16 +21,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["billing"])
 
 
-@router.post("/verify-purchase", response_model=VerifyPurchaseResponse)
-async def verify_purchase_endpoint(
-    data: VerifyPurchaseRequest,
+@router.post("/create-payment", response_model=CreatePaymentResponse)
+async def create_payment_endpoint(
+    data: CreatePaymentRequest,
     db: DatabaseSession,
     current_user: CurrentUser,
 ):
-    """Verify a Google Play purchase and activate subscription."""
+    """Create a YooKassa redirect payment for the selected Pro plan."""
     try:
-        sub = await verify_purchase(
-            db, current_user, data.purchase_token, data.product_id
+        return await create_payment(
+            db,
+            current_user,
+            data.plan_id,
+            str(data.return_url) if data.return_url else None,
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
         )
     except RuntimeError as e:
         raise HTTPException(
@@ -40,16 +46,11 @@ async def verify_purchase_endpoint(
             detail=str(e),
         )
     except Exception:
-        logger.exception("Failed to verify purchase")
+        logger.exception("Failed to create YooKassa payment")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="purchase_verification_failed",
+            detail="payment_creation_failed",
         )
-    return VerifyPurchaseResponse(
-        status=sub.status,
-        product_id=sub.product_id,
-        expires_at=sub.expires_at,
-    )
 
 
 @router.get("/status", response_model=BillingStatusResponse)
@@ -62,21 +63,24 @@ async def billing_status(
 
 
 @router.post("/webhook")
-async def google_play_webhook(request: Request, db: DatabaseSession):
+async def yookassa_webhook(request: Request, db: DatabaseSession):
     """
-    Google Play Real-Time Developer Notification (RTDN) webhook.
-    Google sends a Pub/Sub message with base64-encoded data.
+    YooKassa webhook endpoint.
+
+    The incoming JSON is not trusted as an entitlement source. The service
+    re-fetches the payment from YooKassa before activating access.
     """
     try:
-        body = await request.json()
-        message = body.get("message", {})
-        data_b64 = message.get("data", "")
-        data_bytes = base64.b64decode(data_b64)
-        message_data = json.loads(data_bytes)
+        payload = await request.json()
     except Exception:
-        logger.exception("RTDN: failed to parse webhook payload")
-        # Return 200 so Google doesn't retry bad payloads forever
+        logger.exception("YooKassa webhook: failed to parse payload")
         return {"status": "parse_error"}
 
-    await handle_rtdn_notification(db, message_data)
-    return {"status": "ok"}
+    try:
+        return await handle_yookassa_webhook(db, payload)
+    except RuntimeError:
+        logger.exception("YooKassa webhook: billing provider is not configured")
+        return {"status": "provider_not_configured"}
+    except Exception:
+        logger.exception("YooKassa webhook: failed to handle notification")
+        return {"status": "error"}

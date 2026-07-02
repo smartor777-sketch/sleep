@@ -84,9 +84,22 @@ class Settings(BaseSettings):
     transcriptions_api_key: SecretStr | None = None
     transcriptions_model: str = "whisper-1"
     
-    # Google Play Billing
-    google_play_package_name: str = "art.innercore.app"
-    google_play_service_account_json: str | None = None
+    # Yandex OAuth
+    yandex_client_id: str | None = None
+    yandex_client_secret: SecretStr | None = None
+
+    # VK ID OAuth (web app credentials)
+    vk_client_id: str | None = None
+    vk_client_secret: SecretStr | None = None
+
+    # YooKassa Billing
+    yookassa_shop_id: str | None = None
+    yookassa_secret_key: SecretStr | None = None
+    yookassa_api_url: str = "https://api.yookassa.ru/v3"
+    yookassa_return_url: str = "https://app.innercore.art/profile"
+    yookassa_receipts_enabled: bool = False
+    yookassa_vat_code: int = 1
+    yookassa_tax_system_code: int | None = None
 
     # Google Speech-to-Text
     google_application_credentials: str | None = None

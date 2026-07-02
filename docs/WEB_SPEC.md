@@ -7,10 +7,9 @@
 > Документ написан стек-агностично: можно реализовать на React / Vue / Svelte / Next и т.д.
 > Везде, где упоминается «мобильный клиент», имеется в виду текущее Flutter-приложение в `client/`.
 >
-> **Статус монетизации.** Google Play Billing в мобильном клиенте отключён (закомментирован,
-> см. метки `GOOGLE PLAY BILLING (disabled)` в коде). Серверные механики тарифов/лимитов
-> **остаются рабочими** (`/billing/status`, лимиты FREE). Способ оплаты для веба будет выбран
-> позже (ЮKassa/Stripe/др.) — пока веб показывает статус и paywall-заглушку.
+> **Статус монетизации.** Единственный платёжный провайдер — YooKassa.
+> Web и mobile создают redirect-платёж через `/billing/create-payment`;
+> сервер обновляет доступ по webhook `/billing/webhook`.
 
 ---
 
@@ -642,18 +641,18 @@ WebSocket: `GET /api/v1/map/{user_id}/stream?token=<access_token>&n_neighbors=..
 }
 ```
 - `hasFullAccess` (доступ к Pro-фичам) = `sub_type` ∈ {`pro`, `trial`}.
-- Этот эндпоинт **работает без Google Play** — используйте его как источник истины о тарифе.
+- Этот эндпоинт — источник истины о тарифе для web и mobile.
 
 ### 10.2 Модель тарифов
 
 | Тариф | Запись снов | Анализы | Чат по сну | Карта | Память (user.md) |
 |---|---|---|---|---|---|
 | FREE | ∞ | 2 / неделя | ❌ (Paywall) | ❌ (Paywall) | ❌ |
-| TRIAL (7 дней) | ∞ | ∞ | ✅ | ✅ | ✅ |
+| TRIAL (14 дней) | ∞ | ∞ | ✅ | ✅ | ✅ |
 | PRO | ∞ | ∞ | ✅ | ✅ | ✅ |
 
 - Недельный счётчик анализов для FREE сбрасывается раз в 7 дней (серверная логика).
-- TRIAL выдаётся при первой регистрации (email/Google); существующим — нет.
+- TRIAL выдаётся при первой регистрации (email/Google/Telegram); существующим — нет.
 
 ### 10.3 Триггеры Paywall (для FREE)
 
@@ -665,16 +664,18 @@ WebSocket: `GET /api/v1/map/{user_id}/stream?token=<access_token>&n_neighbors=..
 ```
 Фичи **видны** в интерфейсе, но при клике показывают Paywall (не скрыты).
 
-### 10.4 Оплата на вебе (пока не реализована)
+### 10.4 Оплата через YooKassa
 
-- Мобильная покупка через Google Play **отключена** (в вебе она и не применима).
-- Серверные эндпоинты `POST /billing/verify-purchase` и `POST /billing/webhook`
-  специфичны для Google Play (`verify-purchase` без ключей вернёт `503`). Для веба они **не используются**.
-- **Что делает веб сейчас:** показывает `billing/status`, гейтит фичи, на Paywall — заглушку
-  «оплата скоро будет доступна».
-- **Точка расширения:** при выборе провайдера (ЮKassa/Stripe/…) добавить на бэке эндпоинт
-  верификации платежа, который проставляет `users.sub_type='pro'` и `sub_expires_at`
-  (по аналогии с `verify_purchase` в `backend/services/billing_service.py`), и на фронте — флоу оплаты.
+- `POST /api/v1/billing/create-payment` (Bearer):
+  `{ "plan_id": "monthly | quarter | half | yearly", "return_url": "https://..." }`
+  → `{ "payment_id", "status", "plan_id", "confirmation_url", "expires_at" }`.
+- Клиент открывает `confirmation_url`. Цена и длительность плана берутся только с сервера.
+- `POST /api/v1/billing/webhook` принимает уведомления YooKassa. Сервер не доверяет входящему JSON
+  как источнику доступа: перед активацией он заново получает платёж из YooKassa по `payment_id`.
+- При `payment.succeeded` сервер создаёт/активирует запись `subscriptions` и проставляет
+  `users.sub_type='pro'`, `users.sub_expires_at`.
+- `/messages` и `/map` дополнительно проверяют `sub_type` на сервере и возвращают `402 premium_required`
+  для FREE-пользователей.
 
 ---
 
@@ -718,7 +719,7 @@ WebSocket: `GET /api/v1/map/{user_id}/stream?token=<access_token>&n_neighbors=..
 | `analysis_chat_screen` | `/dream/:id` | Сон + анализ (кнопка/прогресс) + чат |
 | `dream_map_screen` | `/map` | Карта символов |
 | `profile_screen` | `/profile` | Профиль, тариф, настройки, привязка аккаунта |
-| `paywall_screen` | `/paywall` (модалка) | Тарифы (сейчас — заглушка оплаты) |
+| `paywall_screen` | `/paywall` (модалка) | Тарифы и старт платежа YooKassa |
 
 Главный экран (`main_chat_screen`) совмещает: ленту снов (сетка карточек), строку создания сна
 (текст + голос), поиск и нижнюю навигацию (сны / карта / профиль).
@@ -740,7 +741,7 @@ WebSocket: `GET /api/v1/map/{user_id}/stream?token=<access_token>&n_neighbors=..
 - [ ] Карта снов: узлы/кластеры/фильтры, деталь символа, «обновить».
 - [ ] Статистика профиля.
 - [ ] Голосовой ввод → транскрипция → текст в поле сна.
-- [ ] Тариф из `billing/status`, гейтинг чат/карта/анализ, Paywall-заглушка.
+- [ ] Тариф из `billing/status`, серверный гейтинг чат/карта/анализ, Paywall → YooKassa.
 - [ ] Локализация RU + EN.
 - [ ] Обработка `426` (предложить обновиться / поднять версию веба).
 
@@ -795,8 +796,8 @@ WebSocket: `GET /api/v1/map/{user_id}/stream?token=<access_token>&n_neighbors=..
 | GET | `/api/v1/stats/me` | ✓ | Статистика |
 | POST | `/api/v1/audio/transcriptions` | ✓ | Транскрипция аудио (multipart) |
 | GET | `/api/v1/billing/status` | ✓ | Статус тарифа/лимитов |
-| POST | `/api/v1/billing/verify-purchase` | ✓ | (Google Play, на вебе не используется → 503 без ключей) |
-| POST | `/api/v1/billing/webhook` | — | (Google Play RTDN, на вебе не используется) |
+| POST | `/api/v1/billing/create-payment` | ✓ | Создать redirect-платёж YooKassa |
+| POST | `/api/v1/billing/webhook` | — | YooKassa webhook |
 
 ---
 

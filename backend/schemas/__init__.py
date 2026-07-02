@@ -63,10 +63,18 @@ from .auth import (
     TelegramInitResponse,
     TelegramStatusResponse,
     TelegramConfirmRequest,
+    YandexInitResponse,
+    YandexExchangeRequest,
+    YandexExchangeResponse,
+    YandexStatusResponse,
+    VkInitResponse,
+    VkExchangeRequest,
+    VkExchangeResponse,
+    VkStatusResponse,
 )
 from .billing import (
-    VerifyPurchaseRequest,
-    VerifyPurchaseResponse,
+    CreatePaymentRequest,
+    CreatePaymentResponse,
     BillingStatusResponse,
 )
 from .stats import StatsResponse
@@ -129,9 +137,17 @@ __all__ = [
     "TelegramInitResponse",
     "TelegramStatusResponse",
     "TelegramConfirmRequest",
+    "YandexInitResponse",
+    "YandexExchangeRequest",
+    "YandexExchangeResponse",
+    "YandexStatusResponse",
+    "VkInitResponse",
+    "VkExchangeRequest",
+    "VkExchangeResponse",
+    "VkStatusResponse",
     # Billing
-    "VerifyPurchaseRequest",
-    "VerifyPurchaseResponse",
+    "CreatePaymentRequest",
+    "CreatePaymentResponse",
     "BillingStatusResponse",
     "StatsResponse",
 ]

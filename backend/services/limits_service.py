@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user import User
+from services.billing_service import has_full_access
 
 # Free: 2 analyses per week
 FREE_ANALYSES_PER_WEEK = 2
@@ -16,15 +17,7 @@ async def check_analysis_allowed(db: AsyncSession, user: User) -> bool:
     Pro/trial users have unlimited access.
     Free users get FREE_ANALYSES_PER_WEEK per rolling 7-day window.
     """
-    # Trial expired? Downgrade
-    if user.sub_type == "trial" and user.trial_started_at:
-        elapsed = (datetime.now(timezone.utc) - user.trial_started_at).days
-        if elapsed >= 7:
-            user.sub_type = "free"
-            user.trial_started_at = None
-            await db.commit()
-
-    if user.sub_type in ("pro", "trial"):
+    if await has_full_access(db, user):
         return True
 
     # Free tier — weekly counter

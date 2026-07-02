@@ -175,7 +175,7 @@ Vite читает `import.meta.env`. Используются:
 | messages (3 вызова) | ✅ полностью | — |
 | map (2 вызова) | ✅ полностью | — |
 | stats (1 вызов) | ✅ полностью | — |
-| billing (1 вызов) | ✅ `/billing/status` | бэк дополнительно умеет `/billing/verify-purchase`, `/billing/webhook` — для веба не нужны (Google Play only) |
+| billing | ✅ `/billing/status`, `/billing/create-payment` | `/billing/webhook` вызывается YooKassa |
 | audio (1 вызов) | ✅ полностью | — |
 | `/api/v1/app/version` | ✅ есть | реагирует через middleware: `X-App-Version` → 426 при несовпадении |
 
@@ -361,7 +361,7 @@ Vite читает `import.meta.env`. Используются:
 - После успешного login/register — `mergeAnonymous(device_id)` (fail-soft).
 
 ### PaywallModal
-- Чисто визуальный экран. **Текст в i18n уже говорит «Оплата скоро будет доступна»** — биллинг через веб пока не реализован (это совпадает с нашим решением «механики оплаты оставляем, способы выберем позже»).
+- Экран выбора тарифа. Кнопка подписки создаёт YooKassa payment через `/billing/create-payment` и открывает `confirmation_url`.
 
 ---
 
@@ -372,7 +372,7 @@ Vite читает `import.meta.env`. Используются:
 - **UI для reset-password.** `api.resetPassword(token, new_password)` уже есть; нет маршрута `/reset-password?token=…` с формой.
 - **Email-верификация по ссылке** (`GET /auth/verify-email?token=`) — фронт использует только 6-значный код.
 - **Apple Sign-In для веба** — требует Apple Service ID + Sign in with Apple JS SDK. На бэке всё готово (`POST /auth/link` принимает `provider='apple'`), нужен только Apple Developer config.
-- Покупки/подписки — `verify-purchase` / `webhook` это территория мобайла, веб только показывает `billing/status`.
+- Покупки/подписки — web и mobile создают YooKassa redirect payment; webhook обрабатывает backend.
 
 ---
 

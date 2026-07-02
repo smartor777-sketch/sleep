@@ -158,7 +158,7 @@ async function del<T>(url: string) {
 // ===== Endpoints =====
 import {
   User, Dream, DreamListResponse, Analysis, Message,
-  DreamMap, SymbolDetail, BillingStatus, UserStats, LinkResponse,
+  DreamMap, SymbolDetail, BillingStatus, PaymentCreateResponse, UserStats, LinkResponse,
 } from './types';
 
 export const api = {
@@ -235,6 +235,48 @@ export const api = {
       token_type?: string;
     }>(`/api/v1/auth/telegram/status?auth_token=${encodeURIComponent(auth_token)}`, { __skipAuth: true } as any),
 
+  yandexInit: () =>
+    post<{ state: string; auth_url: string; expires_in: number }>(
+      '/api/v1/auth/yandex/init',
+      {},
+      { __skipAuth: true } as any
+    ),
+
+  yandexExchange: (code: string, state: string) =>
+    post<{ access_token: string; refresh_token: string; token_type: string }>(
+      '/api/v1/auth/yandex/exchange',
+      { code, state },
+      { __skipAuth: true } as any
+    ),
+
+  yandexStatus: (state: string) =>
+    get<{
+      status: 'pending' | 'completed' | 'expired';
+      access_token?: string;
+      refresh_token?: string;
+    }>(`/api/v1/auth/yandex/status?state=${encodeURIComponent(state)}`, { __skipAuth: true } as any),
+
+  vkInit: () =>
+    post<{ state: string; auth_url: string; expires_in: number }>(
+      '/api/v1/auth/vk/init',
+      {},
+      { __skipAuth: true } as any
+    ),
+
+  vkExchange: (code: string, state: string) =>
+    post<{ access_token: string; refresh_token: string; token_type: string }>(
+      '/api/v1/auth/vk/exchange',
+      { code, state },
+      { __skipAuth: true } as any
+    ),
+
+  vkStatus: (state: string) =>
+    get<{
+      status: 'pending' | 'completed' | 'expired';
+      access_token?: string;
+      refresh_token?: string;
+    }>(`/api/v1/auth/vk/status?state=${encodeURIComponent(state)}`, { __skipAuth: true } as any),
+
   linkProvider: (provider: 'google' | 'apple', id_token: string) =>
     post<LinkResponse>('/api/v1/auth/link', { provider, id_token }),
 
@@ -305,6 +347,8 @@ export const api = {
   // ---- Stats / Billing ----
   stats: () => get<UserStats>('/api/v1/stats/me'),
   billingStatus: () => get<BillingStatus>('/api/v1/billing/status'),
+  createPayment: (plan_id: string, return_url?: string) =>
+    post<PaymentCreateResponse>('/api/v1/billing/create-payment', { plan_id, return_url }),
 
   // ---- Audio ----
   transcribe: async (file: Blob, language?: string) => {

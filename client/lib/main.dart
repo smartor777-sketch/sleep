@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'config.dart';
 import 'l10n/app_localizations.dart';
 import 'version.dart';
-import 'models/user_me.dart';
 import 'screens/main_chat_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/startup_splash_screen.dart';

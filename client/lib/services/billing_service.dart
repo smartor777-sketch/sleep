@@ -1,9 +1,5 @@
 import 'dart:convert';
 
-// --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
-// import 'dart:async';
-// import 'package:in_app_purchase/in_app_purchase.dart';
-
 import 'api_client.dart';
 
 class BillingStatus {
@@ -34,72 +30,59 @@ class BillingStatus {
   }
 }
 
+class PaymentCreateResult {
+  final String paymentId;
+  final String status;
+  final String planId;
+  final String confirmationUrl;
+  final String? expiresAt;
+
+  PaymentCreateResult({
+    required this.paymentId,
+    required this.status,
+    required this.planId,
+    required this.confirmationUrl,
+    this.expiresAt,
+  });
+
+  factory PaymentCreateResult.fromJson(Map<String, dynamic> json) {
+    return PaymentCreateResult(
+      paymentId: json['payment_id'] as String,
+      status: json['status'] as String? ?? 'pending',
+      planId: json['plan_id'] as String,
+      confirmationUrl: json['confirmation_url'] as String,
+      expiresAt: json['expires_at'] as String?,
+    );
+  }
+}
+
 class BillingService {
   BillingService(this._api);
 
   final ApiClient _api;
 
-  // --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
-  // final InAppPurchase _iap = InAppPurchase.instance;
-  //
-  // static const _productIds = <String>{
-  //   'pro_weekly',
-  //   'pro_monthly',
-  //   'pro_yearly',
-  // };
-  //
-  // StreamSubscription<List<PurchaseDetails>>? _purchaseSub;
-  //
-  // /// Callback set by BillingProvider to handle purchase updates.
-  // void Function(List<PurchaseDetails>)? onPurchaseUpdate;
-  //
-  // Future<bool> isAvailable() => _iap.isAvailable();
+  Future<void> initialize() async {}
 
-  /// No-op while Google Play Billing is disabled.
-  Future<void> initialize() async {
-    // --- GOOGLE PLAY BILLING (disabled) ---
-    // _purchaseSub = _iap.purchaseStream.listen(_handlePurchaseUpdate);
-  }
+  void dispose() {}
 
-  void dispose() {
-    // --- GOOGLE PLAY BILLING (disabled) ---
-    // _purchaseSub?.cancel();
-  }
-
-  // --- GOOGLE PLAY BILLING (disabled until re-enabled; see docs/WEB_SPEC.md) ---
-  // Future<List<ProductDetails>> loadProducts() async {
-  //   final response = await _iap.queryProductDetails(_productIds);
-  //   return response.productDetails;
-  // }
-  //
-  // Future<void> buy(ProductDetails product) async {
-  //   final param = PurchaseParam(productDetails: product);
-  //   await _iap.buyNonConsumable(purchaseParam: param);
-  // }
-  //
-  // Future<void> restorePurchases() async {
-  //   await _iap.restorePurchases();
-  // }
-
-  /// Verify purchase on our backend. Kept for future payment providers.
-  Future<Map<String, dynamic>> verifyPurchase({
-    required String purchaseToken,
-    required String productId,
+  Future<PaymentCreateResult> createPayment({
+    required String planId,
+    String? returnUrl,
   }) async {
+    final body = <String, Object?>{'plan_id': planId};
+    if (returnUrl != null) body['return_url'] = returnUrl;
     final response = await _api.post(
-      '/api/v1/billing/verify-purchase',
-      body: {
-        'purchase_token': purchaseToken,
-        'product_id': productId,
-      },
+      '/api/v1/billing/create-payment',
+      body: body,
     );
     if (response.statusCode != 200) {
-      throw Exception('purchase_verification_failed');
+      throw Exception('payment_creation_failed');
     }
-    return jsonDecode(response.body) as Map<String, dynamic>;
+    return PaymentCreateResult.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 
-  /// Get billing status from backend.
   Future<BillingStatus> getStatus() async {
     final response = await _api.get('/api/v1/billing/status');
     if (response.statusCode != 200) {
@@ -109,9 +92,4 @@ class BillingService {
       jsonDecode(response.body) as Map<String, dynamic>,
     );
   }
-
-  // --- GOOGLE PLAY BILLING (disabled) ---
-  // void _handlePurchaseUpdate(List<PurchaseDetails> purchases) {
-  //   onPurchaseUpdate?.call(purchases);
-  // }
 }

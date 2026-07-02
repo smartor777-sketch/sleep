@@ -6,6 +6,7 @@ import 'package:client/services/analysis_service.dart';
 import 'package:client/services/api_client.dart';
 import 'package:client/services/api_exception.dart';
 import 'package:client/services/auth_service.dart';
+import 'package:client/services/billing_service.dart';
 import 'package:client/services/dreams_service.dart';
 import 'package:client/services/messages_service.dart';
 import 'package:client/services/secure_storage_service.dart';
@@ -307,6 +308,36 @@ void main() {
       expect(requests.first.headers['Authorization'], 'Bearer old-access');
       expect(requests.last.headers['Authorization'], 'Bearer new-access');
       await tempDir.delete(recursive: true);
+    });
+  });
+
+  group('BillingService', () {
+    test('creates YooKassa payment and parses confirmation url', () async {
+      late http.Request captured;
+      final apiClient = ApiClient(
+        MemoryStorage(accessToken: 'token-1'),
+        httpClient: MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode({
+              'payment_id': 'payment-1',
+              'status': 'pending',
+              'plan_id': 'yearly',
+              'confirmation_url': 'https://yookassa.example/pay',
+              'expires_at': null,
+            }),
+            200,
+          );
+        }),
+      );
+      final service = BillingService(apiClient);
+
+      final payment = await service.createPayment(planId: 'yearly');
+
+      expect(captured.url.path, '/api/v1/billing/create-payment');
+      expect(captured.body, jsonEncode({'plan_id': 'yearly'}));
+      expect(payment.paymentId, 'payment-1');
+      expect(payment.confirmationUrl, 'https://yookassa.example/pay');
     });
   });
 

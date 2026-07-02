@@ -16,7 +16,7 @@ from tests.helpers import FakeDb
 
 @pytest.mark.asyncio
 async def test_analyses_api_endpoints(monkeypatch):
-    user = SimpleNamespace(id=uuid4())
+    user = SimpleNamespace(id=uuid4(), sub_type="pro", sub_expires_at=None)
     dream = SimpleNamespace(id=uuid4())
     analysis = SimpleNamespace(
         id=uuid4(),
@@ -97,7 +97,7 @@ async def test_analyses_api_endpoints(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_messages_and_stats_api_endpoints(monkeypatch):
-    user = SimpleNamespace(id=uuid4())
+    user = SimpleNamespace(id=uuid4(), sub_type="pro", sub_expires_at=None)
     dream = SimpleNamespace(id=uuid4())
     msg = AnalysisMessage(
         id=uuid4(),
@@ -146,7 +146,7 @@ async def test_messages_and_stats_api_endpoints(monkeypatch):
     assert listing.total == 1
 
     monkeypatch.setattr(messages_api, "get_message_task_status", lambda task_id: {"task_id": task_id, "status": "SUCCESS"})
-    assert (await messages_api.get_message_task("task-123", user))["status"] == "SUCCESS"
+    assert (await messages_api.get_message_task("task-123", user, FakeDb()))["status"] == "SUCCESS"
 
     async def fake_get_user_stats(_db, _current_user):
         return {"total_dreams": 1, "streak_days": 0, "dreams_by_weekday": {}, "dreams_last_14_days": [], "archetypes_top": [], "avg_time_of_day": None}

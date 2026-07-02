@@ -7,9 +7,10 @@ import 'package:provider/provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/dream.dart';
-import '../providers/dream_map_provider.dart';
 import '../providers/analysis_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/billing_provider.dart';
+import '../providers/dream_map_provider.dart';
 import '../providers/dreams_provider.dart';
 import '../services/api_exception.dart';
 import '../services/voice_input_service.dart';
@@ -18,6 +19,7 @@ import '../widgets/dream_card.dart';
 import '../widgets/message_menu.dart';
 import 'analysis_chat_screen.dart';
 import 'dream_map_screen.dart';
+import 'paywall_screen.dart';
 import 'profile_screen.dart';
 
 class MainChatScreen extends StatefulWidget {
@@ -211,6 +213,10 @@ class _MainChatScreenState extends State<MainChatScreen> {
   }
 
   void _showMap() {
+    if (!context.read<BillingProvider>().hasFullAccess) {
+      PaywallScreen.show(context);
+      return;
+    }
     setState(() {
       _currentTab = _tabMap;
       _showSearch = false;
@@ -240,11 +246,15 @@ class _MainChatScreenState extends State<MainChatScreen> {
     final l10n = AppLocalizations.of(context)!;
     try {
       final result = await _voiceService.stopAndTranscribe(
-        languageCode: Localizations.localeOf(context).languageCode.toLowerCase(),
+        languageCode: Localizations.localeOf(
+          context,
+        ).languageCode.toLowerCase(),
       );
       if (!mounted || result == null) return;
       final existing = _controller.text.trim();
-      final combined = existing.isEmpty ? result.text : '$existing ${result.text}';
+      final combined = existing.isEmpty
+          ? result.text
+          : '$existing ${result.text}';
       setState(() {
         _controller.text = combined;
         _controller.selection = TextSelection.fromPosition(
@@ -582,7 +592,9 @@ class _MainChatScreenState extends State<MainChatScreen> {
                 children: [
                   IconButton(
                     icon: Icon(
-                      _voiceService.isRecording ? Icons.stop_rounded : Icons.mic,
+                      _voiceService.isRecording
+                          ? Icons.stop_rounded
+                          : Icons.mic,
                       color: _accentColor,
                     ),
                     onPressed: _submittingDream ? null : _toggleRecording,
@@ -631,7 +643,9 @@ class _MainChatScreenState extends State<MainChatScreen> {
                               color: Colors.white,
                               size: 20,
                             ),
-                      onPressed: _voiceService.isTranscribing ? null : _sendMessage,
+                      onPressed: _voiceService.isTranscribing
+                          ? null
+                          : _sendMessage,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(
                         minWidth: 36,

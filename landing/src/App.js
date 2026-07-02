@@ -486,40 +486,19 @@ const FAQItem = ({ q, a, lang, i }) => (
   </details>
 );
 
-// Pricing tiers — mirror of frontend/src/lib/plans.ts. Update both together.
-const PRICING_PLANS = [
-  { months: 1,  rub: 749,  usd: 10, highlight: null },
-  { months: 3,  rub: 1899, usd: 25, highlight: 'popular' },
-  { months: 6,  rub: 2999, usd: 40, highlight: null },
-  { months: 12, rub: 5249, usd: 70, highlight: 'best' },
-].map((p) => {
-  const fullRub = 749 * p.months;
-  const discountPct = Math.round(((fullRub - p.rub) / fullRub) * 100);
-  return {
-    ...p,
-    perMonthRub: Math.round(p.rub / p.months),
-    perMonthUsd: Math.round((p.usd / p.months) * 100) / 100,
-    discountPct,
-  };
-});
-
 const PricingSection = () => {
   const { lang } = useLang();
   const isRu = lang === 'ru';
-  const defaultId = (PRICING_PLANS.find((x) => x.highlight === 'best') || PRICING_PLANS[PRICING_PLANS.length - 1]).months;
-  const [selected, setSelected] = useState(defaultId);
-  const periodLabel = (n) => {
-    if (isRu) {
-      if (n === 1) return '1 месяц';
-      if (n === 3) return '3 месяца';
-      if (n === 6) return '6 месяцев';
-      return '12 месяцев';
-    }
-    return n === 1 ? '1 month' : `${n} months`;
-  };
-  const fmt = (rub, usd) => isRu ? `${rub.toLocaleString('ru-RU')} ₽` : `$${usd}`;
-  const perMonth = (rub, usd) =>
-    isRu ? `${rub.toLocaleString('ru-RU')} ₽/мес` : `$${usd}/mo`;
+
+  const features = isRu
+    ? [
+        { label: 'Free', items: ['До 5 записей в день', 'Дневник снов', 'Базовый анализ'] },
+        { label: 'Pro', items: ['Без лимитов', 'Глубокий анализ Юнга', 'Карта снов', 'Приоритетная обработка'] },
+      ]
+    : [
+        { label: 'Free', items: ['Up to 5 entries per day', 'Dream journal', 'Basic analysis'] },
+        { label: 'Pro', items: ['Unlimited entries', 'Deep Jungian analysis', 'Dream map', 'Priority processing'] },
+      ];
 
   return (
     <Section id="pricing" bg="ink" className="fade-in" testid="section-pricing">
@@ -529,112 +508,53 @@ const PricingSection = () => {
             {isRu ? 'Тарифы' : 'Pricing'}
           </div>
           <h2 className="font-serif text-[33px] sm:text-[45px] md:text-[57px] leading-[1.04] tracking-[-0.01em]">
-            {isRu ? 'Семь дней Pro в подарок' : 'Seven days of Pro on us'}
+            {isRu ? '14 дней Pro в подарок' : '14 days of Pro on us'}
           </h2>
           <p className="mt-5 text-[16px] md:text-[18px] max-w-[640px]" style={{ color: 'var(--cream-dim)' }}>
             {isRu
-              ? 'Регистрируешься — получаешь неделю безлимитного Pro. Дальше Free или подписка, выбор за тобой. Цены ниже — что мы предложим, когда оплата откроется.'
-              : 'Sign up and you get a week of unlimited Pro. After that — Free or a subscription, your call. Below is what we will offer when checkout opens.'}
+              ? 'Регистрируешься — получаешь 14 дней безлимитного Pro. Дальше Free или подписка, выбор за тобой.'
+              : 'Sign up and you get 14 days of unlimited Pro. After that — Free or a subscription, your call.'}
           </p>
         </div>
-        <div
-          role="radiogroup"
-          aria-label={isRu ? 'Выбрать тариф' : 'Choose a plan'}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 max-w-[820px]"
-        >
-          {PRICING_PLANS.map((p) => {
-            const isBest = p.highlight === 'best';
-            const isPopular = p.highlight === 'popular';
-            const isSelected = selected === p.months;
-            const accent = 'var(--copper)';
-            return (
-              <button
-                type="button"
-                role="radio"
-                aria-checked={isSelected}
-                key={p.months}
-                onClick={() => setSelected(p.months)}
-                data-testid={`pricing-${p.months}m`}
-                className="relative rounded-[2px] px-5 py-6 flex flex-col text-left transition-colors focus:outline-none focus-visible:ring-2"
-                style={{
-                  background: isSelected
-                    ? 'rgba(184, 115, 51, 0.10)'
-                    : 'rgba(232, 225, 212, 0.03)',
-                  borderColor: isSelected
-                    ? accent
-                    : isBest
-                      ? accent
-                      : 'var(--hairline)',
-                  borderWidth: isSelected || isBest ? 2 : 1,
-                  borderStyle: 'solid',
-                }}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 max-w-[640px]">
+          {features.map((tier) => (
+            <div
+              key={tier.label}
+              className="rounded-[2px] px-5 py-6"
+              style={{
+                background: tier.label === 'Pro' ? 'rgba(184, 115, 51, 0.08)' : 'rgba(232, 225, 212, 0.03)',
+                border: `1px solid ${tier.label === 'Pro' ? 'var(--copper)' : 'var(--hairline)'}`,
+              }}
+            >
+              <div
+                className="text-[11px] tracking-[0.22em] uppercase mb-4"
+                style={{ color: tier.label === 'Pro' ? 'var(--copper)' : 'var(--stone)' }}
               >
-                {isBest && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.18em] uppercase" style={{ background: accent, color: 'var(--ink)' }}>
-                    {isRu ? 'Выгода' : 'Best value'}
-                  </div>
-                )}
-                {isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[10px] tracking-[0.18em] uppercase" style={{ background: 'var(--ink-3)', color: 'var(--cream)', border: '1px solid var(--hairline)' }}>
-                    {isRu ? 'Популярно' : 'Popular'}
-                  </div>
-                )}
-                <div className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="mt-1 w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors"
-                    style={{
-                      border: `2px solid ${isSelected ? accent : 'var(--hairline-strong)'}`,
-                    }}
-                  >
-                    {isSelected && (
-                      <span
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{ background: accent }}
-                      />
-                    )}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] tracking-[0.16em] uppercase mb-2" style={{ color: 'var(--stone)' }}>
-                      {periodLabel(p.months)}
-                    </div>
-                    <div className="font-serif text-[30px] sm:text-[36px] leading-[1.04] tabular-nums" style={{ color: 'var(--cream)' }}>
-                      {fmt(p.rub, p.usd)}
-                    </div>
-                    {p.months > 1 && (
-                      <div className="mt-1 text-[12px] tabular-nums" style={{ color: 'var(--stone)' }}>
-                        {perMonth(p.perMonthRub, p.perMonthUsd)}
-                        {p.discountPct > 0 && (
-                          <span className="ml-2" style={{ color: 'var(--copper-bright)' }}>
-                            −{p.discountPct}%
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                {tier.label}
+              </div>
+              <ul className="space-y-2">
+                {tier.items.map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-[14px] md:text-[15px]" style={{ color: 'var(--cream-dim)' }}>
+                    <span style={{ color: 'var(--copper)', lineHeight: '1.6' }}>·</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
-        <div className="mt-10 max-w-[820px] flex flex-col items-start gap-3">
-          <button
-            type="button"
-            disabled
-            title={isRu ? 'Скоро' : 'Coming soon'}
-            className="btn-copper opacity-60 cursor-not-allowed"
-            data-testid="pricing-subscribe-cta"
-          >
-            {isRu ? 'Подписаться' : 'Subscribe'}
-          </button>
+
+        <div className="mt-10 flex flex-col items-start gap-3">
+          <a href={APP_URL} className="btn-copper" data-testid="pricing-subscribe-cta">
+            {isRu ? 'Начать бесплатно' : 'Start for free'}
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 7 H12 M8 3 L12 7 L8 11" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+          </a>
           <div className="text-[12px] tracking-[0.04em]" style={{ color: 'var(--stone)' }}>
-            {isRu ? 'Оплата скоро будет доступна.' : 'Checkout coming soon.'}
+            {isRu ? 'Никаких автосписаний без твоего подтверждения.' : 'No silent auto-charges — ever.'}
           </div>
-        </div>
-        <div className="mt-8 text-[13px] md:text-[14px] max-w-[760px]" style={{ color: 'var(--stone)' }}>
-          {isRu
-            ? 'После триала аккаунт автоматически переходит на Free, пока ты сам не оформишь подписку. Никаких автосписаний без твоего подтверждения.'
-            : 'After the trial your account drops to Free until you subscribe yourself. No silent auto-charges.'}
         </div>
       </div>
     </Section>

@@ -319,14 +319,21 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               SizedBox(
                 height: 52,
-                child: OutlinedButton.icon(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0077FF),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
                   onPressed: (_vkBusy || _vkWaiting || _googleBusy || _tgWaiting || _yandexBusy || _yandexWaiting)
                       ? null
                       : _signInVk,
                   icon: _vkBusy
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('VK', style: TextStyle(color: Color(0xFF0077FF), fontWeight: FontWeight.bold, fontSize: 14)),
-                  label: const Text('Войти через VK'),
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const _VkLogo(),
+                  label: const Text('Войти с VK ID', style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -357,25 +364,21 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               SizedBox(
                 height: 52,
-                child: OutlinedButton.icon(
-                  onPressed: (_yandexBusy || _yandexWaiting || _googleBusy || _tgWaiting)
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFC3F1D),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  onPressed: (_yandexBusy || _yandexWaiting || _googleBusy || _tgWaiting || _vkBusy || _vkWaiting)
                       ? null
                       : _signInYandex,
                   icon: _yandexBusy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text(
-                          'Я',
-                          style: TextStyle(
-                            color: Color(0xFFFC3F1D),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                  label: const Text('Войти через Яндекс'),
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const _YandexLogo(),
+                  label: const Text('Войти с Яндекс ID', style: TextStyle(fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(height: 12),
@@ -441,6 +444,34 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _YandexLogo extends StatelessWidget {
+  const _YandexLogo();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: const Text('Я', style: TextStyle(color: Color(0xFFFC3F1D), fontWeight: FontWeight.bold, fontSize: 13, height: 1)),
+    );
+  }
+}
+
+class _VkLogo extends StatelessWidget {
+  const _VkLogo();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: const Text('VK', style: TextStyle(color: Color(0xFF0077FF), fontWeight: FontWeight.bold, fontSize: 9, height: 1)),
     );
   }
 }

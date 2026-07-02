@@ -183,28 +183,38 @@ export default function AuthModal({ open, onClose }: Props) {
             type="button"
             onClick={signInYandex}
             disabled={busy || yandexBusy || vkBusy || waitingConfirm}
-            className="btn-pill btn-soft !py-2 w-full max-w-[280px] justify-center"
+            className="flex items-center gap-3 w-full max-w-[280px] rounded-full px-4 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-50"
+            style={{ background: '#FC3F1D' }}
             data-testid="auth-yandex-button"
           >
-            {yandexBusy
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <span className="font-bold text-[13px] tracking-wide" style={{ color: '#FC3F1D' }}>Я</span>
-            }
-            {lang === 'ru' ? 'Войти через Яндекс' : 'Sign in with Yandex'}
+            {yandexBusy ? (
+              <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                <circle cx="14" cy="14" r="14" fill="white"/>
+                <path d="M15.763 7H13.43C11.11 7 9.5 8.27 9.5 10.55c0 1.98.93 3.08 2.68 4.26L9.3 21h2.54l2.73-5.84h.01L16.9 21H19.5l-3.3-6.56c1.52-.97 2.5-2.12 2.5-4.03C18.7 8.3 17.42 7 15.763 7zm-.72 7.02h-.95V8.82h.86c1.38 0 2.1.75 2.1 2.5 0 1.57-.75 2.7-2.01 2.7z" fill="#FC3F1D"/>
+              </svg>
+            )}
+            <span className="flex-1 text-center">{lang === 'ru' ? 'Войти с Яндекс ID' : 'Sign in with Yandex ID'}</span>
           </button>
 
           <button
             type="button"
             onClick={signInVk}
             disabled={busy || yandexBusy || vkBusy || waitingConfirm}
-            className="btn-pill btn-soft !py-2 w-full max-w-[280px] justify-center"
+            className="flex items-center gap-3 w-full max-w-[280px] rounded-full px-4 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-50"
+            style={{ background: '#0077FF' }}
             data-testid="auth-vk-button"
           >
-            {vkBusy
-              ? <Loader2 className="w-4 h-4 animate-spin" />
-              : <span className="font-bold text-[12px]" style={{ color: '#0077FF' }}>VK</span>
-            }
-            {lang === 'ru' ? 'Войти через VK' : 'Sign in with VK'}
+            {vkBusy ? (
+              <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+                <circle cx="14" cy="14" r="14" fill="white"/>
+                <path d="M14.93 19.5c-5.53 0-8.68-3.79-8.8-10.09H8.9c.08 4.63 2.14 6.59 3.76 7V9.41h2.78v4.27c1.6-.17 3.28-2 3.85-4.27h2.74c-.44 2.74-2.28 4.57-3.59 5.31 1.31.61 3.4 2.23 4.19 4.78h-3.02c-.62-1.94-2.17-3.44-4.17-3.64v3.64H14.93z" fill="#0077FF"/>
+              </svg>
+            )}
+            <span className="flex-1 text-center">{lang === 'ru' ? 'Войти с VK ID' : 'Sign in with VK ID'}</span>
           </button>
 
           {tg.kind === 'ready' ? (

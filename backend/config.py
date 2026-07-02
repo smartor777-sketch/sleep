@@ -99,7 +99,7 @@ class Settings(BaseSettings):
     yookassa_return_url: str = "https://app.innercore.art/profile"
     yookassa_receipts_enabled: bool = False
     yookassa_vat_code: int = 1
-    yookassa_tax_system_code: int | None = None
+    yookassa_tax_system_code: Annotated[int | None, BeforeValidator(lambda v: None if v == "" else v)] = None
 
     # Google Speech-to-Text
     google_application_credentials: str | None = None

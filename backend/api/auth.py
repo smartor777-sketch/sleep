@@ -178,7 +178,11 @@ async def anonymous_auth(
         )
 
     try:
-        user, _ = await get_or_create_anonymous_user(db, data.device_id)
+        user, is_new = await get_or_create_anonymous_user(db, data.device_id)
+
+        if is_new:
+            from services.billing_service import start_trial
+            start_trial(user)
 
         # Обновляем last_login_at
         user.last_login_at = datetime.now(timezone.utc)

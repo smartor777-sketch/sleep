@@ -148,6 +148,8 @@ function LatestDreams({ dreams, lang, loaded }: { dreams: Dream[]; lang: 'ru' | 
 function MapPreview({ lang, hasDreams }: { lang: 'ru' | 'en'; hasDreams: boolean }) {
   const user = useApp((s) => s.user);
   const billing = useApp((s) => s.billing);
+  const theme = useApp((s) => s.theme);
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
   const isPro = billing?.sub_type === 'pro' || billing?.sub_type === 'trial';
   const [previewMap, setPreviewMap] = useState<DreamMap | null>(null);
   const [loading, setLoading] = useState(false);
@@ -202,7 +204,7 @@ function MapPreview({ lang, hasDreams }: { lang: 'ru' | 'en'; hasDreams: boolean
                 y1={a.viewY * 100}
                 x2={b.viewX * 100}
                 y2={b.viewY * 100}
-                stroke="rgba(250,247,242,0.26)"
+                stroke={isDark ? 'rgba(250,247,242,0.26)' : 'rgba(60,70,90,0.20)'}
                 strokeWidth="0.35"
               />
             ))}
@@ -222,7 +224,7 @@ function MapPreview({ lang, hasDreams }: { lang: 'ru' | 'en'; hasDreams: boolean
                 x={n.viewX * 100}
                 y={n.viewY * 100 + 6}
                 textAnchor="middle"
-                fill="rgba(255,255,255,0.72)"
+                fill={isDark ? 'rgba(255,255,255,0.72)' : 'rgba(30,40,60,0.75)'}
                 fontSize="3"
                 fontWeight="600"
               >

@@ -263,10 +263,10 @@ export const api = {
       { __skipAuth: true } as any
     ),
 
-  vkExchange: (code: string, state: string) =>
+  vkExchange: (code: string, state: string, deviceId?: string | null) =>
     post<{ access_token: string; refresh_token: string; token_type: string }>(
       '/api/v1/auth/vk/exchange',
-      { code, state },
+      { code, state, device_id: deviceId ?? undefined },
       { __skipAuth: true } as any
     ),
 

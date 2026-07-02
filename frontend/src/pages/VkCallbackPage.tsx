@@ -28,6 +28,7 @@ export default function VkCallbackPage() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
+    const deviceId = params.get('device_id');
 
     if (!code || !state) {
       setStatus('error');
@@ -37,7 +38,7 @@ export default function VkCallbackPage() {
 
     const isWebFlow = loadVkState() === state;
 
-    api.vkExchange(code, state)
+    api.vkExchange(code, state, deviceId)
       .then((r) => {
         sessionStorage.removeItem(VK_STATE_KEY);
         if (isWebFlow) {

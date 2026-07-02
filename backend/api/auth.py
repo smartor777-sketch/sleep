@@ -844,12 +844,12 @@ import services.vk_auth_service as vk_auth
 @router.post("/vk/init", response_model=VkInitResponse)
 async def vk_init() -> VkInitResponse:
     try:
-        state = await vk_auth.create_state()
+        state, code_challenge = await vk_auth.create_state()
     except RuntimeError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
     return VkInitResponse(
         state=state,
-        auth_url=vk_auth.build_auth_url(state),
+        auth_url=vk_auth.build_auth_url(state, code_challenge),
         expires_in=vk_auth.STATE_TTL,
     )
 
@@ -870,7 +870,7 @@ async def vk_exchange(
         )
 
     try:
-        token_data = await vk_auth.exchange_code(data.code)
+        token_data = await vk_auth.exchange_code(data.code, data.state, data.device_id)
     except (ValueError, RuntimeError) as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -878,7 +878,7 @@ async def vk_exchange(
     if not provider_subject:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="vk_no_user_id")
 
-    email = token_data.get("email")  # VK returns email in token response if scope=email granted
+    email = token_data.get("email")  # from id_token claims, only present if scope=email granted
 
     existing_identity = await get_identity(db, "vk", provider_subject)
     if existing_identity:

@@ -155,6 +155,7 @@ class VkInitResponse(BaseModel):
 class VkExchangeRequest(BaseModel):
     code: str
     state: str
+    device_id: str | None = None
 
 
 class VkExchangeResponse(BaseModel):

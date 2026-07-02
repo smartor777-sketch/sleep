@@ -274,7 +274,6 @@ class AuthService {
     }
     return TelegramStatusResult(status: status);
   }
-}
 
   Future<VkInitResult> vkInit() async {
     final response = await _api.post('/api/v1/auth/vk/init', body: const {});

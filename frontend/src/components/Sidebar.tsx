@@ -149,7 +149,9 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
               />
               <div className="min-w-0">
                 <div className="text-sm font-semibold leading-tight truncate">
-                  {user?.email || (lang === 'ru' ? 'Гость' : 'Guest')}
+                  {user?.email
+                    || [user?.first_name, user?.last_name].filter(Boolean).join(' ')
+                    || (lang === 'ru' ? 'Гость' : 'Guest')}
                 </div>
                 <div className="text-xs muted-text leading-tight">
                   {tierLabel}

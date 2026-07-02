@@ -763,6 +763,8 @@ async def yandex_exchange(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="yandex_no_user_id")
 
     email = user_info.get("default_email") or user_info.get("emails", [None])[0]
+    first_name = user_info.get("first_name")
+    last_name = user_info.get("last_name")
 
     existing_identity = await get_identity(db, "yandex", provider_subject)
     if existing_identity:
@@ -772,6 +774,11 @@ async def yandex_exchange(
         user = result.scalar_one_or_none()
         if not user or not user.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user_not_found")
+        if not user.first_name and first_name:
+            user.first_name = first_name
+        if not user.last_name and last_name:
+            user.last_name = last_name
+        await db.commit()
     else:
         # Попробуем привязать к текущему анонимному пользователю если есть JWT
         user = None
@@ -791,6 +798,8 @@ async def yandex_exchange(
             from models import User as UserModel
             user = UserModel(
                 email=email,
+                first_name=first_name,
+                last_name=last_name,
                 is_anonymous=False,
                 email_verified=bool(email),
                 timezone="UTC",
@@ -809,6 +818,10 @@ async def yandex_exchange(
         if not user.email and email:
             user.email = email
             user.email_verified = True
+        if not user.first_name and first_name:
+            user.first_name = first_name
+        if not user.last_name and last_name:
+            user.last_name = last_name
         await db.commit()
 
     access_token = create_access_token(data={"sub": str(user.id)})
@@ -879,6 +892,8 @@ async def vk_exchange(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="vk_no_user_id")
 
     email = token_data.get("email")  # from id_token claims, only present if scope=email granted
+    first_name = token_data.get("first_name")
+    last_name = token_data.get("last_name")
 
     existing_identity = await get_identity(db, "vk", provider_subject)
     if existing_identity:
@@ -888,6 +903,11 @@ async def vk_exchange(
         user = result.scalar_one_or_none()
         if not user or not user.is_active:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user_not_found")
+        if not user.first_name and first_name:
+            user.first_name = first_name
+        if not user.last_name and last_name:
+            user.last_name = last_name
+        await db.commit()
     else:
         user = None
         if credentials:
@@ -906,6 +926,8 @@ async def vk_exchange(
             from models import User as UserModel
             user = UserModel(
                 email=email,
+                first_name=first_name,
+                last_name=last_name,
                 is_anonymous=False,
                 email_verified=bool(email),
                 timezone="UTC",
@@ -924,6 +946,10 @@ async def vk_exchange(
         if not user.email and email:
             user.email = email
             user.email_verified = True
+        if not user.first_name and first_name:
+            user.first_name = first_name
+        if not user.last_name and last_name:
+            user.last_name = last_name
         await db.commit()
 
     access_token = create_access_token(data={"sub": str(user.id)})

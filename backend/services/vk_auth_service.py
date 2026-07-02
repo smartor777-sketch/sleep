@@ -142,22 +142,24 @@ async def exchange_code(code: str, state: str, device_id: str | None) -> dict:
         result["phone"] = _decode_id_token_claim(id_token, "phone")
 
     user_id = data.get("user_id")
-    if not user_id:
-        async with httpx.AsyncClient(timeout=15) as client:
-            ur = await client.get(VK_USERS_URL, params={
-                "access_token": access_token,
-                "fields": "first_name,last_name",
-                "v": VK_API_VERSION,
-            })
-        try:
-            udata = ur.json()
-            user = (udata.get("response") or [None])[0]
-        except Exception:
-            user = None
-        if user:
-            user_id = user.get("id")
-            result["first_name"] = user.get("first_name")
-            result["last_name"] = user.get("last_name")
+
+    # Basic profile fields (first/last name) aren't in the token response —
+    # always fetch them via the classic VK API, which accepts VK ID tokens.
+    async with httpx.AsyncClient(timeout=15) as client:
+        ur = await client.get(VK_USERS_URL, params={
+            "access_token": access_token,
+            "fields": "first_name,last_name",
+            "v": VK_API_VERSION,
+        })
+    try:
+        udata = ur.json()
+        profile = (udata.get("response") or [None])[0]
+    except Exception:
+        profile = None
+    if profile:
+        user_id = user_id or profile.get("id")
+        result["first_name"] = profile.get("first_name")
+        result["last_name"] = profile.get("last_name")
 
     if not user_id:
         raise ValueError("vk_no_user_id")

@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     # Gonka Proxy (OpenAI-compatible)
     gonka_base_url: str = "https://proxy.gonka.gg/v1"
     gonka_api_key: SecretStr
-    gonka_model: str = "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8"
+    gonka_model: str = "moonshotai/Kimi-K2.6"
     
     # CometAPI fallback (optional)
     comet_api_key: SecretStr | None = None

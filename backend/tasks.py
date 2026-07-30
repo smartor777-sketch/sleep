@@ -223,9 +223,18 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 raise
             except Exception as e:
                 logger.error(f"LLM Service error for analysis {analysis_id}: {e}")
-                analysis.status = AnalysisStatus.FAILED.value
-                analysis.error_message = f"LLM Service error: {str(e)}"
-                await db.commit()
+                # A DB error (e.g. deadlock) leaves the session needing an
+                # explicit rollback before it can be used again — otherwise the
+                # commit below raises PendingRollbackError and the analysis
+                # gets stuck in PROCESSING forever instead of FAILED.
+                await db.rollback()
+                analysis = (
+                    await db.execute(select(Analysis).where(Analysis.id == UUID(analysis_id)))
+                ).scalar_one_or_none()
+                if analysis:
+                    analysis.status = AnalysisStatus.FAILED.value
+                    analysis.error_message = f"LLM Service error: {str(e)}"
+                    await db.commit()
                 raise
 
         except LLMTransientError:
@@ -235,6 +244,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
 
             # Обновляем статус на failed
             try:
+                await db.rollback()
                 result = await db.execute(
                     select(Analysis).where(Analysis.id == UUID(analysis_id))
                 )
@@ -244,8 +254,11 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     analysis.status = AnalysisStatus.FAILED.value
                     analysis.error_message = str(e)
                     await db.commit()
-            except:
-                pass
+            except Exception as cleanup_error:
+                logger.error(
+                    "Failed to mark analysis %s as FAILED after error: %s",
+                    analysis_id, cleanup_error,
+                )
 
             raise
 

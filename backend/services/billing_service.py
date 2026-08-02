@@ -334,33 +334,12 @@ async def refresh_entitlements(db: AsyncSession, user: User) -> None:
     changed = False
     sub_type = getattr(user, "sub_type", "free")
 
-    if sub_type == "trial" and getattr(user, "trial_started_at", None):
-        trial_started_at = _as_utc(user.trial_started_at)
-        if (now - trial_started_at).days >= TRIAL_DURATION_DAYS:
-            user.sub_type = "free"
-            sub_type = "free"
-            changed = True
-
-    if sub_type == "pro" and getattr(user, "sub_expires_at", None):
-        sub_expires_at = _as_utc(user.sub_expires_at)
-        if sub_expires_at <= now:
-            result = await db.execute(
-                select(Subscription)
-                .where(
-                    Subscription.user_id == user.id,
-                    Subscription.status == "active",
-                    Subscription.expires_at > now,
-                )
-                .order_by(Subscription.expires_at.desc())
-            )
-            active_sub = (result.scalars().all() or [None])[0]
-            if active_sub:
-                user.sub_expires_at = active_sub.expires_at
-            else:
-                user.sub_type = "free"
-                user.sub_expires_at = None
-                sub_type = "free"
-            changed = True
+    # Dev: всем пользователям выдаём Pro (бессрочно), не трогаем trial-логику.
+    if sub_type != "pro":
+        user.sub_type = "pro"
+        user.sub_expires_at = None
+        sub_type = "pro"
+        changed = True
 
     if changed:
         await db.commit()

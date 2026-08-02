@@ -65,11 +65,12 @@ _CONCEPT_EMB_PREFIX = "concept-emb:v1"
 _CONCEPT_EMB_TTL_SECONDS = 7 * 24 * 3600
 _CONCEPT_EMB_CONCURRENCY = 8
 # Cosine threshold above which two symbol concepts are treated as the SAME node
-# (merges "озеро" ≈ "озеро с островами"). EMPIRICAL — text-embedding-3-small puts
-# near-synonyms around ~0.5-0.7, so 0.82 merged almost nothing (recurrence never
-# triggered). 0.6 is the working PoC value; too high = duplicate nodes + empty
-# "recurring" widget, too low = distinct images collapse. See docs §3.4.
-_SYMBOL_MERGE_THRESHOLD = 0.6
+# (merges "озеро" ≈ "озеро с островами"). Calibrated for gemini-embedding-001:
+# distinct concepts land ~0.60-0.75 while true variants/synonyms hit ~0.72-0.95
+# (бобр~бобёр 0.948, заяц~кролик 0.815, лес~тёмный лес 0.79). 0.80 splits
+# distinct symbols yet still merges clear duplicates. The old 0.6 (tuned for
+# OpenAI text-embedding-3-small) collapsed every symbol into one node here.
+_SYMBOL_MERGE_THRESHOLD = 0.80
 _PREVIEW_LIMIT = 80
 _WORD_RE = re.compile(r"[A-Za-zА-Яа-яЁё-]{2,}", re.UNICODE)
 # Stopwords / generic-symbol filtering now live in text_normalization (STOPWORDS).

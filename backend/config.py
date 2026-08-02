@@ -88,6 +88,7 @@ class Settings(BaseSettings):
     transcriptions_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     transcriptions_api_key: SecretStr | None = None
     transcriptions_model: str = "gemini-3.6-flash"
+    transcriptions_fallback_models: list[str] = ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
     transcriptions_local_model: str = "small"
     transcriptions_local_compute: str = "int8"
     

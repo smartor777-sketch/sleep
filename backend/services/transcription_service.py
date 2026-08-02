@@ -105,6 +105,9 @@ def _guess_ext(filename: str) -> str:
     return "wav"
 
 
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
 async def _transcribe_google(
     *,
     filename: str,
@@ -113,11 +116,14 @@ async def _transcribe_google(
     language: str | None,
     prompt: str | None,
 ) -> str:
-    """Транскрибация через Google Gemini API (аудио на входе)."""
+    """Транскрибация через Google Gemini API с цепочкой fallback-моделей.
+
+    Пробует transcriptions_model, затем transcriptions_fallback_models
+    по очереди (например gemini-3.6-flash -> gemini-3.6-flash-lite ->
+    gemini-3.5-flash) — как в llm_service, для устойчивости на free tier.
+    """
     api_key = _get_gemini_key()
-    model = settings.transcriptions_model or "gemini-3.6-flash"
     base_url = settings.transcriptions_base_url.rstrip("/")
-    url = f"{base_url}/models/{model}:generateContent"
 
     ext = _guess_ext(filename)
     mime = content_type or f"audio/{ext}"
@@ -145,6 +151,36 @@ async def _transcribe_google(
         },
     }
 
+    models = [settings.transcriptions_model, *settings.transcriptions_fallback_models]
+    last_exc: Exception | None = None
+    for model in models:
+        try:
+            return await _generate_once(
+                api_key=api_key,
+                base_url=base_url,
+                model=model,
+                body=body,
+            )
+        except (TranscriptionPermanentError, TranscriptionTransientError) as exc:
+            last_exc = exc
+            logger.warning(
+                "Gemini transcription model %s failed (%s); fallbacks left: %d",
+                model, exc, len(models) - models.index(model) - 1,
+            )
+    raise TranscriptionTransientError(
+        f"All Gemini transcription models failed: {last_exc}"
+    )
+
+
+async def _generate_once(
+    *,
+    api_key: str,
+    base_url: str,
+    model: str,
+    body: dict,
+) -> str:
+    """Один вызов generateContent с ретраями на транзиентные статусы."""
+    url = f"{base_url}/models/{model}:generateContent"
     last_error: Exception | None = None
     for attempt in range(3):
         try:
@@ -158,28 +194,29 @@ async def _transcribe_google(
                 payload = response.json()
         except httpx.HTTPStatusError as e:
             status_code = e.response.status_code
-            detail = e.response.text[:300]
-            if status_code in (429, 500, 502, 503, 504) and attempt < 2:
+            if status_code in _RETRYABLE_STATUS and attempt < 2:
                 logger.warning(
-                    "Gemini transcription attempt %d/%d failed (%s), retrying",
-                    attempt + 1, 3, status_code,
+                    "Gemini transcription %s attempt %d/3 failed (%s), retrying",
+                    model, attempt + 1, status_code,
                 )
                 await asyncio.sleep(2 * (attempt + 1))
                 last_error = e
                 continue
             raise TranscriptionTransientError(
-                f"Gemini transcription failed ({status_code}): {detail}"
+                f"Gemini transcription ({model}) failed ({status_code}): "
+                f"{e.response.text[:300]}"
             ) from e
         except httpx.RequestError as e:
             if attempt < 2:
                 logger.warning(
-                    "Gemini transcription network error, retrying: %s", e
+                    "Gemini transcription %s network error, retrying: %s",
+                    model, e,
                 )
                 await asyncio.sleep(2 * (attempt + 1))
                 last_error = e
                 continue
             raise TranscriptionTransientError(
-                f"Gemini transcription network error: {e}"
+                f"Gemini transcription ({model}) network error: {e}"
             ) from e
 
         candidates = payload.get("candidates") or []
@@ -191,11 +228,13 @@ async def _transcribe_google(
         parts = (candidates[0].get("content") or {}).get("parts") or []
         text = "".join(p.get("text", "") for p in parts).strip()
         if not text:
-            raise TranscriptionTransientError("Gemini returned empty transcription")
+            raise TranscriptionTransientError(
+                f"Gemini ({model}) returned empty transcription"
+            )
         return text
 
     raise TranscriptionTransientError(
-        f"Gemini transcription failed after retries: {last_error}"
+        f"Gemini transcription ({model}) failed after retries: {last_error}"
     )
 
 

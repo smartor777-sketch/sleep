@@ -116,6 +116,23 @@ async def get_dream_messages(
         offset=offset,
     )
 
+    # Первое user-сообщение (текст сна) и первый assistant-ответ (полный разбор)
+    # показываются отдельно на странице сна — в ленте диалога их не дублируем.
+    if offset == 0:
+        skip_user = True
+        skip_assistant = True
+        filtered = []
+        for m in messages:
+            if m.role == MessageRole.USER.value and skip_user:
+                skip_user = False
+                continue
+            if m.role == MessageRole.ASSISTANT.value and skip_assistant:
+                skip_assistant = False
+                continue
+            filtered.append(m)
+        messages = filtered
+        total = len(filtered)
+
     return ChatMessageListResponse(
         messages=[ChatMessageResponse.model_validate(m) for m in messages],
         total=total,

@@ -178,6 +178,19 @@ export default function DreamPage() {
     catch { return dream.created_at; }
   }, [dream?.created_at, lang, dream]);
 
+  // В чате показываем только follow-up переписку: первое user-сообщение (текст сна)
+  // и первый assistant-ответ (полный разбор) уже показаны выше в hero-карточке
+  // и блоке «Разбор InnerCore» — повторять их в диалоге не нужно.
+  const chatMessages = useMemo(() => {
+    let skippedUser = false;
+    let skippedAsst = false;
+    return messages.filter((m) => {
+      if (m.role === 'user' && !skippedUser) { skippedUser = true; return false; }
+      if (m.role === 'assistant' && !skippedAsst) { skippedAsst = true; return false; }
+      return true;
+    });
+  }, [messages]);
+
   if (loading || !dream) {
     return (
       <div className="py-16 flex items-center justify-center gap-2 muted-text" data-testid="dream-loading">
@@ -271,12 +284,12 @@ export default function DreamPage() {
               {lang === 'ru' ? 'Диалог о сне' : 'Conversation about the dream'}
             </h3>
             <div ref={scrollRef} className="space-y-3 max-h-[60vh] overflow-y-auto px-1 pb-2">
-              {messages.length === 0 && (
+              {chatMessages.length === 0 && (
                 <div className="muted-text text-sm py-4 text-center">
                   {lang === 'ru' ? 'Спросите что-то — углубим понимание сна.' : 'Ask something to deepen the dream.'}
                 </div>
               )}
-              {messages.map((m) => (
+              {chatMessages.map((m) => (
                 <div key={m.id} className={m.role === 'user' ? 'flex justify-end' : ''}>
                   <div className={
                     m.role === 'user'

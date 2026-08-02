@@ -82,9 +82,14 @@ class Settings(BaseSettings):
     embeddings_dimensions: int = 768
 
     # Audio transcription provider
+    # "cometapi" = remote OpenAI-compatible Whisper via CometAPI (paid)
+    # "local" = on-device faster-whisper (free, offline)
+    transcriptions_provider: str = "local"
     transcriptions_base_url: str = "https://api.cometapi.com"
     transcriptions_api_key: SecretStr | None = None
     transcriptions_model: str = "whisper-1"
+    transcriptions_local_model: str = "small"
+    transcriptions_local_compute: str = "int8"
     
     # Yandex OAuth
     yandex_client_id: str | None = None

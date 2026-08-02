@@ -1,27 +1,35 @@
-"""Сервис транскрипции аудио через CometAPI с поддержкой чанкирования."""
+"""Локальная транскрипция аудио через faster-whisper (on-device, свободно).
+
+Модель грузится лениво при первом вызове и переиспользуется дальше.
+Выбор модели/точности задаётся через конфиг:
+  TRANSCRIPTIONS_PROVIDER=local (default)
+  TRANSCRIPTIONS_LOCAL_MODEL=small        (small/turbo/large-v3/...)
+  TRANSCRIPTIONS_LOCAL_COMPUTE=int8       (int8/float32/...)
+faster-whisper использует PyAV (встроенный ffmpeg), поэтому системный
+ffmpeg для декодирования не требуется.
+"""
+
+from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import tempfile
+import threading
 from dataclasses import dataclass
-
-import httpx
+from typing import Any
 
 from config import settings
-from services.audio_chunking_service import AudioChunkingError, split_audio
 
 logger = logging.getLogger(__name__)
 
-MAX_CONCURRENT_SEGMENTS = 3
-SEGMENT_MAX_RETRIES = 3
-SEGMENT_RETRY_BACKOFF = 2.0  # seconds, doubles each retry
-
 
 class TranscriptionTransientError(Exception):
-    """Retryable upstream/provider failure."""
+    """Отсроченная/транзиентная ошибка (retryable)."""
 
 
 class TranscriptionPermanentError(Exception):
-    """Non-retryable upstream/provider failure."""
+    """Фатальная ошибка транскрибации (не retryable)."""
 
 
 @dataclass
@@ -33,80 +41,50 @@ class TranscriptionResult:
     segments_failed: int
 
 
-def _get_api_key() -> str:
-    api_key = settings.transcriptions_api_key or settings.embeddings_api_key
-    if api_key is None:
-        raise RuntimeError("Transcriptions API key is not configured")
-    return api_key.get_secret_value()
+# Ленивый синглтон модели — грузится один раз, защищён от гонок.
+_model: Any = None
+_model_lock = threading.Lock()
 
 
-async def _transcribe_single_segment(
-    content: bytes,
-    filename: str,
-    content_type: str | None,
-    language: str | None,
-    prompt: str | None,
-) -> str:
-    """Send one segment to CometAPI with retries."""
-    url = f"{settings.transcriptions_base_url.rstrip('/')}/v1/audio/transcriptions"
-    data = {
-        "model": settings.transcriptions_model,
-        "response_format": "json",
-    }
-    if language:
-        data["language"] = language
-    if prompt:
-        data["prompt"] = prompt
-
-    files = {
-        "file": (filename, content, content_type or "application/octet-stream")
-    }
-    headers = {"Authorization": f"Bearer {_get_api_key()}"}
-
-    last_error: Exception | None = None
-    for attempt in range(SEGMENT_MAX_RETRIES):
+def _get_model() -> Any:
+    global _model
+    if _model is not None:
+        return _model
+    with _model_lock:
+        if _model is not None:
+            return _model
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                response = await client.post(url, data=data, files=files, headers=headers)
-                response.raise_for_status()
-                payload = response.json()
-                text = payload.get("text", "").strip()
-                if not text:
-                    raise TranscriptionPermanentError("Empty transcription result")
-                return text
-        except httpx.HTTPStatusError as e:
-            status_code = e.response.status_code
-            if status_code == 429 or status_code >= 500:
-                last_error = e
-                if attempt < SEGMENT_MAX_RETRIES - 1:
-                    delay = SEGMENT_RETRY_BACKOFF * (2 ** attempt)
-                    logger.warning(
-                        "Segment %s attempt %d/%d failed (%s), retrying in %.1fs",
-                        filename, attempt + 1, SEGMENT_MAX_RETRIES, status_code, delay,
-                    )
-                    await asyncio.sleep(delay)
-                    continue
-                # Retries exhausted for a transient status code
-                raise TranscriptionTransientError(
-                    f"Segment {filename} failed after {SEGMENT_MAX_RETRIES} retries: {status_code}"
-                ) from e
+            from faster_whisper import WhisperModel  # type: ignore
+        except Exception as exc:  # pragma: no cover
             raise TranscriptionPermanentError(
-                f"Transcription provider error: {status_code}"
-            ) from e
-        except httpx.RequestError as e:
-            last_error = e
-            if attempt < SEGMENT_MAX_RETRIES - 1:
-                delay = SEGMENT_RETRY_BACKOFF * (2 ** attempt)
-                logger.warning(
-                    "Segment %s attempt %d/%d network error, retrying in %.1fs",
-                    filename, attempt + 1, SEGMENT_MAX_RETRIES, delay,
-                )
-                await asyncio.sleep(delay)
-                continue
+                "faster-whisper is not installed (pip install faster-whisper)"
+            ) from exc
 
-    raise TranscriptionTransientError(
-        f"Segment {filename} failed after {SEGMENT_MAX_RETRIES} retries"
-    ) from last_error
+        model_size = settings.transcriptions_local_model or "small"
+        compute_type = settings.transcriptions_local_compute or "int8"
+        logger.info(
+            "Loading faster-whisper model %r (device=cpu, compute=%s)", model_size, compute_type
+        )
+        try:
+            _model = WhisperModel(
+                model_size,
+                device="cpu",
+                compute_type=compute_type,
+            )
+        except Exception as exc:  # pragma: no cover
+            logger.exception("Failed to load faster-whisper model %s", model_size)
+            raise TranscriptionPermanentError(
+                f"Failed to load local transcription model: {exc}"
+            ) from exc
+    return _model
+
+
+def _guess_ext(filename: str) -> str:
+    lower = (filename or "").lower()
+    for ext in (".m4a", ".mp4", ".wav", ".mp3", ".ogg", ".opus", ".webm", ".flac", ".aac"):
+        if lower.endswith(ext):
+            return ext[1:]
+    return "wav"
 
 
 async def transcribe_audio(
@@ -117,66 +95,52 @@ async def transcribe_audio(
     language: str | None = None,
     prompt: str | None = None,
 ) -> TranscriptionResult:
-    """Transcribe audio with automatic chunking for long recordings.
+    """Транскрибировать аудио on-device через faster-whisper."""
+    if not content:
+        raise TranscriptionPermanentError("Audio file is empty")
 
-    Short recordings (<=15s) go through as a single request.
-    Long recordings are split into 15-sec segments and processed in parallel.
-    """
+    ext = _guess_ext(filename) or "wav"
+    model = _get_model()
+
+    # faster-whisper/PyAV надёжнее открывает файл с корректным расширением.
+    tmp_path = None
     try:
-        segments = split_audio(content, filename)
-    except AudioChunkingError as e:
-        raise TranscriptionPermanentError(str(e)) from e
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=f".{ext}")
+        tmp.write(content)
+        tmp.close()
+        tmp_path = tmp.name
 
-    segments_total = len(segments)
-
-    if segments_total == 1:
-        text = await _transcribe_single_segment(
-            segments[0][0], segments[0][1], content_type, language, prompt,
+        # WhisperModel.transcribe синхронный, блокирует event loop — запускаем в потоке.
+        segments_iter, info = await asyncio.to_thread(
+            model.transcribe,
+            tmp_path,
+            language=language if language else None,
+            initial_prompt=prompt or None,
+            beam_size=5,
+            vad_filter=False,
         )
-        return TranscriptionResult(
-            text=text,
-            partial=False,
-            segments_total=1,
-            segments_ok=1,
-            segments_failed=0,
-        )
-
-    # Parallel transcription with concurrency limit
-    semaphore = asyncio.Semaphore(MAX_CONCURRENT_SEGMENTS)
-    results: list[str | None] = [None] * segments_total
-
-    async def _process_segment(idx: int, seg_bytes: bytes, seg_name: str) -> None:
-        async with semaphore:
+        texts = list(await asyncio.to_thread(list, segments_iter))
+    except TranscriptionPermanentError:
+        raise
+    except Exception as exc:
+        logger.error("Local transcription failed: %s", exc)
+        raise TranscriptionPermanentError(f"Cannot transcribe audio: {exc}") from exc
+    finally:
+        if tmp_path is not None:
             try:
-                text = await _transcribe_single_segment(
-                    seg_bytes, seg_name, content_type, language, prompt,
-                )
-                results[idx] = text
-            except (TranscriptionTransientError, TranscriptionPermanentError) as e:
-                logger.error("Segment %d (%s) failed: %s", idx, seg_name, e)
-                results[idx] = None
+                import os
+                os.remove(tmp_path)
+            except OSError:
+                pass
 
-    tasks = [
-        _process_segment(i, seg_bytes, seg_name)
-        for i, (seg_bytes, seg_name) in enumerate(segments)
-    ]
-    await asyncio.gather(*tasks)
+    if not texts:
+        raise TranscriptionTransientError("No speech detected in audio")
 
-    segments_ok = sum(1 for r in results if r is not None)
-    segments_failed = segments_total - segments_ok
-
-    if segments_ok == 0:
-        raise TranscriptionTransientError(
-            f"All {segments_total} segments failed transcription"
-        )
-
-    # Join successful segments in order
-    text = " ".join(r for r in results if r is not None)
-
+    result_text = " ".join(seg.text.strip() for seg in texts).strip()
     return TranscriptionResult(
-        text=text,
-        partial=segments_failed > 0,
-        segments_total=segments_total,
-        segments_ok=segments_ok,
-        segments_failed=segments_failed,
+        text=result_text,
+        partial=False,
+        segments_total=len(texts),
+        segments_ok=len(texts),
+        segments_failed=0,
     )

@@ -40,6 +40,8 @@ SpeechRecognition==3.10.1
 pydub==0.25.1
 # audioop был удалён из stdlib в Python 3.13 — pydub требует его (LTS-бэкпорт)
 audioop-lts>=0.2.2
+# Локальная транскрибация голосовых (on-device, без платных API и системного ffmpeg)
+faster-whisper>=1.2.1
 
 # PDF Generation
 reportlab==4.0.9

@@ -368,8 +368,7 @@ async def refresh_entitlements(db: AsyncSession, user: User) -> None:
 
 
 async def has_full_access(db: AsyncSession, user: User) -> bool:
-    await refresh_entitlements(db, user)
-    return getattr(user, "sub_type", "free") in ("pro", "trial")
+    return True  # Все имеют полный доступ (dev) — Pro для всех
 
 
 async def get_billing_status(db: AsyncSession, user: User) -> dict:

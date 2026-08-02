@@ -38,6 +38,8 @@ minio==7.2.3
 google-cloud-speech==2.24.0
 SpeechRecognition==3.10.1
 pydub==0.25.1
+# audioop был удалён из stdlib в Python 3.13 — pydub требует его (LTS-бэкпорт)
+audioop-lts>=0.2.2
 
 # PDF Generation
 reportlab==4.0.9

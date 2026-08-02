@@ -24,6 +24,7 @@ from models import Dream, DreamArchetype, DreamChunk, DreamSymbol, DreamSymbolEn
 from schemas.map import (
     DreamMapClusterCenter,
     DreamMapClusterResponse,
+    DreamMapEdgeResponse,
     DreamMapMetaResponse,
     DreamMapNodeResponse,
     DreamMapOccurrenceResponse,
@@ -60,7 +61,7 @@ except Exception:  # pragma: no cover
 
 MIN_SYMBOLS_REQUIRED = 5
 DEFAULT_STREAM_BATCH_SIZE = 20
-_CACHE_PREFIX = "dream-map:v4"
+_CACHE_PREFIX = "dream-map:v5"
 _CONCEPT_EMB_PREFIX = "concept-emb:v1"
 _CONCEPT_EMB_TTL_SECONDS = 7 * 24 * 3600
 _CONCEPT_EMB_CONCURRENCY = 8
@@ -208,6 +209,8 @@ async def get_dream_map(
     labels = _cluster_points(xy, method=cluster_method)
     payloads = _build_cluster_payloads(runtimes, labels)
 
+    edges = _build_edges(runtimes)
+
     nodes = [
         DreamMapNodeResponse(
             id=runtime.id,
@@ -259,6 +262,7 @@ async def get_dream_map(
                 if archetype.strip()
             }
         ),
+        edges=edges,
         meta=DreamMapMetaResponse(
             total_nodes=len(nodes),
             total_clusters=len(clusters),
@@ -776,6 +780,66 @@ def _fallback_cluster(points: np.ndarray) -> list[int]:
         else:
             labels.append(3)
     return labels
+
+
+_EDGE_EMBEDDING_THRESHOLD = 0.65
+_EDGE_MAX_PER_KIND = 40
+
+
+def _build_edges(runtimes: list[_SymbolRuntime]) -> list[DreamMapEdgeResponse]:
+    """Build semantic edges between symbol nodes.
+
+    Two kinds:
+    - "co_dream": symbols that co-occurred in at least one shared dream.
+      Weight = number of shared dreams.
+    - "embedding": symbols whose concept embeddings are cosine-close
+      (>= _EDGE_EMBEDDING_THRESHOLD). Weight = cosine similarity.
+    """
+    runtime_by_id = {runtime.id: runtime for runtime in runtimes}
+    dream_sets = {
+        runtime.id: {occ.entity.dream_id for occ in runtime.occurrences}
+        for runtime in runtimes
+    }
+
+    edges: list[DreamMapEdgeResponse] = []
+    seen: set[tuple[str, str]] = set()
+
+    def add(source_id: str, target_id: str, weight: float, kind: str) -> None:
+        key = (min(source_id, target_id), max(source_id, target_id))
+        if key in seen:
+            return
+        seen.add(key)
+        edges.append(
+            DreamMapEdgeResponse(
+                source=key[0],
+                target=key[1],
+                weight=round(float(weight), 4),
+                kind=kind,
+            )
+        )
+
+    co_dream_pairs: list[tuple[float, str, str]] = []
+    embedding_pairs: list[tuple[float, str, str]] = []
+    ids = [runtime.id for runtime in runtimes]
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            a, b = ids[i], ids[j]
+            shared = dream_sets[a] & dream_sets[b]
+            if shared:
+                co_dream_pairs.append((len(shared), a, b))
+            sim = cosine_similarity(
+                runtime_by_id[a].embedding,
+                runtime_by_id[b].embedding,
+            )
+            if sim >= _EDGE_EMBEDDING_THRESHOLD:
+                embedding_pairs.append((sim, a, b))
+
+    for weight, a, b in sorted(co_dream_pairs, key=lambda item: -item[0])[:_EDGE_MAX_PER_KIND]:
+        add(a, b, weight, "co_dream")
+    for weight, a, b in sorted(embedding_pairs, key=lambda item: -item[0])[:_EDGE_MAX_PER_KIND]:
+        add(a, b, weight, "embedding")
+
+    return edges
 
 
 def _build_cluster_payloads(

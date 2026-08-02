@@ -5,7 +5,15 @@ import { DreamMap, MapNode, SymbolDetail } from '../lib/types';
 import { t } from '../lib/i18n';
 import { Loader2, RefreshCw, Map as MapIcon, Lock, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { createMapFit, nodeImportance, previewLinks } from '../lib/mapLayout';
+import { createMapFit, FittedMapNode, nodeImportance, previewLinks } from '../lib/mapLayout';
+
+type LinkMode = 'co_dream' | 'embedding' | 'decor';
+
+const LINK_MODES: { id: LinkMode; labelRu: string; labelEn: string }[] = [
+  { id: 'co_dream', labelRu: 'Из одного сна', labelEn: 'Shared dreams' },
+  { id: 'embedding', labelRu: 'По смыслу', labelEn: 'By meaning' },
+  { id: 'decor', labelRu: 'Декоративные', labelEn: 'Decorative' },
+];
 
 export default function MapPage() {
   const lang = useApp((s) => s.lang);
@@ -18,6 +26,7 @@ export default function MapPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('__all__');
+  const [linkMode, setLinkMode] = useState<LinkMode>('co_dream');
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [selected, setSelected] = useState<SymbolDetail | null>(null);
@@ -69,7 +78,27 @@ export default function MapPage() {
       .filter((c) => visibleClusterIds.has(c.id))
       .map((c) => ({ ...c, ...mapFit.point(c.center) }));
   }, [map, mapFit, visibleClusterIds]);
-  const links = useMemo(() => previewLinks(fittedNodes, Math.min(28, fittedNodes.length * 2)), [fittedNodes]);
+  const links = useMemo(() => {
+    if (!map) return [] as { a: FittedMapNode; b: FittedMapNode; weight: number }[];
+    if (linkMode === 'decor') {
+      return previewLinks(fittedNodes, Math.min(28, fittedNodes.length * 2))
+        .map(({ a, b }) => ({ a, b, weight: 1 }));
+    }
+    const byId = new Map(fittedNodes.map((n) => [n.id, n]));
+    const edges = map.edges.filter((e) => e.kind === linkMode);
+    const out: { a: FittedMapNode; b: FittedMapNode; weight: number }[] = [];
+    const seen = new Set<string>();
+    for (const e of edges) {
+      const a = byId.get(e.source);
+      const b = byId.get(e.target);
+      if (!a || !b) continue;
+      const key = [e.source, e.target].sort().join(':');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push({ a, b, weight: e.weight });
+    }
+    return out;
+  }, [map, linkMode, fittedNodes]);
   const labelNodes = useMemo(() => {
     const count = zoom < 1.2 ? 8 : zoom < 1.8 ? 14 : zoom < 2.6 ? 26 : fittedNodes.length;
     return [...fittedNodes]
@@ -138,6 +167,22 @@ export default function MapPage() {
         </div>
       </div>
 
+      {/* Link mode switcher */}
+      <div className="px-3 sm:px-6 lg:px-8 flex items-center gap-2 overflow-x-auto pb-1" data-testid="map-link-modes">
+        <span className="muted-text text-xs uppercase tracking-wider shrink-0">
+          {lang === 'ru' ? 'Связи' : 'Links'}
+        </span>
+        {LINK_MODES.map((mode) => (
+          <FilterPill
+            key={mode.id}
+            active={linkMode === mode.id}
+            onClick={() => setLinkMode(mode.id)}
+          >
+            {lang === 'ru' ? mode.labelRu : mode.labelEn}
+          </FilterPill>
+        ))}
+      </div>
+
       {/* Archetype filters */}
       {map && map.archetype_filters?.length > 0 && (
         <div className="px-3 sm:px-6 lg:px-8 flex gap-2 overflow-x-auto pb-1" data-testid="map-filters">
@@ -180,17 +225,17 @@ export default function MapPage() {
             transformOrigin: '0 0',
           }}
         >
-          {/* Soft inferred links */}
+          {/* Links */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
-            {links.map(({ a, b }) => (
+            {links.map(({ a, b, weight }) => (
               <line
                 key={`${a.id}:${b.id}`}
                 x1={`${a.viewX * 100}%`}
                 y1={`${a.viewY * 100}%`}
                 x2={`${b.viewX * 100}%`}
                 y2={`${b.viewY * 100}%`}
-                stroke="rgba(250,247,242,0.18)"
-                strokeWidth={Math.max(0.35, 0.9 / zoom)}
+                stroke="var(--map-link)"
+                strokeWidth={Math.max(0.5, Math.min(2.4, (weight || 1) * 1.4)) / zoom}
               />
             ))}
           </svg>

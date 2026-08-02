@@ -46,10 +46,18 @@ class DreamMapMetaResponse(BaseModel):
     min_nodes_required: int
 
 
+class DreamMapEdgeResponse(BaseModel):
+    source: str
+    target: str
+    weight: float = Field(ge=0.0)
+    kind: str  # "co_dream" | "embedding"
+
+
 class DreamMapResponse(BaseModel):
     nodes: list[DreamMapNodeResponse]
     clusters: list[DreamMapClusterResponse]
     archetype_filters: list[str]
+    edges: list[DreamMapEdgeResponse] = Field(default_factory=list)
     meta: DreamMapMetaResponse
 
 

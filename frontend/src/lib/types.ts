@@ -108,10 +108,18 @@ export interface MapCluster {
   center: { x: number; y: number };
 }
 
+export interface MapEdge {
+  source: string;
+  target: string;
+  weight: number;
+  kind: 'co_dream' | 'embedding';
+}
+
 export interface DreamMap {
   nodes: MapNode[];
   clusters: MapCluster[];
   archetype_filters: string[];
+  edges: MapEdge[];
   meta: {
     total_nodes: number;
     total_clusters: number;

@@ -20,7 +20,7 @@ from aiogram.types import Message
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:8000").rstrip("/")
 BACKEND_BOT_SECRET = os.environ["BACKEND_BOT_SECRET"]
-WEB_URL = os.environ.get("WEB_URL", "https://app.innercore.art")
+WEB_URL = os.environ.get("WEB_URL", "https://sleep-test.kuban-forum.ru")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 TELEGRAM_PROXY = os.environ.get("TELEGRAM_PROXY") or None
 

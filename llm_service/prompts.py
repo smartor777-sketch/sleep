@@ -11,6 +11,7 @@ def get_analysis_prompt(
     user_description: str | None = None,
     dream_text: str | None = None,
     user_memory_md: str | None = None,
+    rag_context: str | None = None,
 ) -> str:
     lang = detect_language(dream_text or "")
     parts = [
@@ -79,6 +80,14 @@ def get_analysis_prompt(
     ]
     if user_description:
         parts.append(f"User context: {user_description}")
+    if rag_context and rag_context.strip():
+        parts.append("")
+        parts.append("RAG memory (relevant past dreams of THIS user, chronological order):")
+        parts.append(rag_context.strip())
+        parts.append("Use these past dreams to identify recurring symbols, themes and")
+        parts.append("archetypes the user has visited before. When this dream resembles an")
+        parts.append("earlier one, say so explicitly and show how it evolves (returning motif,")
+        parts.append("deepening archetype, new twist).")
     if user_memory_md and user_memory_md.strip():
         parts.append("")
         parts.append("Current user psychological profile (from previous analyses):")

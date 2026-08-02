@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
 from config import settings
-from providers.gonka_proxy import GonkaProxyProvider
+from providers.gemini import GeminiProvider
 from providers.comet_api import CometApiProvider
 from prompts import get_analysis_prompt, get_default_temperature, get_chat_system_prompt
 
@@ -25,11 +25,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Инициализация провайдера
-llm_provider = GonkaProxyProvider(
-    base_url=settings.gonka_base_url,
-    api_key=settings.gonka_api_key.get_secret_value(),
-    model=settings.gonka_model,
+# Инициализация провайдера (Google Gemini, free tier, с fallback-моделями)
+_gemini_key = settings.gemini_api_key.get_secret_value() if settings.gemini_api_key else None
+llm_provider = GeminiProvider(
+    api_key=_gemini_key or "",
+    model=settings.gemini_model,
+    fallback_models=settings.gemini_fallback_models,
+    base_url=settings.gemini_base_url,
 )
 
 # Инициализация fallback-провайдера (опционально)
@@ -49,6 +51,7 @@ class AnalyzeRequest(BaseModel):
     dream_text: str = Field(..., min_length=10, max_length=10000, description="Текст сна")
     user_description: str | None = Field(None, max_length=1000, description="Описание пользователя (опционально)")
     user_memory_md: str | None = Field(None, max_length=5000, description="User psychological profile markdown")
+    rag_context: str | None = Field(None, max_length=8000, description="RAG semantic memory from similar past dreams")
 
 
 class AnalyzeResponse(BaseModel):
@@ -116,6 +119,7 @@ async def analyze_dream(request: AnalyzeRequest):
             user_description=request.user_description,
             dream_text=request.dream_text,
             user_memory_md=request.user_memory_md,
+            rag_context=request.rag_context,
         )
         temperature = get_default_temperature()
         

@@ -1,0 +1,29 @@
+# Caddy reverse-proxy for sleep-test.kuban-forum.ru (dev)
+# Auto-TLS via Let's Encrypt.
+# Layout: web (React build) served at root, backend API under /api/*.
+
+(common) {
+    encode gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+sleep-test.kuban-forum.ru {
+    import common
+
+    # Backend API behind /api
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    # Static web app (React build) for everything else
+    handle {
+        root * /srv/sleep-test-web/frontend/dist
+        try_files {path} /index.html
+        file_server
+    }
+}

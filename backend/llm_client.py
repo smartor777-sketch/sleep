@@ -119,14 +119,16 @@ class LLMClient:
     async def analyze_dream(
         self,
         dream_text: str,
-        user_description: str | None = None
+        user_description: str | None = None,
+        rag_context: str | None = None,
     ) -> str:
         """
-        Отправить запрос на анализ сна в LLM Service
+        Отправить запрос на анализ сна в LLM Service (текстовый fallback)
         
         Args:
             dream_text: Текст сна
             user_description: Описание пользователя (опционально)
+            rag_context: Семантический контекст из похожих прошлых снов (опционально)
         
         Returns:
             Результат анализа
@@ -141,6 +143,8 @@ class LLMClient:
             "dream_text": dream_text,
             "user_description": normalized_user_description
         }
+        if rag_context:
+            payload["rag_context"] = rag_context
         
         logger.info(f"Sending analysis request to LLM Service: {url}")
         logger.debug(f"Payload: text_length={len(dream_text)}")
@@ -179,6 +183,7 @@ class LLMClient:
         dream_text: str,
         user_description: str | None = None,
         user_memory_md: str | None = None,
+        rag_context: str | None = None,
     ) -> AnalysisPayload:
         url = f"{self.base_url}/analyze"
         normalized_user_description = _normalize_user_description(user_description)
@@ -188,6 +193,8 @@ class LLMClient:
         }
         if user_memory_md:
             payload["user_memory_md"] = user_memory_md
+        if rag_context:
+            payload["rag_context"] = rag_context
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -203,6 +210,7 @@ class LLMClient:
             text = await self.analyze_dream(
                 dream_text=dream_text,
                 user_description=normalized_user_description,
+                rag_context=rag_context,
             )
             return AnalysisPayload(analysis_text=text, archetypes_delta={})
     

@@ -56,9 +56,9 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
     Создаёт user-сообщение, собирает контекст, вызывает LLM, сохраняет assistant-сообщение.
     Загружает user.md и обновляет его по diff из LLM-ответа.
     """
-    from services.message_service import create_message, build_llm_context
+    from services.message_service import create_message
     from services.archetype_service import apply_archetypes_delta
-    from services.rag_service import rebuild_dream_memory
+    from services.rag_service import build_retrieval_context, rebuild_dream_memory
     from services import user_memory_service
 
     async with AsyncSessionLocal() as db:
@@ -119,17 +119,20 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
             user_memory_md = memory_doc.content_md or ""
             memory_version = memory_doc.version
 
-            # Собираем контекст для LLM
-            from prompts import get_chat_system_prompt
-            system_prompt = get_chat_system_prompt(user.self_description, user_memory_md)
-
-            llm_messages = await build_llm_context(
-                db,
-                user_id=user.id,
-                current_dream_id=dream.id,
-                system_prompt=system_prompt,
-                include_retrieval=False,
-            )
+            # RAG-контекст из похожих прошлых снов. Раньше строился, но не
+            # передавался в первичный анализ — теперь включаем его в промпт
+            # первичного разбора, чтобы LLM учитывала повторяющиеся темы/архетипы.
+            rag_block = None
+            try:
+                retrieval = await build_retrieval_context(
+                    db,
+                    user_id=user.id,
+                    dream=dream,
+                    archetypes_delta={},
+                )
+                rag_block = retrieval.to_prompt_block().strip() or None
+            except Exception as rag_err:  # pragma: no cover
+                logger.warning("Failed to build RAG context for analysis %s: %s", analysis_id, rag_err)
 
             # Отправляем запрос в LLM Service
             try:
@@ -138,6 +141,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     dream_text=dream.content,
                     user_description=user.self_description,
                     user_memory_md=user_memory_md,
+                    rag_context=rag_block,
                 )
                 result_text = payload.analysis_text
 

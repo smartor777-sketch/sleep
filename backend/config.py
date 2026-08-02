@@ -74,10 +74,12 @@ class Settings(BaseSettings):
     # LLM Service
     llm_service_url: str = "http://llm_service:8001"
 
-    # Embeddings provider
-    embeddings_base_url: str = "https://api.cometapi.com"
+    # Embeddings provider (Google Gemini)
+    embeddings_provider: str = "gemini"
+    embeddings_base_url: str = "https://generativelanguage.googleapis.com"
     embeddings_api_key: SecretStr | None = None
-    embeddings_model: str = "text-embedding-3-small"
+    embeddings_model: str = "gemini-embedding-001"
+    embeddings_dimensions: int = 768
 
     # Audio transcription provider
     transcriptions_base_url: str = "https://api.cometapi.com"
@@ -96,7 +98,7 @@ class Settings(BaseSettings):
     yookassa_shop_id: str | None = None
     yookassa_secret_key: SecretStr | None = None
     yookassa_api_url: str = "https://api.yookassa.ru/v3"
-    yookassa_return_url: str = "https://app.innercore.art/profile"
+    yookassa_return_url: str = "https://sleep-test.kuban-forum.ru/profile"
     yookassa_receipts_enabled: bool = False
     yookassa_vat_code: int = 1
     yookassa_tax_system_code: Annotated[int | None, BeforeValidator(lambda v: None if v == "" else v)] = None

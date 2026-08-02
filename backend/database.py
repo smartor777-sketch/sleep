@@ -46,6 +46,7 @@ async def init_db():
     Инициализация базы данных (создание таблиц)
     """
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
         await conn.run_sync(Base.metadata.create_all)
         await _apply_schema_upgrades(conn)
 
@@ -60,6 +61,7 @@ async def close_db():
 async def _apply_schema_upgrades(conn):
     """Lightweight schema upgrades for environments without Alembic."""
     statements = [
+        "CREATE EXTENSION IF NOT EXISTS vector",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE",
         "ALTER TABLE dreams ADD COLUMN IF NOT EXISTS gradient_color_1 VARCHAR(7)",
         "ALTER TABLE dreams ADD COLUMN IF NOT EXISTS gradient_color_2 VARCHAR(7)",

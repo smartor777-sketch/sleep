@@ -5,12 +5,14 @@ from pydantic import SecretStr
 class Settings(BaseSettings):
     """Настройки LLM Service"""
 
-    # Gonka Proxy (OpenAI-compatible)
-    gonka_base_url: str = "https://proxy.gonka.gg/v1"
-    gonka_api_key: SecretStr
-    gonka_model: str = "moonshotai/Kimi-K2.6"
-    
-    # CometAPI fallback (optional)
+    # Google Gemini (free tier). Fallback-цепочка моделей: при недоступности
+    # первичной модели пробуем следующие по порядку.
+    gemini_api_key: SecretStr | None = None
+    gemini_base_url: str = "https://generativelanguage.googleapis.com"
+    gemini_model: str = "gemini-3.6-flash"
+    gemini_fallback_models: list[str] = ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
+
+    # CometAPI fallback (optional, OpenAI-compatible)
     comet_api_key: SecretStr | None = None
     comet_base_url: str = "https://api.cometapi.com/v1"
     comet_model: str = "gpt-5.1"

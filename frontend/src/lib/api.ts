@@ -6,7 +6,7 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 
 const BASE_URL: string =
-  (import.meta as any).env.VITE_API_BASE_URL || 'http://89.125.77.243:8080';
+  (import.meta as any).env.VITE_API_BASE_URL || 'https://sleep-test.kuban-forum.ru';
 const APP_VERSION: string = (import.meta as any).env.VITE_APP_VERSION || '0.4.2';
 
 const STORAGE = {

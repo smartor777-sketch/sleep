@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Dream, DreamArchetype, DreamChunk, DreamSymbol, DreamSymbolEntity
@@ -21,6 +21,12 @@ from services.embedding_service import (
     request_embedding,
     serialize_embedding,
 )
+
+_VECTOR_ENABLED = True
+
+# Верхняя граница кандидатов для ANN-этапа pgvector-ретривала. После этого
+# применяется гибридная пере-ранжировка (symbol/archetype overlap + recency).
+ANN_CANDIDATE_LIMIT = 40
 from services.text_normalization import (
     clean_label,
     extract_symbols,
@@ -252,6 +258,7 @@ async def rebuild_dream_memory(
                 user_id=user_id,
                 chunk_index=chunk.index,
                 text=chunk.text,
+                embedding_vec=chunk_embedding,
                 embedding_text=serialize_embedding(chunk_embedding),
                 embedding_model=EMBEDDING_MODEL_NAME,
                 metadata_json={"symbols": extract_symbols(chunk.text, limit=5)},
@@ -441,13 +448,48 @@ async def build_retrieval_context(
     for chunk in current_chunks:
         query_vecs.append(await request_embedding(chunk.text))
     now = datetime.now(timezone.utc)
+
+    # Сначала — кандидаты и их эмбеддинг-близость. Предпочтительно через
+    # pgvector (ANN, HNSW, O(log N)); при недоступности векторной колонки —
+    # legacy полный перебор с подсчётом косинуса в Python (O(N)).
+    candidates_entries: list[tuple[DreamChunk, float]] = []
+    if _VECTOR_ENABLED and query_vecs:
+        try:
+            query_vec = query_vecs[0]
+            dist_expr = DreamChunk.embedding_vec.cosine_distance(query_vec).label("dist")
+            stmt = (
+                select(DreamChunk, dist_expr)
+                .where(
+                    DreamChunk.user_id == user_id,
+                    DreamChunk.dream_id != dream.id,
+                    DreamChunk.embedding_vec.is_not(None),
+                )
+                .order_by(dist_expr)
+                .limit(ANN_CANDIDATE_LIMIT)
+            )
+            rows = list((await db.execute(stmt)).all())
+            candidates_entries = [
+                (chunk, max(0.0, min(1.0, 1.0 - float(dist))))
+                for chunk, dist in rows
+            ]
+        except Exception as exc:  # pragma: no cover
+            logger.warning("pgvector retrieval disabled, falling back to Python cosine: %s", exc)
+            candidates_entries = []
+
+    if not candidates_entries:
+        for chunk in chunk_rows:
+            chunk_vec = deserialize_embedding(chunk.embedding_text)
+            if chunk_vec is None:
+                continue
+            embedding_score = max(
+                (cosine_similarity(query_vec, chunk_vec) for query_vec in query_vecs),
+                default=0.0,
+            )
+            candidates_entries.append((chunk, embedding_score))
+
     scored: list[dict] = []
-    for chunk in chunk_rows:
-        chunk_vec = deserialize_embedding(chunk.embedding_text)
-        if chunk_vec is None:
-            continue
-        embedding_score = max((cosine_similarity(query_vec, chunk_vec) for query_vec in query_vecs), default=0.0)
-        symbol_overlap = sorted(current_symbol_set & symbols_by_chunk.get(chunk.id, set()))
+    for chunk, embedding_score in candidates_entries:
+        symbol_overlap = sorted(set(current_symbol_set) & symbols_by_chunk.get(chunk.id, set()))
         archetype_overlap = sorted(current_archetypes & archetypes_by_dream.get(chunk.dream_id, set()))
 
         # Temporal recency bonus: 0.1 * exp(-days_ago / 30), half-life ~30 days

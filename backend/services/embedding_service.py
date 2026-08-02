@@ -96,6 +96,12 @@ def build_dream_embedding_text(dream: Dream) -> str:
 
 
 async def request_embedding(text: str) -> list[float]:
+    """Generate an embedding vector via the Google Gemini Embedding API.
+
+    Uses the native Generative Language REST endpoint so we keep full control
+    over output dimensionality (Matryoshka) and the model id. If the provider is
+    misconfigured we raise so callers can surface a clear, retryable error.
+    """
     clean = (text or "").strip()
     if not clean:
         return []
@@ -103,32 +109,29 @@ async def request_embedding(text: str) -> list[float]:
     if not api_key:
         raise RuntimeError("EMBEDDINGS_API_KEY is not configured")
 
-    url = f"{settings.embeddings_base_url.rstrip('/')}/v1/embeddings"
+    base = settings.embeddings_base_url.rstrip("/")
+    model = settings.embeddings_model
+    url = f"{base}/v1beta/models/{model}:embedContent"
+
     payload = {
-        "model": settings.embeddings_model,
-        "input": clean,
-    }
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
+        "model": f"models/{model}",
+        "content": {"parts": [{"text": clean}]},
+        "outputDimensionality": settings.embeddings_dimensions,
     }
 
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(url, json=payload, headers=headers)
+            response = await client.post(url, json=payload, params={"key": api_key})
             response.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        logger.error("Embedding provider returned %s: %s", exc.response.status_code, exc.response.text)
+        logger.error("Embedding provider returned %s: %s", exc.response.status_code, exc.response.text[:300])
         raise RuntimeError(f"embedding_http_{exc.response.status_code}") from exc
     except httpx.RequestError as exc:
         logger.error("Embedding provider request failed: %s", exc)
         raise RuntimeError("embedding_request_failed") from exc
 
     data = response.json()
-    items = data.get("data")
-    if not isinstance(items, list) or not items:
-        raise RuntimeError("embedding_missing_data")
-    embedding = items[0].get("embedding")
+    embedding = data.get("embedding", {}).get("values")
     if not isinstance(embedding, list):
         raise RuntimeError("embedding_missing_vector")
 

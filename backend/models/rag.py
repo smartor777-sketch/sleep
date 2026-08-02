@@ -6,7 +6,9 @@ from datetime import datetime
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from pgvector.sqlalchemy import Vector
 
+from config import settings
 from database import Base
 
 
@@ -34,6 +36,12 @@ class DreamChunk(Base):
     )
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    # pgvector-колонка для ANN-ретривала (HNSW-индекс). Хранит тот же вектор,
+    # что и embedding_text (JSON), но в типе vector(768). map_service читает JSON,
+    # а RAG-поиск похожих прошлых снов идёт через индексированную vector-колонку.
+    embedding_vec: Mapped[list[float] | None] = mapped_column(
+        Vector(settings.embeddings_dimensions), nullable=True
+    )
     embedding_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

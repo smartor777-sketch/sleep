@@ -9,13 +9,13 @@ class Settings(BaseSettings):
     # первичной модели пробуем следующие по порядку.
     gemini_api_key: SecretStr | None = None
     gemini_base_url: str = "https://generativelanguage.googleapis.com"
-    gemini_model: str = "gemini-3.6-flash"
-    gemini_fallback_models: list[str] = ["gemini-3.5-flash", "gemini-3.5-flash-lite"]
+    gemini_model: str = "gemini-3.5-flash-lite"
+    gemini_fallback_models: list[str] = ["gemini-3.6-flash", "gemini-3.5-flash"]
 
-    # CometAPI fallback (optional, OpenAI-compatible)
-    comet_api_key: SecretStr | None = None
-    comet_base_url: str = "https://api.cometapi.com/v1"
-    comet_model: str = "gpt-5.1"
+    # Mistral AI fallback (optional, OpenAI-compatible)
+    mistral_api_key: SecretStr | None = None
+    mistral_base_url: str = "https://api.mistral.ai/v1"
+    mistral_model: str = "mistral-large-latest"
 
     # Server
     host: str = "0.0.0.0"

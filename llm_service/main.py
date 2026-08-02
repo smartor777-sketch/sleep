@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from config import settings
 from providers.gemini import GeminiProvider
-from providers.comet_api import CometApiProvider
+from providers.mistral import MistralProvider
 from prompts import get_analysis_prompt, get_default_temperature, get_chat_system_prompt
 
 # Настройка логирования
@@ -35,14 +35,14 @@ llm_provider = GeminiProvider(
 )
 
 # Инициализация fallback-провайдера (опционально)
-fallback_provider: CometApiProvider | None = None
-if settings.comet_api_key:
-    fallback_provider = CometApiProvider(
-        api_key=settings.comet_api_key.get_secret_value(),
-        model=settings.comet_model,
-        base_url=settings.comet_base_url,
+fallback_provider: MistralProvider | None = None
+if settings.mistral_api_key:
+    fallback_provider = MistralProvider(
+        api_key=settings.mistral_api_key.get_secret_value(),
+        model=settings.mistral_model,
+        base_url=settings.mistral_base_url,
     )
-    logger.info("CometAPI fallback provider initialized")
+    logger.info("Mistral fallback provider initialized")
 
 
 # Pydantic модели
@@ -123,7 +123,7 @@ async def analyze_dream(request: AnalyzeRequest):
         )
         temperature = get_default_temperature()
         
-        # Вызываем LLM provider (с fallback на CometAPI)
+        # Вызываем LLM provider (с fallback на Mistral)
         try:
             result = await llm_provider.analyze_dream(
                 dream_text=request.dream_text,
@@ -133,13 +133,13 @@ async def analyze_dream(request: AnalyzeRequest):
         except Exception as primary_err:
             if fallback_provider is None:
                 raise
-            logger.warning("Primary provider failed, trying CometAPI fallback: %s", primary_err)
+            logger.warning("Primary provider failed, trying Mistral fallback: %s", primary_err)
             result = await fallback_provider.analyze_dream(
                 dream_text=request.dream_text,
                 system_prompt=system_prompt,
                 temperature=temperature,
             )
-            logger.info("CometAPI fallback succeeded for /analyze")
+            logger.info("Mistral fallback succeeded for /analyze")
 
         payload = _extract_json(result)
         if payload is None:
@@ -230,12 +230,12 @@ async def chat(request: ChatRequest):
         except Exception as primary_err:
             if fallback_provider is None:
                 raise
-            logger.warning("Primary provider failed, trying CometAPI fallback: %s", primary_err)
+            logger.warning("Primary provider failed, trying Mistral fallback: %s", primary_err)
             result = await fallback_provider.chat_completion(
                 messages=messages,
                 temperature=get_default_temperature(),
             )
-            logger.info("CometAPI fallback succeeded for /chat")
+            logger.info("Mistral fallback succeeded for /chat")
 
         logger.info(f"Chat response length: {len(result)} chars")
         return {"result": result}

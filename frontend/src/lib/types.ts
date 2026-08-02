@@ -24,6 +24,7 @@ export interface User {
   first_name?: string | null;
   last_name?: string | null;
   is_anonymous: boolean;
+  is_admin?: boolean;
   email_verified?: boolean;
   sub_type?: 'free' | 'trial' | 'pro';
   linked_providers?: string[];
@@ -150,4 +151,33 @@ export interface UserStats {
   archetypes_top: { name: string; count: number }[];
   recurring_symbols: { symbol_name: string; display_label: string; dream_count: number; occurrence_count: number }[];
   avg_time_of_day: string | null;
+}
+
+export interface AdminStats {
+  total_users: number;
+  total_dreams: number;
+  total_analyses: number;
+  total_anonymous: number;
+  total_premium: number;
+  active_last_7d: number;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  is_active: boolean;
+  is_admin: boolean;
+  is_anonymous: boolean;
+  email_verified: boolean;
+  sub_type: string;
+  created_at: string;
+  last_login_at: string | null;
+  dreams_count: number;
+}
+
+export interface AdminUserList {
+  total: number;
+  items: AdminUser[];
 }

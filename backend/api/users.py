@@ -1,6 +1,6 @@
 """API эндпоинты для пользователя"""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from dependencies import CurrentUser, DatabaseSession
@@ -8,6 +8,7 @@ from schemas import UserMeResponse, UserProfileResponse, UserSettingsUpdate
 from services.oauth_identity_service import get_user_identities
 from services import user_memory_service
 from services.billing_service import refresh_entitlements
+from services.auth_service import verify_password, get_password_hash
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -24,6 +25,7 @@ async def get_me(current_user: CurrentUser, db: DatabaseSession):
         first_name=current_user.first_name,
         last_name=current_user.last_name,
         is_anonymous=current_user.is_anonymous,
+        is_admin=current_user.is_admin,
         email_verified=current_user.email_verified,
         sub_type=current_user.sub_type,
         linked_providers=linked,
@@ -61,6 +63,7 @@ async def update_me(
         first_name=current_user.first_name,
         last_name=current_user.last_name,
         is_anonymous=current_user.is_anonymous,
+        is_admin=current_user.is_admin,
         email_verified=current_user.email_verified,
         sub_type=current_user.sub_type,
         linked_providers=linked,
@@ -75,6 +78,35 @@ class UserMemoryResponse(BaseModel):
     version: int
     updated_at: str
     content_md: str = Field(default="")
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+
+@router.post("/me/password", response_model=dict)
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: CurrentUser,
+    db: DatabaseSession,
+):
+    """Сменить пароль текущего пользователя."""
+    if current_user.password_hash is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account has no password (OAuth-only)",
+        )
+
+    if not verify_password(data.old_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect current password",
+        )
+
+    current_user.password_hash = get_password_hash(data.new_password)
+    await db.commit()
+    return {"message": "Password updated"}
 
 
 @router.get("/me/memory", response_model=UserMemoryResponse)

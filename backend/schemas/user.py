@@ -70,9 +70,64 @@ class UserMeResponse(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     is_anonymous: bool
+    is_admin: bool = False
     email_verified: bool = False
     sub_type: str = "free"
     linked_providers: list[str]
     profile: UserProfileResponse
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminUserCreate(BaseModel):
+    """Создание пользователя админом."""
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    first_name: str | None = None
+    last_name: str | None = None
+
+
+class AdminUserUpdate(BaseModel):
+    """Обновление пользователя админом."""
+    first_name: str | None = None
+    last_name: str | None = None
+    is_active: bool | None = None
+    is_admin: bool | None = None
+
+
+class AdminUserListItem(BaseModel):
+    """Строка списка пользователей для админки."""
+    id: UUID
+    email: EmailStr | None = None
+    first_name: str | None = None
+    last_name: str | None = None
+    is_active: bool
+    is_admin: bool
+    is_anonymous: bool
+    email_verified: bool
+    sub_type: str
+    created_at: datetime
+    last_login_at: datetime | None = None
+    dreams_count: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminUserListResponse(BaseModel):
+    total: int
+    items: list[AdminUserListItem]
+
+
+class AdminStatsResponse(BaseModel):
+    total_users: int
+    total_dreams: int
+    total_analyses: int
+    total_anonymous: int
+    total_premium: int
+    active_last_7d: int
+
+
+class AdminResetPasswordResponse(BaseModel):
+    user_id: UUID
+    email: EmailStr | None = None
+    new_password: str

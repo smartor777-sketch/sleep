@@ -159,6 +159,7 @@ async function del<T>(url: string) {
 import {
   User, Dream, DreamListResponse, Analysis, Message,
   DreamMap, SymbolDetail, BillingStatus, PaymentCreateResponse, UserStats, LinkResponse,
+  AdminStats, AdminUser, AdminUserList,
 } from './types';
 
 export const api = {
@@ -183,6 +184,7 @@ export const api = {
       payload,
       { __skipAuth: true } as any
     );
+    setTokens(data.access_token, data.refresh_token);
     return data;
   },
 
@@ -192,6 +194,7 @@ export const api = {
       { email, password },
       { __skipAuth: true } as any
     );
+    setTokens(data.access_token, data.refresh_token);
     return data;
   },
 
@@ -290,6 +293,21 @@ export const api = {
   me: () => get<User>('/api/v1/users/me'),
   updateMe: (body: { self_description?: string; timezone?: string; onboarding_completed?: boolean }) =>
     put<User>('/api/v1/users/me', body),
+  changePassword: (old_password: string, new_password: string) =>
+    post<{ message: string }>('/api/v1/users/me/password', { old_password, new_password }),
+
+  // ---- Admin ----
+  adminStats: () => get<AdminStats>('/api/v1/admin/stats'),
+  adminUsers: (params?: { q?: string; offset?: number; limit?: number }) =>
+    get<AdminUserList>('/api/v1/admin/users', params),
+  adminCreateUser: (body: { email: string; password: string; first_name?: string; last_name?: string }) =>
+    post<AdminUser>('/api/v1/admin/users', body),
+  adminUpdateUser: (id: string, body: { first_name?: string; last_name?: string; is_active?: boolean; is_admin?: boolean }) =>
+    patch<AdminUser>(`/api/v1/admin/users/${id}`, body),
+  adminResetPassword: (id: string) =>
+    post<{ user_id: string; email?: string; new_password: string }>(
+      `/api/v1/admin/users/${id}/reset-password`, {}
+    ),
 
   // ---- Dreams ----
   createDream: (body: { content: string; title?: string; emoji?: string; comment?: string }) =>

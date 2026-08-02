@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { t } from '../lib/i18n';
 import { ACCENTS, FontSize, Lang, ThemeMode } from '../lib/settings';
-import { Check, LogOut, Sparkles, Trash2, UserPlus, Smartphone } from 'lucide-react';
+import { Check, KeyRound, LogOut, Sparkles, Trash2, UserPlus, Smartphone } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 
 export default function ProfilePage() {
@@ -27,6 +28,10 @@ export default function ProfilePage() {
   const [savedFlag, setSavedFlag] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [oldPw, setOldPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => { refreshBilling().catch(() => {}); }, [refreshBilling]);
   useEffect(() => { setAbout(user?.profile?.about_me || ''); }, [user?.id, user?.profile?.about_me]);
@@ -45,6 +50,18 @@ export default function ProfilePage() {
     try { await api.deleteAccount(); } catch {}
     setConfirmDel(false);
     await signOut();
+  }
+
+  async function changePassword() {
+    setPwBusy(true);
+    setPwMsg(null);
+    try {
+      await api.changePassword(oldPw, newPw);
+      setPwMsg({ ok: true, text: lang === 'ru' ? 'Пароль изменён' : 'Password updated' });
+      setOldPw(''); setNewPw('');
+    } catch (e: any) {
+      setPwMsg({ ok: false, text: e?.detail || e?.message || (lang === 'ru' ? 'Не удалось сменить пароль' : 'Failed to change password') });
+    } finally { setPwBusy(false); }
   }
 
   const tier = billing?.sub_type || 'free';
@@ -202,6 +219,42 @@ export default function ProfilePage() {
         )}
       </section>
 
+      {/* Change password (email accounts) */}
+      {user?.email && !user?.is_anonymous && (
+        <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="password-section">
+          <div className="flex items-center gap-2 font-display text-lg mb-1">
+            <KeyRound className="w-5 h-5" />
+            {lang === 'ru' ? 'Сменить пароль' : 'Change password'}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 mt-3">
+            <input
+              type="password"
+              value={oldPw}
+              onChange={(e) => setOldPw(e.target.value)}
+              placeholder={lang === 'ru' ? 'Текущий пароль' : 'Current password'}
+              className="input-base"
+              data-testid="old-password-field"
+            />
+            <input
+              type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              placeholder={lang === 'ru' ? 'Новый пароль (мин. 8)' : 'New password (min 8)'}
+              className="input-base"
+              data-testid="new-password-field"
+            />
+            <button onClick={changePassword} disabled={pwBusy || !oldPw || !newPw || newPw.length < 8} className="btn-pill btn-primary shrink-0 disabled:opacity-50" data-testid="change-password-btn">
+              {lang === 'ru' ? 'Сменить' : 'Change'}
+            </button>
+          </div>
+          {pwMsg && (
+            <div className={`mt-2 text-sm ${pwMsg.ok ? 'text-green-400' : 'text-red-400'}`} data-testid="password-msg">
+              {pwMsg.text}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Mobile app */}
       <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="mobile-app-section">
         <div className="flex items-start gap-4">
@@ -244,6 +297,15 @@ export default function ProfilePage() {
             <Trash2 className="w-4 h-4" />
             {t('profile.deleteAccount', lang)}
           </button>
+        </section>
+      )}
+
+      {user?.is_admin && (
+        <section className="card-surface rounded-3xl p-5" data-testid="admin-section">
+          <div className="font-display text-lg mb-2">{lang === 'ru' ? 'Администрирование' : 'Administration'}</div>
+          <Link to="/admin" className="btn-pill btn-soft !py-2">
+            {lang === 'ru' ? 'Открыть админ-панель' : 'Open admin panel'}
+          </Link>
         </section>
       )}
 

@@ -9,6 +9,12 @@ from .user import (
     UserPublic,
     UserProfileResponse,
     UserMeResponse,
+    AdminUserCreate,
+    AdminUserUpdate,
+    AdminUserListItem,
+    AdminUserListResponse,
+    AdminStatsResponse,
+    AdminResetPasswordResponse,
 )
 from .dream import (
     DreamBase,
@@ -89,6 +95,12 @@ __all__ = [
     "UserPublic",
     "UserProfileResponse",
     "UserMeResponse",
+    "AdminUserCreate",
+    "AdminUserUpdate",
+    "AdminUserListItem",
+    "AdminUserListResponse",
+    "AdminStatsResponse",
+    "AdminResetPasswordResponse",
     # Dream
     "DreamBase",
     "DreamCreate",

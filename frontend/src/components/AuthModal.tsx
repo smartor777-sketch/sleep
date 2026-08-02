@@ -30,6 +30,13 @@ export default function AuthModal({ open, onClose }: Props) {
   const [vkBusy, setVkBusy] = useState(false);
   const pollRef = useRef<number | null>(null);
 
+  // Email/password form
+  const [emailMode, setEmailMode] = useState<'login' | 'register'>('register');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
+
   function stopPolling() {
     if (pollRef.current) {
       window.clearInterval(pollRef.current);
@@ -44,8 +51,40 @@ export default function AuthModal({ open, onClose }: Props) {
     setVkBusy(false);
     setTg({ kind: 'preparing' });
     setWaitingConfirm(false);
+    setEmailMode('register');
+    setEmail('');
+    setPassword('');
+    setFirstName('');
+    setEmailBusy(false);
     stopPolling();
   }
+
+  const submitEmail = useCallback(async () => {
+    if (emailBusy) return;
+    setEmailBusy(true);
+    setErr(null);
+    const anonDevice = getDeviceId();
+    try {
+      if (emailMode === 'login') {
+        await api.login(email.trim(), password);
+      } else {
+        await api.register({
+          email: email.trim(),
+          password,
+          first_name: firstName.trim() || undefined,
+        });
+      }
+      try { await api.mergeAnonymous(anonDevice); } catch {}
+      await refreshUser();
+      refreshBilling().catch(() => {});
+      onClose(); reset();
+    } catch (e) {
+      const ae = e as ApiError;
+      setErr(ae.detail || ae.message || (emailMode === 'login' ? 'login_failed' : 'register_failed'));
+    } finally {
+      setEmailBusy(false);
+    }
+  }, [emailMode, email, password, firstName, emailBusy, onClose, refreshUser, refreshBilling]);
 
   const signInYandex = useCallback(async () => {
     setYandexBusy(true);
@@ -156,6 +195,79 @@ export default function AuthModal({ open, onClose }: Props) {
         {err && (
           <div className="text-sm text-red-400 bg-red-500/10 rounded-xl px-3 py-2" data-testid="auth-error">{err}</div>
         )}
+
+        {/* Email/password form */}
+        <div className="flex flex-col gap-2">
+          <div className="flex rounded-full bg-white/5 p-1 text-sm">
+            {(['register', 'login'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setEmailMode(mode)}
+                className={`flex-1 rounded-full py-1.5 font-medium transition-colors ${
+                  emailMode === mode ? 'bg-white/10 text-white' : 'text-white/50'
+                }`}
+                data-testid={`email-mode-${mode}`}
+              >
+                {lang === 'ru'
+                  ? (mode === 'register' ? 'Регистрация' : 'Вход')
+                  : (mode === 'register' ? 'Sign up' : 'Sign in')}
+              </button>
+            ))}
+          </div>
+
+          <form
+            className="flex flex-col gap-2"
+            onSubmit={(e) => { e.preventDefault(); submitEmail(); }}
+          >
+            {emailMode === 'register' && (
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder={lang === 'ru' ? 'Имя' : 'Name'}
+                className="rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                data-testid="email-first-name"
+              />
+            )}
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              data-testid="email-field"
+            />
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={lang === 'ru' ? 'Пароль (мин. 8 символов)' : 'Password (min 8 chars)'}
+              className="rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              data-testid="password-field"
+            />
+            <button
+              type="submit"
+              disabled={emailBusy}
+              className="btn-pill btn-primary !py-2.5 w-full justify-center disabled:opacity-50"
+              data-testid="email-submit"
+            >
+              {emailBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+              {lang === 'ru'
+                ? (emailMode === 'register' ? 'Создать аккаунт' : 'Войти')
+                : (emailMode === 'register' ? 'Create account' : 'Sign in')}
+            </button>
+          </form>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-xs muted-text">{lang === 'ru' ? 'или' : 'or'}</span>
+          <div className="flex-1 h-px bg-white/10" />
+        </div>
 
         {waitingConfirm && (
           <div className="text-sm accent-text bg-white/5 rounded-xl px-3 py-3 flex items-center gap-2" data-testid="tg-waiting">

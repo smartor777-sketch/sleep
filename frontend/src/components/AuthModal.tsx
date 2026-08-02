@@ -198,14 +198,16 @@ export default function AuthModal({ open, onClose }: Props) {
 
         {/* Email/password form */}
         <div className="flex flex-col gap-2">
-          <div className="flex rounded-full bg-white/5 p-1 text-sm">
+          <div className="flex rounded-full bg-[var(--surface)] p-1 text-sm border border-[var(--line)]">
             {(['register', 'login'] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
                 onClick={() => setEmailMode(mode)}
                 className={`flex-1 rounded-full py-1.5 font-medium transition-colors ${
-                  emailMode === mode ? 'bg-white/10 text-white' : 'text-white/50'
+                  emailMode === mode
+                    ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
                 }`}
                 data-testid={`email-mode-${mode}`}
               >

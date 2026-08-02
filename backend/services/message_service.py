@@ -11,10 +11,12 @@ from services.rag_service import build_retrieval_context
 
 logger = logging.getLogger(__name__)
 
-# Бюджет символов для контекста LLM (~7000 токенов)
-CONTEXT_CHAR_BUDGET = 28000
+# Бюджет символов для контекста LLM (~100 000 токенов).
+# gemini-3.5-flash-lite держит 1M токенов контекста — это значение с большим
+# запасом под историю снов и follow-up диалоги, при этом не раздувает промпт.
+CONTEXT_CHAR_BUDGET = 400000
 # Максимум последних follow-up сообщений текущего сна
-MAX_RECENT_MESSAGES = 20
+MAX_RECENT_MESSAGES = 50
 
 
 async def create_message(

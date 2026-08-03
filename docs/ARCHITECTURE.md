@@ -245,9 +245,48 @@ def cosine_similarity(a: list[float], b: list[float]) -> float:
 
 ## Деплой
 
-- **Сервер**: `sleep-test.kuban-forum.ru` (2.26.51.8)
+### Dev-среда — `sleep-test.kuban-forum.ru`
+
+- **Сервер**: `sleep-test.kuban-forum.ru` (2.26.51.8), SSH `plink -pw yO3aN0cU6efK root@2.26.51.8`
 - **Frontend**: `/srv/sleep-test-web/frontend/dist/` (Vite build → статика)
 - **Backend**: `/srv/sleep-test/backend/` (FastAPI + uvicorn)
-- **Reverse proxy**: Caddy (`/etc/caddy/Caddyfile`)
-- **Systemd**: `innercore-backend.service`
-- **Git**: ветка `dev-sleep-test`, remote `smartor777-sketch/sleep.git`
+- **Reverse proxy**: Caddy `/etc/caddy/Caddyfile`
+- **Systemd**: `innercore-backend`
+- **База**: PostgreSQL `innercore` (dev-пароль), pgvector
+- **Redis**: running (broker для Celery)
+
+### Prod-среда — `sleep.kuban-forum.ru`
+
+- **Сервер**: `sleep.kuban-forum.ru` (31.76.8.29), SSH `plink -pw master2000 root@31.76.8.29`
+- **Каталог**: `/srv/sleep-prod/` (backend cloned отсюда, git branch `dev-sleep-test`)
+- **Frontend**: `/srv/sleep-prod/frontend/dist/` (Vite build → статика)
+- **Backend**: `/srv/sleep-prod/backend/backend/` (FastAPI + uvicorn)
+- **Systemd**: `innercore-prod` (backend), `celery-prod` (celery worker)
+- **Reverse proxy**: Caddy `/etc/caddy/Caddyfile` — `sleep.kuban-forum.ru` site
+  - `/api/*` → `reverse_proxy 127.0.0.1:8000`
+  - остальное → статика из `/srv/sleep-prod/frontend/dist`
+  - `Cache-Control: no-cache` для `index.html` (кеш-бастинг)
+- **База**: PostgreSQL `innercore` (prod-пароль), pgvector
+- **Redis**: running
+
+### Пользователи prod
+
+| Email | Пароль | Роль |
+|-------|--------|------|
+| `sleep@kuban-forum.ru` | `SleepAdmin2026!` | Админ |
+| `test1@kuban-forum.ru` | `TestPass123!` | Тестовый |
+| `test2@kuban-forum.ru` | `TestPass123!` | Тестовый |
+| `test_nocode@kuban-forum.ru` | `Test12345!` | Тест без кода |
+
+### Ключевые уроки деплоя
+
+1. **Frontend API URL**: при сборке обязательно задавать `VITE_API_BASE_URL` для окружения. Дефолт — `sleep-test.kuban-forum.ru` (dev). Для prod: `npm run build` с `.env` → `VITE_API_BASE_URL=https://sleep.kuban-forum.ru`. Если собрать с дефолтом — фронт стучится в dev API (Network Error) и не видит Pro-статус.
+2. **NumPy на prod**: QEMU CPU (виртуальный, без SSE4.1/AVX) не поддерживает X86_V2-оптимизации NumPy 2.x binary wheels. Нужно собрать из исходников: `pip install numpy==2.0.2 --no-binary numpy` с `CFLAGS="-O2 -march=x86-64 -mtune=generic"`. requirements.txt на прод-сервере зафиксирован на `numpy==2.0.2`.
+3. **Миграция 003**: `op.bulk_insert` с `sa.text()` ломается в asyncpg — использовать `op.execute` с raw SQL (исправлено в git).
+4. **Картинки фронтенда**: `frontend/public/*` → копируются в `/srv/<env>-.../frontend/dist/` (favicon, icon).
+
+### Git
+
+- Ветка: `dev-sleep-test`
+- Remote: `smartor777-sketch/sleep.git`
+- Репозиторий: `C:\Users\Alex\sna_net`

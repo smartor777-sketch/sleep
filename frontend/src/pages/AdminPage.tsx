@@ -127,11 +127,13 @@ export default function AdminPage() {
     try {
       await api.adminDeleteUser(confirmDelete.id);
       setConfirmDelete(null);
-      load();
     } catch (e) {
       const ae = e as ApiError;
       setError(ae.detail || ae.message || 'delete_failed');
-    } finally { setDeleteBusy(false); }
+    } finally {
+      setDeleteBusy(false);
+      load();
+    }
   }
 
   return (
@@ -329,8 +331,8 @@ export default function AdminPage() {
 
       {/* Delete user confirmation modal */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="delete-confirm-modal">
-          <div className="card-surface rounded-3xl p-6 max-w-md w-full mx-4 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="delete-confirm-modal" onClick={() => !deleteBusy && setConfirmDelete(null)}>
+          <div className="card-surface rounded-3xl p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="font-display text-lg text-red-300">
               {lang === 'ru' ? 'Удалить пользователя?' : 'Delete user?'}
             </div>

@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from dependencies import AdminUser, DatabaseSession
 from models import Analysis, Dream, User
 from schemas import (
+    AdminDeleteUserResponse,
     AdminResetPasswordResponse,
     AdminStatsResponse,
     AdminUserCreate,
@@ -259,6 +260,46 @@ async def reset_password(
         user_id=user.id,
         email=user.email,
         new_password=new_password,
+    )
+
+
+@router.delete("/users/{user_id}", response_model=AdminDeleteUserResponse)
+async def delete_user(
+    user_id: str,
+    db: DatabaseSession,
+    admin: AdminUser,
+):
+    from uuid import UUID
+
+    try:
+        uid = UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user id",
+        )
+
+    user = await db.get(User, uid)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    if user.id == admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot delete yourself",
+        )
+
+    email = user.email
+    await db.delete(user)
+    await db.commit()
+
+    return AdminDeleteUserResponse(
+        user_id=uid,
+        email=email,
+        message="User deleted",
     )
 
 

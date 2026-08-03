@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../lib/store';
 import { api, ApiError } from '../lib/api';
 import { AdminStats, AdminUser } from '../lib/types';
-import { Loader2, RefreshCw, Search, Shield, UserPlus, KeyRound } from 'lucide-react';
+import { Loader2, RefreshCw, Search, Shield, UserPlus, KeyRound, Trash2 } from 'lucide-react';
 
 export default function AdminPage() {
   const lang = useApp((s) => s.lang);
@@ -28,6 +28,10 @@ export default function AdminPage() {
   // Per-user actions
   const [resetResult, setResetResult] = useState<{ user_id: string; email?: string; new_password: string } | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+
+  // Delete user confirmation
+  const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,6 +118,20 @@ export default function AdminPage() {
       const ae = e as ApiError;
       setError(ae.detail || ae.message || 'update_failed');
     } finally { setEmailAuthBusy(false); }
+  }
+
+  async function deleteUser() {
+    if (!confirmDelete || deleteBusy) return;
+    setDeleteBusy(true);
+    setError(null);
+    try {
+      await api.adminDeleteUser(confirmDelete.id);
+      setConfirmDelete(null);
+      load();
+    } catch (e) {
+      const ae = e as ApiError;
+      setError(ae.detail || ae.message || 'delete_failed');
+    } finally { setDeleteBusy(false); }
   }
 
   return (
@@ -288,6 +306,17 @@ export default function AdminPage() {
                         >
                           {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
                         </button>
+                        {!u.is_admin && (
+                          <button
+                            onClick={() => setConfirmDelete(u)}
+                            disabled={actionBusy === u.id}
+                            className="btn-pill btn-soft !py-1 text-xs text-red-400 hover:bg-red-500/15"
+                            data-testid={`delete-${u.id}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            {lang === 'ru' ? 'Удалить' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -297,6 +326,41 @@ export default function AdminPage() {
           </div>
         )}
       </section>
+
+      {/* Delete user confirmation modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="delete-confirm-modal">
+          <div className="card-surface rounded-3xl p-6 max-w-md w-full mx-4 space-y-4">
+            <div className="font-display text-lg text-red-300">
+              {lang === 'ru' ? 'Удалить пользователя?' : 'Delete user?'}
+            </div>
+            <p className="muted-text text-sm">
+              {lang === 'ru'
+                ? `Вы уверены, что хотите удалить пользователя ${confirmDelete.email || confirmDelete.first_name || confirmDelete.id}? Все данные будут удалены безвозвратно: сны, анализы, подписка, настройки.`
+                : `Are you sure you want to delete user ${confirmDelete.email || confirmDelete.first_name || confirmDelete.id}? All data will be permanently deleted: dreams, analyses, subscription, settings.`}
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleteBusy}
+                className="btn-pill btn-ghost !py-2"
+                data-testid="delete-cancel"
+              >
+                {lang === 'ru' ? 'Отмена' : 'Cancel'}
+              </button>
+              <button
+                onClick={deleteUser}
+                disabled={deleteBusy}
+                className="btn-pill bg-red-500/20 text-red-300 hover:bg-red-500/30 !py-2 disabled:opacity-50"
+                data-testid="delete-confirm"
+              >
+                {deleteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                {lang === 'ru' ? 'Удалить навсегда' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

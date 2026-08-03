@@ -133,5 +133,11 @@ class AdminResetPasswordResponse(BaseModel):
     new_password: str
 
 
+class AdminDeleteUserResponse(BaseModel):
+    user_id: UUID
+    email: EmailStr | None = None
+    message: str
+
+
 class AdminEmailAuthSetting(BaseModel):
     email_auth_enabled: bool

@@ -258,6 +258,8 @@ export const api = {
     get<{ email_auth_enabled: boolean }>('/api/v1/admin/settings/email-auth'),
   adminSetEmailAuth: (email_auth_enabled: boolean) =>
     put<{ email_auth_enabled: boolean }>('/api/v1/admin/settings/email-auth', { email_auth_enabled }),
+  adminDeleteUser: (id: string) =>
+    del<{ user_id: string; email?: string; message: string }>(`/api/v1/admin/users/${id}`),
 
   // ---- Dreams ----
   createDream: (body: { content: string; title?: string; emoji?: string; comment?: string }) =>

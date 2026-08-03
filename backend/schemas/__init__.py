@@ -15,6 +15,7 @@ from .user import (
     AdminUserListResponse,
     AdminStatsResponse,
     AdminResetPasswordResponse,
+    AdminDeleteUserResponse,
     AdminEmailAuthSetting,
 )
 from .dream import (
@@ -102,6 +103,7 @@ __all__ = [
     "AdminUserListResponse",
     "AdminStatsResponse",
     "AdminResetPasswordResponse",
+    "AdminDeleteUserResponse",
     "AdminEmailAuthSetting",
     # Dream
     "DreamBase",

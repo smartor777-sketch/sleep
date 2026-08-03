@@ -26,8 +26,8 @@
   --surface: #FFFFFF;
   --surface-soft: #F3EFE6;
   --text: #0E1116;
-  --muted: rgba(21, 26, 34, 0.62);
-  --line: rgba(14, 17, 22, 0.08);
+  --muted: rgba(21, 26, 34, 0.72);
+  --line: rgba(14, 17, 22, 0.10);
   --shadow-soft: 0 22px 60px rgba(61, 49, 34, 0.08);
   --map-link: rgba(14, 17, 22, 0.30);
   --on-accent: #0E1116;

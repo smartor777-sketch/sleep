@@ -242,90 +242,117 @@ export default function AdminPage() {
         />
       </div>
 
-      {/* Users table */}
+      {/* Users list */}
       <section className="card-surface rounded-3xl overflow-hidden">
-        <div className="px-4 py-3 text-sm muted-text border-b border-white/5">
+        <div className="px-4 py-3 text-sm muted-text border-b border-[var(--line)]">
           {lang === 'ru' ? `Пользователей: ${total}` : `Users: ${total}`}
         </div>
         {users.length === 0 && !loading ? (
           <div className="p-6 text-center muted-text text-sm">{lang === 'ru' ? 'Никого не найдено' : 'Nothing found'}</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left muted-text text-xs uppercase tracking-wider border-b border-white/5">
-                  <th className="px-4 py-2.5">{lang === 'ru' ? 'Имя' : 'Name'}</th>
-                  <th className="px-4 py-2.5">Email</th>
-                  <th className="px-4 py-2.5">{lang === 'ru' ? 'Сны' : 'Dreams'}</th>
-                  <th className="px-4 py-2.5">{lang === 'ru' ? 'Подписка' : 'Plan'}</th>
-                  <th className="px-4 py-2.5">{lang === 'ru' ? 'Статус' : 'Status'}</th>
-                  <th className="px-4 py-2.5">{lang === 'ru' ? 'Действия' : 'Actions'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="border-b border-white/5 hover:bg-white/5">
-                    <td className="px-4 py-2.5">
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left muted-text text-xs uppercase tracking-wider border-b border-[var(--line)]">
+                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Имя' : 'Name'}</th>
+                    <th className="px-4 py-2.5">Email</th>
+                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Сны' : 'Dreams'}</th>
+                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Подписка' : 'Plan'}</th>
+                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Статус' : 'Status'}</th>
+                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Действия' : 'Actions'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((u) => (
+                    <tr key={u.id} className="border-b border-[var(--line)] hover:bg-white/5">
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">
+                          {[u.first_name, u.last_name].filter(Boolean).join(' ') || '—'}
+                          {u.is_admin && <Shield className="inline w-4 h-4 ml-1.5 accent-text" />}
+                        </div>
+                        <div className="muted-text text-xs">{u.is_anonymous ? (lang === 'ru' ? 'аноним' : 'anonymous') : u.created_at.slice(0, 10)}</div>
+                      </td>
+                      <td className="px-4 py-2.5">{u.email || '—'}</td>
+                      <td className="px-4 py-2.5">{u.dreams_count}</td>
+                      <td className="px-4 py-2.5">{u.sub_type}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={`px-2 py-0.5 rounded-full text-xs ${u.is_active ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                          {u.is_active ? (lang === 'ru' ? 'активен' : 'active') : (lang === 'ru' ? 'заблокирован' : 'blocked')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex gap-1.5 flex-wrap">
+                          <button onClick={() => resetPassword(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs" data-testid={`reset-pw-${u.id}`}>
+                            {actionBusy === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+                            {lang === 'ru' ? 'Пароль' : 'Password'}
+                          </button>
+                          <button onClick={() => toggleAdmin(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs" data-testid={`toggle-admin-${u.id}`}>
+                            <Shield className="w-3 h-3" />
+                            {u.is_admin ? (lang === 'ru' ? 'снять админа' : 'unadmin') : (lang === 'ru' ? 'админ' : 'admin')}
+                          </button>
+                          <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs" data-testid={`toggle-active-${u.id}`}>
+                            {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
+                          </button>
+                          {!u.is_admin && (
+                            <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-400 hover:bg-red-500/15" data-testid={`delete-${u.id}`}>
+                              <Trash2 className="w-3 h-3" />
+                              {lang === 'ru' ? 'Удалить' : 'Delete'}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-[var(--line)]">
+              {users.map((u) => (
+                <div key={u.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
                       <div className="font-medium">
-                        {[u.first_name, u.last_name].filter(Boolean).join(' ') || '—'}
+                        {[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email || '—'}
                         {u.is_admin && <Shield className="inline w-4 h-4 ml-1.5 accent-text" />}
                       </div>
-                      <div className="muted-text text-xs">{u.is_anonymous ? (lang === 'ru' ? 'аноним' : 'anonymous') : u.created_at.slice(0, 10)}</div>
-                    </td>
-                    <td className="px-4 py-2.5">{u.email || '—'}</td>
-                    <td className="px-4 py-2.5">{u.dreams_count}</td>
-                    <td className="px-4 py-2.5">{u.sub_type}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${u.is_active ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
-                        {u.is_active ? (lang === 'ru' ? 'активен' : 'active') : (lang === 'ru' ? 'заблокирован' : 'blocked')}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="flex gap-1.5 flex-wrap">
-                        <button
-                          onClick={() => resetPassword(u)}
-                          disabled={actionBusy === u.id}
-                          className="btn-pill btn-soft !py-1 text-xs"
-                          data-testid={`reset-pw-${u.id}`}
-                        >
-                          {actionBusy === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
-                          {lang === 'ru' ? 'Пароль' : 'Password'}
-                        </button>
-                        <button
-                          onClick={() => toggleAdmin(u)}
-                          disabled={actionBusy === u.id}
-                          className="btn-pill btn-soft !py-1 text-xs"
-                          data-testid={`toggle-admin-${u.id}`}
-                        >
-                          <Shield className="w-3 h-3" />
-                          {u.is_admin ? (lang === 'ru' ? 'снять админа' : 'unadmin') : (lang === 'ru' ? 'админ' : 'admin')}
-                        </button>
-                        <button
-                          onClick={() => toggleActive(u)}
-                          disabled={actionBusy === u.id}
-                          className="btn-pill btn-soft !py-1 text-xs"
-                          data-testid={`toggle-active-${u.id}`}
-                        >
-                          {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
-                        </button>
-                        {!u.is_admin && (
-                          <button
-                            onClick={() => setConfirmDelete(u)}
-                            disabled={actionBusy === u.id}
-                            className="btn-pill btn-soft !py-1 text-xs text-red-400 hover:bg-red-500/15"
-                            data-testid={`delete-${u.id}`}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            {lang === 'ru' ? 'Удалить' : 'Delete'}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <div className="muted-text text-xs mt-0.5">{u.email || '—'}</div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs shrink-0 ${u.is_active ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                      {u.is_active ? (lang === 'ru' ? 'активен' : 'active') : (lang === 'ru' ? 'заблокирован' : 'blocked')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs muted-text">
+                    <span>{lang === 'ru' ? 'Сны' : 'Dreams'}: {u.dreams_count}</span>
+                    <span>{u.sub_type}</span>
+                    <span>{u.is_anonymous ? (lang === 'ru' ? 'аноним' : 'anon') : u.created_at.slice(0, 10)}</span>
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    <button onClick={() => resetPassword(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs">
+                      {actionBusy === u.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3 h-3" />}
+                      {lang === 'ru' ? 'Пароль' : 'Password'}
+                    </button>
+                    <button onClick={() => toggleAdmin(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs">
+                      <Shield className="w-3 h-3" />
+                      {u.is_admin ? (lang === 'ru' ? 'снять админа' : 'unadmin') : (lang === 'ru' ? 'админ' : 'admin')}
+                    </button>
+                    <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs">
+                      {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
+                    </button>
+                    {!u.is_admin && (
+                      <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-400 hover:bg-red-500/15">
+                        <Trash2 className="w-3 h-3" />
+                        {lang === 'ru' ? 'Удалить' : 'Delete'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
 

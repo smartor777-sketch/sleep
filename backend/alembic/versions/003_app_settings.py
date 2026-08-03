@@ -27,22 +27,9 @@ def upgrade() -> None:
     op.create_index("ix_app_settings_key", "app_settings", ["key"])
 
     # Семя по-умолчанию: email-авторизация включена.
-    op.bulk_insert(
-        sa.table(
-            "app_settings",
-            sa.column("id", sa.dialects.postgresql.UUID(as_uuid=True)),
-            sa.column("key", sa.String),
-            sa.column("value", sa.Text),
-            sa.column("updated_at", sa.DateTime(timezone=True)),
-        ),
-        [
-            {
-                "id": sa.text("gen_random_uuid()"),
-                "key": "email_auth_enabled",
-                "value": "true",
-                "updated_at": sa.text("now()"),
-            }
-        ],
+    op.execute(
+        "INSERT INTO app_settings (id, key, value, updated_at) "
+        "VALUES (gen_random_uuid(), 'email_auth_enabled', 'true', now())"
     )
 
 

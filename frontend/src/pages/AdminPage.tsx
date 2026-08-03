@@ -244,16 +244,19 @@ export default function AdminPage() {
             data-testid="admin-search"
           />
         </div>
-        <select
-          value={perPage}
-          onChange={(e) => { setPerPage(Number(e.target.value)); setPage(0); }}
-          className="input-base !py-2.5 w-auto text-xs"
-          data-testid="admin-perpage"
-        >
-          <option value={10}>10</option>
-          <option value={25}>25</option>
-          <option value={50}>50</option>
-        </select>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-xs muted-text hidden sm:inline">{lang === 'ru' ? 'Строк:' : 'Rows:'}</span>
+          <select
+            value={perPage}
+            onChange={(e) => { setPerPage(Number(e.target.value)); setPage(0); }}
+            className="input-base !w-auto !py-2 !px-2.5 text-xs"
+            data-testid="admin-perpage"
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
       </div>
 
       {/* Users list */}
@@ -308,11 +311,11 @@ export default function AdminPage() {
                             <Shield className="w-3 h-3" />
                             {u.is_admin ? (lang === 'ru' ? 'снять админа' : 'unadmin') : (lang === 'ru' ? 'админ' : 'admin')}
                           </button>
-                          <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-amber-600 hover:bg-amber-500/15" data-testid={`toggle-active-${u.id}`}>
+                          <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs !text-amber-600 hover:!bg-amber-500/15" data-testid={`toggle-active-${u.id}`}>
                             {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
                           </button>
                           {!u.is_admin && (
-                            <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-600 hover:bg-red-500/15" data-testid={`delete-${u.id}`}>
+                            <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs !text-red-600 hover:!bg-red-500/15" data-testid={`delete-${u.id}`}>
                               <Trash2 className="w-3 h-3" />
                               {lang === 'ru' ? 'Удалить' : 'Delete'}
                             </button>
@@ -355,11 +358,11 @@ export default function AdminPage() {
                       <Shield className="w-3 h-3" />
                       {u.is_admin ? (lang === 'ru' ? 'снять админа' : 'unadmin') : (lang === 'ru' ? 'админ' : 'admin')}
                     </button>
-                    <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-amber-600 hover:bg-amber-500/15">
+                    <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs !text-amber-600 hover:!bg-amber-500/15">
                       {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
                     </button>
                     {!u.is_admin && (
-                      <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-600 hover:bg-red-500/15">
+                      <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs !text-red-600 hover:!bg-red-500/15">
                         <Trash2 className="w-3 h-3" />
                         {lang === 'ru' ? 'Удалить' : 'Delete'}
                       </button>

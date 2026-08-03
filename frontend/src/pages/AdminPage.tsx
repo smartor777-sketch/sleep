@@ -256,12 +256,12 @@ export default function AdminPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left muted-text text-xs uppercase tracking-wider border-b border-[var(--line)]">
-                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Имя' : 'Name'}</th>
-                    <th className="px-4 py-2.5">Email</th>
-                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Сны' : 'Dreams'}</th>
-                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Подписка' : 'Plan'}</th>
-                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Статус' : 'Status'}</th>
-                    <th className="px-4 py-2.5">{lang === 'ru' ? 'Действия' : 'Actions'}</th>
+                    <th className="px-4 py-2.5 whitespace-nowrap">{lang === 'ru' ? 'Имя' : 'Name'}</th>
+                    <th className="px-4 py-2.5 whitespace-nowrap">Email</th>
+                    <th className="px-4 py-2.5 whitespace-nowrap">{lang === 'ru' ? 'Сны' : 'Dreams'}</th>
+                    <th className="px-4 py-2.5 whitespace-nowrap">{lang === 'ru' ? 'Подписка' : 'Plan'}</th>
+                    <th className="px-4 py-2.5 whitespace-nowrap">{lang === 'ru' ? 'Статус' : 'Status'}</th>
+                    <th className="px-4 py-2.5 whitespace-nowrap">{lang === 'ru' ? 'Действия' : 'Actions'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -360,10 +360,10 @@ export default function AdminPage() {
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" data-testid="delete-confirm-modal" onClick={() => !deleteBusy && setConfirmDelete(null)}>
           <div className="card-surface rounded-3xl p-6 max-w-md w-full mx-4 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="font-display text-lg text-red-300">
+            <div className="font-display text-lg text-red-600">
               {lang === 'ru' ? 'Удалить пользователя?' : 'Delete user?'}
             </div>
-            <p className="muted-text text-sm">
+            <p className="text-sm" style={{ color: 'var(--text)' }}>
               {lang === 'ru'
                 ? `Вы уверены, что хотите удалить пользователя ${confirmDelete.email || confirmDelete.first_name || confirmDelete.id}? Все данные будут удалены безвозвратно: сны, анализы, подписка, настройки.`
                 : `Are you sure you want to delete user ${confirmDelete.email || confirmDelete.first_name || confirmDelete.id}? All data will be permanently deleted: dreams, analyses, subscription, settings.`}
@@ -380,7 +380,7 @@ export default function AdminPage() {
               <button
                 onClick={deleteUser}
                 disabled={deleteBusy}
-                className="btn-pill bg-red-500/20 text-red-300 hover:bg-red-500/30 !py-2 disabled:opacity-50"
+                className="btn-pill bg-red-500/20 text-red-600 hover:bg-red-500/30 !py-2 disabled:opacity-50"
                 data-testid="delete-confirm"
               >
                 {deleteBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}

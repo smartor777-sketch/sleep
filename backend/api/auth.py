@@ -43,6 +43,7 @@ from schemas import (
     VkExchangeRequest,
     VkExchangeResponse,
     VkStatusResponse,
+    AdminEmailAuthSetting,
 )
 from services.auth_service import (
     get_user_by_email,
@@ -84,11 +85,6 @@ async def register(
     - Отправляет письмо для подтверждения email
     - Возвращает JWT токены
     """
-    if not await settings_service.email_auth_enabled(db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="email_auth_disabled",
-        )
     # Проверяем, что email не занят
     existing_user = await get_user_by_email(db, user_data.email)
     if existing_user:
@@ -108,11 +104,13 @@ async def register(
             detail="Failed to create user"
         )
     
-    # Генерируем 6-значный код подтверждения (логируем для dev-тестирования)
-    try:
-        await create_email_verification_code(db, user.id)
-    except Exception as e:
-        logger.error(f"Failed to create verification code: {e}")
+    # Генерируем 6-значный код подтверждения только в обычном (ON) режиме;
+    # в лёгком (OFF) режиме доступ без кода — код не отправляем.
+    if await settings_service.email_auth_enabled(db):
+        try:
+            await create_email_verification_code(db, user.id)
+        except Exception as e:
+            logger.error(f"Failed to create verification code: {e}")
         # Не прерываем регистрацию
 
     # Создаём JWT токены
@@ -126,6 +124,16 @@ async def register(
     }
 
 
+@router.get("/email-mode", response_model=AdminEmailAuthSetting)
+async def get_email_mode(
+    db: DatabaseSession,
+):
+    """Публичный эндпоинт: какой режим авторизации по email включён."""
+    return AdminEmailAuthSetting(
+        email_auth_enabled=await settings_service.email_auth_enabled(db),
+    )
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(
     credentials: LoginRequest,
@@ -137,11 +145,6 @@ async def login(
     - Проверяет email и пароль
     - Возвращает JWT токены
     """
-    if not await settings_service.email_auth_enabled(db):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="email_auth_disabled",
-        )
     user = await authenticate_user(db, credentials.email, credentials.password)
     
     if not user:

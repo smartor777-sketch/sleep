@@ -62,7 +62,17 @@ export default function AuthModal({ open, onClose }: Props) {
           password,
           first_name: firstName.trim() || undefined,
         });
-        setPendingVerify(true);
+        // Шаг ввода кода нужен только в режиме email-auth (ON).
+        try {
+          const mode = await api.emailMode();
+          if (mode.email_auth_enabled) {
+            setPendingVerify(true);
+          } else {
+            await finishAuth();
+          }
+        } catch {
+          setPendingVerify(true);
+        }
       }
     } catch (e) {
       const ae = e as ApiError;

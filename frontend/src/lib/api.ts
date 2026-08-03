@@ -204,6 +204,9 @@ export const api = {
   resendCode: (email: string) =>
     post<{ message: string }>('/api/v1/auth/resend-code', { email }, { __skipAuth: true } as any),
 
+  emailMode: () =>
+    get<{ email_auth_enabled: boolean }>('/api/v1/auth/email-mode'),
+
   forgotPassword: (email: string) =>
     post<{ message: string }>('/api/v1/auth/forgot-password', { email }, { __skipAuth: true } as any),
 

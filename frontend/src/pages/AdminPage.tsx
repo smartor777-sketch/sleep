@@ -10,6 +10,8 @@ export default function AdminPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(0);
+  const [perPage, setPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +41,7 @@ export default function AdminPage() {
     try {
       const [s, u, ea] = await Promise.all([
         api.adminStats(),
-        api.adminUsers({ q: q || undefined, limit: 200 }),
+        api.adminUsers({ q: q || undefined, offset: page * perPage, limit: perPage }),
         api.adminEmailAuthSetting(),
       ]);
       setStats(s);
@@ -52,7 +54,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [q]);
+  }, [q, page, perPage]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -231,21 +233,35 @@ export default function AdminPage() {
       )}
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 muted-text" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder={lang === 'ru' ? 'Поиск по email, имени, device_id…' : 'Search by email, name, device_id…'}
-          className="input-base pl-9"
-          data-testid="admin-search"
-        />
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 muted-text" />
+          <input
+            value={q}
+            onChange={(e) => { setQ(e.target.value); setPage(0); }}
+            placeholder={lang === 'ru' ? 'Поиск по email, имени, device_id…' : 'Search by email, name, device_id…'}
+            className="input-base pl-9"
+            data-testid="admin-search"
+          />
+        </div>
+        <select
+          value={perPage}
+          onChange={(e) => { setPerPage(Number(e.target.value)); setPage(0); }}
+          className="input-base !py-2.5 w-auto text-xs"
+          data-testid="admin-perpage"
+        >
+          <option value={10}>10</option>
+          <option value={25}>25</option>
+          <option value={50}>50</option>
+        </select>
       </div>
 
       {/* Users list */}
       <section className="card-surface rounded-3xl overflow-hidden">
         <div className="px-4 py-3 text-sm muted-text border-b border-[var(--line)]">
-          {lang === 'ru' ? `Пользователей: ${total}` : `Users: ${total}`}
+          {lang === 'ru'
+            ? `Пользователей: ${total}${q ? ` (поиск: «${q}»)` : ''}`
+            : `Users: ${total}${q ? ` (search: "${q}")` : ''}`}
         </div>
         {users.length === 0 && !loading ? (
           <div className="p-6 text-center muted-text text-sm">{lang === 'ru' ? 'Никого не найдено' : 'Nothing found'}</div>
@@ -292,11 +308,11 @@ export default function AdminPage() {
                             <Shield className="w-3 h-3" />
                             {u.is_admin ? (lang === 'ru' ? 'снять админа' : 'unadmin') : (lang === 'ru' ? 'админ' : 'admin')}
                           </button>
-                          <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs" data-testid={`toggle-active-${u.id}`}>
+                          <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-amber-600 hover:bg-amber-500/15" data-testid={`toggle-active-${u.id}`}>
                             {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
                           </button>
                           {!u.is_admin && (
-                            <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-400 hover:bg-red-500/15" data-testid={`delete-${u.id}`}>
+                            <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-600 hover:bg-red-500/15" data-testid={`delete-${u.id}`}>
                               <Trash2 className="w-3 h-3" />
                               {lang === 'ru' ? 'Удалить' : 'Delete'}
                             </button>
@@ -339,11 +355,11 @@ export default function AdminPage() {
                       <Shield className="w-3 h-3" />
                       {u.is_admin ? (lang === 'ru' ? 'снять админа' : 'unadmin') : (lang === 'ru' ? 'админ' : 'admin')}
                     </button>
-                    <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs">
+                    <button onClick={() => toggleActive(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-amber-600 hover:bg-amber-500/15">
                       {u.is_active ? (lang === 'ru' ? 'блокировать' : 'block') : (lang === 'ru' ? 'разблокировать' : 'unblock')}
                     </button>
                     {!u.is_admin && (
-                      <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-400 hover:bg-red-500/15">
+                      <button onClick={() => setConfirmDelete(u)} disabled={actionBusy === u.id} className="btn-pill btn-soft !py-1 text-xs text-red-600 hover:bg-red-500/15">
                         <Trash2 className="w-3 h-3" />
                         {lang === 'ru' ? 'Удалить' : 'Delete'}
                       </button>
@@ -352,6 +368,31 @@ export default function AdminPage() {
                 </div>
               ))}
             </div>
+
+            {/* Pagination */}
+            {total > perPage && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--line)]">
+                <span className="text-xs muted-text">
+                  {lang === 'ru' ? `${page * perPage + 1}–${Math.min((page + 1) * perPage, total)} из ${total}` : `${page * perPage + 1}–${Math.min((page + 1) * perPage, total)} of ${total}`}
+                </span>
+                <div className="flex gap-1.5">
+                  <button
+                    disabled={page === 0}
+                    onClick={() => setPage((p) => p - 1)}
+                    className="btn-pill btn-soft !py-1 !px-3 text-xs disabled:opacity-30"
+                  >
+                    ← {lang === 'ru' ? 'Назад' : 'Back'}
+                  </button>
+                  <button
+                    disabled={(page + 1) * perPage >= total}
+                    onClick={() => setPage((p) => p + 1)}
+                    className="btn-pill btn-soft !py-1 !px-3 text-xs disabled:opacity-30"
+                  >
+                    {lang === 'ru' ? 'Далее' : 'Next'} →
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </section>

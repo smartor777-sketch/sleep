@@ -133,10 +133,10 @@ export default function AuthModal({ open, onClose }: Props) {
                   key={mode}
                   type="button"
                   onClick={() => setEmailMode(mode)}
-                  className={`flex-1 rounded-full py-1.5 font-medium transition-colors ${
+                  className={`flex-1 rounded-full py-1.5 font-medium transition-all ${
                     emailMode === mode
-                      ? 'bg-[var(--accent)] text-[var(--on-accent)] shadow-sm'
-                      : 'text-[var(--muted)] hover:text-[var(--text)]'
+                      ? 'bg-[rgb(var(--accent))] text-[var(--on-accent)] shadow-sm scale-[1.02]'
+                      : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-soft)]'
                   }`}
                   data-testid={`email-mode-${mode}`}
                 >

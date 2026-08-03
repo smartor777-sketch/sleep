@@ -58,7 +58,7 @@ from services.auth_service import (
     merge_anonymous_user,
 )
 from services.email_service import email_service
-from services import telegram_auth_service as tg_auth
+from services import settings_service, telegram_auth_service as tg_auth
 from services.oauth_token_service import verify_google_id_token, verify_apple_id_token
 from services.oauth_identity_service import (
     get_identity,
@@ -84,6 +84,11 @@ async def register(
     - Отправляет письмо для подтверждения email
     - Возвращает JWT токены
     """
+    if not await settings_service.email_auth_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="email_auth_disabled",
+        )
     # Проверяем, что email не занят
     existing_user = await get_user_by_email(db, user_data.email)
     if existing_user:
@@ -132,6 +137,11 @@ async def login(
     - Проверяет email и пароль
     - Возвращает JWT токены
     """
+    if not await settings_service.email_auth_enabled(db):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="email_auth_disabled",
+        )
     user = await authenticate_user(db, credentials.email, credentials.password)
     
     if not user:

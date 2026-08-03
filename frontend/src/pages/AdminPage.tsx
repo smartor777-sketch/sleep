@@ -13,6 +13,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Email auth mode toggle
+  const [emailAuthEnabled, setEmailAuthEnabled] = useState<boolean | null>(null);
+  const [emailAuthBusy, setEmailAuthBusy] = useState(false);
+
   // Create user form
   const [showCreate, setShowCreate] = useState(false);
   const [cEmail, setCEmail] = useState('');
@@ -29,13 +33,15 @@ export default function AdminPage() {
     setLoading(true);
     setError(null);
     try {
-      const [s, u] = await Promise.all([
+      const [s, u, ea] = await Promise.all([
         api.adminStats(),
         api.adminUsers({ q: q || undefined, limit: 200 }),
+        api.adminEmailAuthSetting(),
       ]);
       setStats(s);
       setUsers(u.items);
       setTotal(u.total);
+      setEmailAuthEnabled(ea.email_auth_enabled);
     } catch (e) {
       const ae = e as ApiError;
       setError(ae.detail || ae.message || 'admin_load_failed');
@@ -96,6 +102,20 @@ export default function AdminPage() {
     } finally { setActionBusy(null); }
   }
 
+  async function toggleEmailAuth() {
+    if (emailAuthBusy || emailAuthEnabled === null) return;
+    setEmailAuthBusy(true);
+    setError(null);
+    try {
+      const next = !emailAuthEnabled;
+      const r = await api.adminSetEmailAuth(next);
+      setEmailAuthEnabled(r.email_auth_enabled);
+    } catch (e) {
+      const ae = e as ApiError;
+      setError(ae.detail || ae.message || 'update_failed');
+    } finally { setEmailAuthBusy(false); }
+  }
+
   return (
     <div className="space-y-5 max-w-6xl" data-testid="admin-page">
       <div className="flex items-center justify-between gap-3">
@@ -146,6 +166,31 @@ export default function AdminPage() {
           </div>
         )}
         {cMsg && <div className={`mt-2 text-sm ${cMsg.startsWith('Пользователь') || cMsg.startsWith('User') ? 'text-green-400' : 'text-red-400'}`} data-testid="admin-create-msg">{cMsg}</div>}
+      </section>
+
+      {/* Email auth toggle */}
+      <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="email-auth-section">
+        <div className="font-display text-lg mb-1">
+          {lang === 'ru' ? 'Режим авторизации по email' : 'Email auth mode'}
+        </div>
+        <p className="muted-text text-sm mb-3">
+          {lang === 'ru'
+            ? 'Включить/выключить вход и регистрацию через email на сайте.'
+            : 'Enable/disable email sign-in and registration on the site.'}
+        </p>
+        <button
+          onClick={toggleEmailAuth}
+          disabled={emailAuthBusy || emailAuthEnabled === null}
+          className="btn-pill btn-soft !py-2 disabled:opacity-50"
+          data-testid="email-auth-toggle"
+        >
+          {emailAuthBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {emailAuthEnabled === null
+            ? '…'
+            : emailAuthEnabled
+              ? (lang === 'ru' ? 'Выключить (вход по email запрещён)' : 'Disable (email sign-in blocked)')
+              : (lang === 'ru' ? 'Включить (вход по email разрешён)' : 'Enable (email sign-in allowed)')}
+        </button>
       </section>
 
       {/* Reset password result */}

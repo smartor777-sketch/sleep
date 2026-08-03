@@ -223,63 +223,6 @@ export const api = {
     return data;
   },
 
-  telegramInit: () =>
-    post<{ auth_token: string; deeplink: string; bot_username: string; expires_in: number }>(
-      '/api/v1/auth/telegram/init',
-      {},
-      { __skipAuth: true } as any
-    ),
-
-  telegramStatus: (auth_token: string) =>
-    get<{
-      status: 'pending' | 'completed' | 'expired';
-      access_token?: string;
-      refresh_token?: string;
-      token_type?: string;
-    }>(`/api/v1/auth/telegram/status?auth_token=${encodeURIComponent(auth_token)}`, { __skipAuth: true } as any),
-
-  yandexInit: () =>
-    post<{ state: string; auth_url: string; expires_in: number }>(
-      '/api/v1/auth/yandex/init',
-      {},
-      { __skipAuth: true } as any
-    ),
-
-  yandexExchange: (code: string, state: string) =>
-    post<{ access_token: string; refresh_token: string; token_type: string }>(
-      '/api/v1/auth/yandex/exchange',
-      { code, state },
-      { __skipAuth: true } as any
-    ),
-
-  yandexStatus: (state: string) =>
-    get<{
-      status: 'pending' | 'completed' | 'expired';
-      access_token?: string;
-      refresh_token?: string;
-    }>(`/api/v1/auth/yandex/status?state=${encodeURIComponent(state)}`, { __skipAuth: true } as any),
-
-  vkInit: () =>
-    post<{ state: string; auth_url: string; expires_in: number }>(
-      '/api/v1/auth/vk/init',
-      {},
-      { __skipAuth: true } as any
-    ),
-
-  vkExchange: (code: string, state: string, deviceId?: string | null) =>
-    post<{ access_token: string; refresh_token: string; token_type: string }>(
-      '/api/v1/auth/vk/exchange',
-      { code, state, device_id: deviceId ?? undefined },
-      { __skipAuth: true } as any
-    ),
-
-  vkStatus: (state: string) =>
-    get<{
-      status: 'pending' | 'completed' | 'expired';
-      access_token?: string;
-      refresh_token?: string;
-    }>(`/api/v1/auth/vk/status?state=${encodeURIComponent(state)}`, { __skipAuth: true } as any),
-
   linkProvider: (provider: 'google' | 'apple', id_token: string) =>
     post<LinkResponse>('/api/v1/auth/link', { provider, id_token }),
 
@@ -308,6 +251,10 @@ export const api = {
     post<{ user_id: string; email?: string; new_password: string }>(
       `/api/v1/admin/users/${id}/reset-password`, {}
     ),
+  adminEmailAuthSetting: () =>
+    get<{ email_auth_enabled: boolean }>('/api/v1/admin/settings/email-auth'),
+  adminSetEmailAuth: (email_auth_enabled: boolean) =>
+    put<{ email_auth_enabled: boolean }>('/api/v1/admin/settings/email-auth', { email_auth_enabled }),
 
   // ---- Dreams ----
   createDream: (body: { content: string; title?: string; emoji?: string; comment?: string }) =>

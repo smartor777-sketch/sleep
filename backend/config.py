@@ -62,6 +62,20 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = None
     smtp_from: str | None = None
     smtp_use_ssl: bool = False
+
+    # Email (Resend — primary)
+    resend_api_key: SecretStr | None = None
+    resend_from: str | None = None
+
+    # Email (Unisender — fallback)
+    unisender_api_key: SecretStr | None = None
+    unisender_from: str | None = None
+    unisender_api_url: str = "https://api.unisender.com/ru/api"
+
+    # Email (SendBlue — fallback 2)
+    brevo_api_key: SecretStr | None = None
+    brevo_from: str | None = None
+    brevo_api_url: str = "https://api.sendblue.co"
     
     # S3/MinIO
     s3_endpoint: str = "http://minio:9000"

@@ -8,6 +8,7 @@ from .oauth import OAuthIdentity, EmailVerification, PasswordReset
 from .rag import DreamChunk, DreamSymbol, DreamArchetype, DreamSymbolEntity
 from .subscription import Subscription
 from .user_memory import UserMemoryDoc
+from .app_setting import AppSetting
 
 __all__ = [
     "User",
@@ -28,4 +29,5 @@ __all__ = [
     "PasswordReset",
     "Subscription",
     "UserMemoryDoc",
+    "AppSetting",
 ]

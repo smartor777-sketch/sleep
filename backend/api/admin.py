@@ -14,8 +14,10 @@ from schemas import (
     AdminUserListResponse,
     AdminUserListItem,
     AdminUserUpdate,
+    AdminEmailAuthSetting,
 )
 from services.auth_service import get_password_hash
+from services import settings_service
 
 logger = logging.getLogger(__name__)
 
@@ -258,3 +260,25 @@ async def reset_password(
         email=user.email,
         new_password=new_password,
     )
+
+
+@router.get("/settings/email-auth", response_model=AdminEmailAuthSetting)
+async def get_email_auth_setting(
+    db: DatabaseSession,
+    _admin: AdminUser,
+):
+    return AdminEmailAuthSetting(
+        email_auth_enabled=await settings_service.email_auth_enabled(db),
+    )
+
+
+@router.put("/settings/email-auth", response_model=AdminEmailAuthSetting)
+async def set_email_auth_setting(
+    data: AdminEmailAuthSetting,
+    db: DatabaseSession,
+    _admin: AdminUser,
+):
+    await settings_service.set_setting(
+        db, settings_service.EMAIL_AUTH_ENABLED, data.email_auth_enabled
+    )
+    return AdminEmailAuthSetting(email_auth_enabled=data.email_auth_enabled)

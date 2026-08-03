@@ -4,7 +4,7 @@ import { useApp } from '../lib/store';
 import { api } from '../lib/api';
 import { t } from '../lib/i18n';
 import { ACCENTS, FontSize, Lang, ThemeMode } from '../lib/settings';
-import { Check, KeyRound, LogOut, Sparkles, Trash2, UserPlus, Smartphone } from 'lucide-react';
+import { Check, KeyRound, LogOut, Sparkles, Trash2, UserPlus } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
 
 export default function ProfilePage() {
@@ -254,40 +254,6 @@ export default function ProfilePage() {
           )}
         </section>
       )}
-
-      {/* Mobile app */}
-      <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="mobile-app-section">
-        <div className="flex items-start gap-4">
-          <img
-            src="/icon-background.png"
-            alt=""
-            aria-hidden="true"
-            className="w-12 h-12 rounded-2xl object-cover shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="font-display text-lg mb-1">
-              {lang === 'ru' ? 'Мобильное приложение' : 'Mobile app'}
-            </div>
-            <p className="muted-text text-sm mb-4">
-              {lang === 'ru'
-                ? 'Записывайте сны утром, прямо в постели. Один аккаунт — все ваши сны на любом устройстве.'
-                : 'Capture dreams the moment you wake. One account — same dreams on every device.'}
-            </p>
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
-              <a
-                href="https://github.com/core-euler/sna_net/releases/latest"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-pill btn-soft !py-2 w-full sm:w-auto justify-center sm:justify-start"
-                data-testid="download-android-btn"
-              >
-                <Smartphone className="w-4 h-4" />
-                {lang === 'ru' ? 'Скачать для Android' : 'Download for Android'}
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Danger zone */}
       {!user?.is_anonymous && (

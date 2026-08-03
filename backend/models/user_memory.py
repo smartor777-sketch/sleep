@@ -30,4 +30,4 @@ class UserMemoryDoc(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    user = relationship("User", backref="memory_doc", uselist=False)
+    user = relationship("User", back_populates="memory_doc")

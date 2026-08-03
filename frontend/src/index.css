@@ -96,6 +96,8 @@ body {
 
 .muted-text { color: var(--muted); }
 :root[data-theme='light'] .muted-text { color: var(--muted); }
+:root[data-theme='light'] input::placeholder,
+:root[data-theme='light'] textarea::placeholder { color: rgba(21, 26, 34, 0.50); }
 
 .divider { border-color: var(--line); }
 :root[data-theme='light'] .divider { border-color: var(--line); }

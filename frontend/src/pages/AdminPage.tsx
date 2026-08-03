@@ -235,12 +235,12 @@ export default function AdminPage() {
       {/* Search */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 muted-text pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 muted-text pointer-events-none" />
           <input
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(0); }}
             placeholder={lang === 'ru' ? 'Поиск по email, имени, device_id…' : 'Search by email, name, device_id…'}
-            className="input-base pl-11"
+            className="input-base pl-12"
             data-testid="admin-search"
           />
         </div>

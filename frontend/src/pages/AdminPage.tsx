@@ -240,7 +240,7 @@ export default function AdminPage() {
             value={q}
             onChange={(e) => { setQ(e.target.value); setPage(0); }}
             placeholder={lang === 'ru' ? 'Поиск по email, имени, device_id…' : 'Search by email, name, device_id…'}
-            className="input-base pl-12"
+            className="input-base !pl-12"
             data-testid="admin-search"
           />
         </div>

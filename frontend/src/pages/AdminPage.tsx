@@ -197,8 +197,8 @@ export default function AdminPage() {
         </div>
         <p className="muted-text text-sm mb-3">
           {lang === 'ru'
-            ? 'Включить/выключить вход и регистрацию через email на сайте.'
-            : 'Enable/disable email sign-in and registration on the site.'}
+            ? 'ВКЛ — при входе пользователь вводит код из письма. ВЫКЛ — вход сразу по email без кода.'
+            : 'ON — users enter a code from email to sign in. OFF — sign in directly by email, no code.'}
         </p>
         <button
           onClick={toggleEmailAuth}
@@ -210,8 +210,8 @@ export default function AdminPage() {
           {emailAuthEnabled === null
             ? '…'
             : emailAuthEnabled
-              ? (lang === 'ru' ? 'Выключить (вход по email запрещён)' : 'Disable (email sign-in blocked)')
-              : (lang === 'ru' ? 'Включить (вход по email разрешён)' : 'Enable (email sign-in allowed)')}
+              ? (lang === 'ru' ? 'Код при входе: ВКЛ (выключить)' : 'Login code: ON (disable)')
+              : (lang === 'ru' ? 'Код при входе: ВЫКЛ (включить)' : 'Login code: OFF (enable)')}
         </button>
       </section>
 

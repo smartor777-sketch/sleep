@@ -7,7 +7,7 @@ from uuid import UUID
 
 from celery_app import celery_app
 from database import AsyncSessionLocal
-from models import Analysis, Dream, User, AnalysisStatus, MessageRole
+from models import Analysis, Dream, User, AnalysisStatus, MessageRole, AnalysisMessage
 from llm_client import llm_client
 from sqlalchemy import select
 from services.embedding_service import recalculate_dream_embedding
@@ -105,14 +105,28 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
 
             logger.info(f"Starting analysis {analysis_id} for dream {dream.id}")
 
-            # Создаём user-сообщение (текст сна) в analysis_messages
-            await create_message(
-                db,
-                user_id=user.id,
-                dream_id=dream.id,
-                role=MessageRole.USER.value,
-                content=dream.content,
-            )
+            # Создаём user-сообщение (текст сна) в analysis_messages.
+            # Идемпотентно: при celery-retry или повторном запуске задачи (после
+            # failed) уже созданное сообщение не дублируем — иначе текст сна
+            # расплодится в «Диалоге о сне».
+            existing_user_msg = (
+                await db.execute(
+                    select(AnalysisMessage).where(
+                        AnalysisMessage.user_id == user.id,
+                        AnalysisMessage.dream_id == dream.id,
+                        AnalysisMessage.role == MessageRole.USER.value,
+                        AnalysisMessage.content == dream.content,
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing_user_msg is None:
+                await create_message(
+                    db,
+                    user_id=user.id,
+                    dream_id=dream.id,
+                    role=MessageRole.USER.value,
+                    content=dream.content,
+                )
 
             # Загружаем user.md для контекста (нужно ДО построения system_prompt)
             memory_doc = await user_memory_service.get_or_create(db, user.id)
@@ -145,14 +159,27 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 )
                 result_text = payload.analysis_text
 
-                # Сохраняем assistant-сообщение в analysis_messages
-                await create_message(
-                    db,
-                    user_id=user.id,
-                    dream_id=dream.id,
-                    role=MessageRole.ASSISTANT.value,
-                    content=result_text,
-                )
+                # Сохраняем assistant-сообщение в analysis_messages.
+                # Идемпотентно: если повторный запуск анализа уже записал
+                # разбор, новый дубликат не создаём.
+                existing_asst_msg = (
+                    await db.execute(
+                        select(AnalysisMessage).where(
+                            AnalysisMessage.user_id == user.id,
+                            AnalysisMessage.dream_id == dream.id,
+                            AnalysisMessage.role == MessageRole.ASSISTANT.value,
+                            AnalysisMessage.content == result_text,
+                        )
+                    )
+                ).scalar_one_or_none()
+                if existing_asst_msg is None:
+                    await create_message(
+                        db,
+                        user_id=user.id,
+                        dream_id=dream.id,
+                        role=MessageRole.ASSISTANT.value,
+                        content=result_text,
+                    )
 
                 # Backward compat: записываем результат в Analysis.result
                 analysis.result = result_text

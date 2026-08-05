@@ -178,18 +178,12 @@ export default function DreamPage() {
     catch { return dream.created_at; }
   }, [dream?.created_at, lang, dream]);
 
-  // В чате показываем только follow-up переписку: первое user-сообщение (текст сна)
-  // и первый assistant-ответ (полный разбор) уже показаны выше в hero-карточке
-  // и блоке «Разбор InnerCore» — повторять их в диалоге не нужно.
-  const chatMessages = useMemo(() => {
-    let skippedUser = false;
-    let skippedAsst = false;
-    return messages.filter((m) => {
-      if (m.role === 'user' && !skippedUser) { skippedUser = true; return false; }
-      if (m.role === 'assistant' && !skippedAsst) { skippedAsst = true; return false; }
-      return true;
-    });
-  }, [messages]);
+  // Бэкенд (GET /messages/dream) уже отдаёт только follow-up переписку: первое
+  // user-сообщение (текст сна) и первый assistant-ответ (полный разбор) он
+  // исключает сам, так как они показаны выше в hero-карточке и блоке «Разбор».
+  // Здесь фильтровать повторно нельзя — иначе после первого вопроса чат
+  // останется пустым и отправка будет выглядеть как «со второго раза».
+  const chatMessages = messages;
 
   if (loading || !dream) {
     return (

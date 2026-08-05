@@ -382,8 +382,8 @@ async def resend_verification(
     except Exception as e:
         logger.error(f"Failed to send verification email: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send verification email"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email service is temporarily unavailable. Please contact the administrator."
         )
     
     return {"message": "Verification email has been sent"}
@@ -419,8 +419,8 @@ async def forgot_password(
     except Exception as e:
         logger.error(f"Failed to send password reset email: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to send password reset email"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Email service is temporarily unavailable. Please contact the administrator."
         )
     
     return {"message": "Password reset email has been sent"}

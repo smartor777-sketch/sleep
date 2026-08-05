@@ -95,38 +95,6 @@ class UnisenderProvider:
         return True
 
 
-class BrevoProvider:
-    """Отправка через Brevo (Sendinblue) REST API (fallback 2)."""
-
-    def __init__(self):
-        key = settings.brevo_api_key.get_secret_value() if settings.brevo_api_key else None
-        self.api_key = key
-        self.from_email = settings.brevo_from
-        self.from_name = "InnerCore"
-        self.api_url = settings.brevo_api_url
-
-    def send(self, to: str, subject: str, html: str) -> bool:
-        if not self.api_key or not self.from_email:
-            logger.warning("Brevo not configured (api_key/from), skipping")
-            return False
-        payload = {
-            "sender": {"email": self.from_email, "name": self.from_name},
-            "to": [{"email": to}],
-            "subject": subject,
-            "htmlContent": html,
-        }
-        resp = httpx.post(
-            self.api_url,
-            json=payload,
-            headers={"api-key": self.api_key, "Content-Type": "application/json"},
-            timeout=20,
-        )
-        if resp.status_code != 201:
-            logger.error("Brevo failed (%s): %s", resp.status_code, resp.text[:300])
-            raise RuntimeError(f"brevo_http_{resp.status_code}")
-        return True
-
-
 class SmtpProvider:
     """Отправка через SMTP (primary — Яндекс и т.п.)."""
 
@@ -168,15 +136,24 @@ class SmtpProvider:
             raise RuntimeError(f"smtp_send_failed: {e}")
 
 
+class EmailServiceUnavailableError(RuntimeError):
+    """Сервис отправки писем временно недоступен."""
+
+    def __init__(self):
+        super().__init__(
+            "Email service is temporarily unavailable. "
+            "Please contact the administrator."
+        )
+
+
 class EmailService:
-    """Отправляет письма: SMTP → Resend → Unisender → Brevo."""
+    """Отправляет письма: SMTP → Resend → Unisender."""
 
     def __init__(self):
         self.providers: list[EmailProvider] = [
             SmtpProvider(),
             ResendProvider(),
             UnisenderProvider(),
-            BrevoProvider(),
         ]
 
     def _send_email(self, to: str, subject: str, html: str) -> bool:
@@ -190,7 +167,7 @@ class EmailService:
                     "Provider %s failed to send to %s: %s",
                     type(provider).__name__, to, e,
                 )
-        raise RuntimeError("No email provider available")
+        raise EmailServiceUnavailableError()
 
     def send_verification_code(self, to: str, code: str):
         """Отправить 6-значный код подтверждения email."""

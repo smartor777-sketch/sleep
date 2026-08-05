@@ -72,11 +72,6 @@ class Settings(BaseSettings):
     unisender_from: str | None = None
     unisender_api_url: str = "https://api.unisender.com/ru/api"
 
-    # Email (SendBlue — fallback 2)
-    brevo_api_key: SecretStr | None = None
-    brevo_from: str | None = None
-    brevo_api_url: str = "https://api.sendblue.co"
-    
     # S3/MinIO
     s3_endpoint: str = "http://minio:9000"
     s3_access_key: str = "minioadmin"

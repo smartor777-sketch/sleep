@@ -3,7 +3,7 @@
 # Deploy to /usr/local/bin/service-watchdog.sh
 # Add to crontab: */5 * * * * /usr/local/bin/service-watchdog.sh
 
-SERVICES="innercore-prod celery-prod yt-bot yt-server xray caddy hysteria2 mita olcrtc awg-quick@awg0 trojan-go panel sing-box-naive"
+SERVICES="innercore-prod celery-prod innercore-llm yt-bot yt-server xray caddy hysteria2 mita olcrtc awg-quick@awg0 trojan-go panel sing-box-naive"
 LOG="/var/log/service-watchdog.log"
 MAX_LOG_LINES=1000
 

@@ -356,7 +356,7 @@ def send_email_task(to: str, subject: str, body: str):
     from services.email_service import email_service
 
     try:
-        email_service._send_email(to, subject, body, html=True)
+        email_service._send_email(to, subject, body)
         logger.info(f"Email sent to {to}")
     except Exception as e:
         logger.error(f"Failed to send email to {to}: {e}")

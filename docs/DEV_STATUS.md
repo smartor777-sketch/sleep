@@ -71,6 +71,7 @@
 - **Админ-алерт очереди**: при размере очереди ≥ `analysis_queue_alert_threshold` (по умолчанию 10) — уведомление `scope=admin` в админ-панели + email админу (SMTP Яндекс, получатели из `ADMIN_EMAIL` + admins с подтверждённым email). Дедупликация через `app_settings.admin_queue_alert_active` (снимается, когда очередь падает ниже порога).
 - **Админ-панель**: системные уведомления (`GET /api/v1/admin/notifications`, mark-read/read-all) + карточка «Очередь анализов» в статистике.
 - **Фронтенд**: колокольчик уведомлений в Topbar (бейдж + дропдаун, поллинг 20с), глобальный поллер анализа (`GlobalAnalysisPoller`) обновляет статус сна на любой странице, на странице сна показывается позиция в очереди.
+- **Деплой на прод (2026-08-18)**: задеплоены `dc8067e` + `0d49de9` через `systemd-deploy.sh`; end-to-end проверен авто-анализ (сон → `analyzing` → уведомления `analysis_started`/`analysis_completed` → `completed`). `ADMIN_EMAIL=furi_wave@mail.ru` добавлен в `/srv/sleep-prod/backend/backend/.env`. ВАЖНО: prod-админ — `sleep@kuban-forum.ru` (не `admin@innercore.example.com`).
 
 ## Коммиты (новые)
 

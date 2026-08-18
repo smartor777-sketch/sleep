@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.user_memory import UserMemoryDoc
@@ -18,7 +19,7 @@ EMPTY_MEMORY_MD = "\n\n".join(f"## {s}\n" for s in MEMORY_SECTIONS)
 
 
 async def get_or_create(db: AsyncSession, user_id: uuid.UUID) -> UserMemoryDoc:
-    """Get existing memory doc or create a blank one."""
+    """Get existing memory doc or create a blank one (race-safe)."""
     result = await db.execute(
         select(UserMemoryDoc).where(UserMemoryDoc.user_id == user_id)
     )
@@ -26,15 +27,29 @@ async def get_or_create(db: AsyncSession, user_id: uuid.UUID) -> UserMemoryDoc:
     if doc is not None:
         return doc
 
-    doc = UserMemoryDoc(
-        id=uuid.uuid4(),
-        user_id=user_id,
-        content_md="",
-        version=1,
-        updated_at=datetime.now(timezone.utc),
+    # Несколько параллельных анализов одного пользователя (celery, несколько
+    # воркеров) могут одновременно дойти сюда. Прямой INSERT без обработки
+    # конфликта падает с UniqueViolation (user_memory_docs_user_id_key) — вместо
+    # этого делаем INSERT ... ON CONFLICT DO NOTHING и перечитываем строку.
+    # НЕ используем begin_nested/rollback: это откатило бы всю транзакцию анализа.
+    await db.execute(
+        pg_insert(UserMemoryDoc)
+        .values(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            content_md="",
+            version=1,
+            updated_at=datetime.now(timezone.utc),
+        )
+        .on_conflict_do_nothing(index_elements=["user_id"])
     )
-    db.add(doc)
-    await db.flush()
+
+    result = await db.execute(
+        select(UserMemoryDoc).where(UserMemoryDoc.user_id == user_id)
+    )
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise RuntimeError("Failed to get or create user memory doc")
     return doc
 
 

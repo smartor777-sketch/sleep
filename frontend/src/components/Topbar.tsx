@@ -3,6 +3,7 @@ import { Menu, ArrowLeft, Sun, Moon, AlertTriangle } from 'lucide-react';
 import { useApp } from '../lib/store';
 import { t } from '../lib/i18n';
 import { ReactNode } from 'react';
+import NotificationsBell from './NotificationsBell';
 
 interface Props {
   onOpenSidebar: () => void;
@@ -85,6 +86,7 @@ export default function Topbar({ onOpenSidebar, rightSlot }: Props) {
 
           <div className="flex items-center gap-2">
             {rightSlot}
+            <NotificationsBell />
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="w-10 h-10 rounded-full btn-ghost flex items-center justify-center"

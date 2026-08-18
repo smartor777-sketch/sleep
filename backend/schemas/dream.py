@@ -37,6 +37,7 @@ class DreamResponse(DreamBase):
     has_analysis: bool = False  # Есть ли анализ для этого сна
     analysis_status: str = "saved"
     analysis_error_message: str | None = None
+    queue_position: int | None = None  # Позиция в очереди анализа (если status = analyzing)
     gradient_color_1: str | None = None
     gradient_color_2: str | None = None
     

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApp } from '../lib/store';
 import { api, ApiError } from '../lib/api';
-import { AdminStats, AdminUser } from '../lib/types';
-import { Loader2, RefreshCw, Search, Shield, UserPlus, KeyRound, Trash2 } from 'lucide-react';
+import { AdminStats, AdminUser, AppNotification } from '../lib/types';
+import { Bell, CheckCheck, Loader2, RefreshCw, Search, Shield, UserPlus, KeyRound, Trash2 } from 'lucide-react';
 
 export default function AdminPage() {
   const lang = useApp((s) => s.lang);
@@ -35,19 +35,26 @@ export default function AdminPage() {
   const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
+  // Admin notifications (system alerts, e.g. analysis queue >= 10)
+  const [adminNotifs, setAdminNotifs] = useState<AppNotification[]>([]);
+  const [adminNotifsUnread, setAdminNotifsUnread] = useState(0);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [s, u, ea] = await Promise.all([
+      const [s, u, ea, n] = await Promise.all([
         api.adminStats(),
         api.adminUsers({ q: q || undefined, offset: page * perPage, limit: perPage }),
         api.adminEmailAuthSetting(),
+        api.adminNotifications({ limit: 50, offset: 0 }),
       ]);
       setStats(s);
       setUsers(u.items);
       setTotal(u.total);
       setEmailAuthEnabled(ea.email_auth_enabled);
+      setAdminNotifs(n.items);
+      setAdminNotifsUnread(n.unread_count);
     } catch (e) {
       const ae = e as ApiError;
       setError(ae.detail || ae.message || 'admin_load_failed');
@@ -57,6 +64,34 @@ export default function AdminPage() {
   }, [q, page, perPage]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Light polling of system alerts
+  useEffect(() => {
+    const h = setInterval(async () => {
+      try {
+        const n = await api.adminNotifications({ limit: 50, offset: 0 });
+        setAdminNotifs(n.items);
+        setAdminNotifsUnread(n.unread_count);
+      } catch {}
+    }, 30000);
+    return () => clearInterval(h);
+  }, []);
+
+  async function markAdminRead(n: AppNotification) {
+    try {
+      await api.adminMarkNotificationRead(n.id);
+    } catch {}
+    setAdminNotifs((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
+    setAdminNotifsUnread((u) => Math.max(0, u - (n.is_read ? 0 : 1)));
+  }
+
+  async function markAdminAllRead() {
+    try {
+      await api.adminMarkAllNotificationsRead();
+    } catch {}
+    setAdminNotifs((prev) => prev.map((x) => ({ ...x, is_read: true })));
+    setAdminNotifsUnread(0);
+  }
 
   async function createUser() {
     setCBusy(true);
@@ -163,8 +198,68 @@ export default function AdminPage() {
           <StatCard label={lang === 'ru' ? 'Анонимы' : 'Anonymous'} value={stats.total_anonymous} />
           <StatCard label={lang === 'ru' ? 'Premium' : 'Premium'} value={stats.total_premium} />
           <StatCard label={lang === 'ru' ? 'Актив за 7д' : 'Active 7d'} value={stats.active_last_7d} />
+          <StatCard label={lang === 'ru' ? 'Очередь анализов' : 'Analysis queue'} value={stats.analysis_queue ?? 0} />
         </div>
       )}
+
+      {/* Admin system notifications */}
+      <section className="card-surface rounded-3xl p-4 sm:p-5" data-testid="admin-notifications">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2 font-display text-lg">
+            <Bell className="w-5 h-5 accent-text" />
+            {lang === 'ru' ? 'Системные уведомления' : 'System notifications'}
+            {adminNotifsUnread > 0 && (
+              <span
+                className="min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                style={{ background: 'rgb(var(--accent))' }}
+                data-testid="admin-notif-badge"
+              >
+                {adminNotifsUnread > 99 ? '99+' : adminNotifsUnread}
+              </span>
+            )}
+          </div>
+          {adminNotifsUnread > 0 && (
+            <button
+              onClick={markAdminAllRead}
+              className="btn-pill btn-ghost !py-1.5 text-xs flex items-center gap-1"
+              data-testid="admin-notif-mark-all"
+            >
+              <CheckCheck className="w-3.5 h-3.5" />
+              {lang === 'ru' ? 'Прочитать все' : 'Mark all read'}
+            </button>
+          )}
+        </div>
+
+        {adminNotifs.length === 0 ? (
+          <p className="muted-text text-sm">{lang === 'ru' ? 'Уведомлений пока нет.' : 'No notifications yet.'}</p>
+        ) : (
+          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+            {adminNotifs.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => { if (!n.is_read) markAdminRead(n); }}
+                className={`w-full text-left rounded-2xl px-3 py-2.5 border flex items-start gap-2 transition-colors hover:bg-white/5 ${
+                  n.is_read ? 'opacity-60' : ''
+                }`}
+                style={{ borderColor: 'var(--line)' }}
+                data-testid={`admin-notif-${n.id}`}
+              >
+                <span
+                  className="mt-1.5 w-2 h-2 rounded-full shrink-0"
+                  style={{ background: n.is_read ? 'transparent' : 'rgb(var(--accent))' }}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium leading-snug">{n.title}</div>
+                  {n.body && <div className="text-xs muted-text mt-0.5 leading-snug">{n.body}</div>}
+                  <div className="text-[10px] muted-text mt-1">
+                    {n.created_at ? new Date(n.created_at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Create user */}
       <section className="card-surface rounded-3xl p-4 sm:p-5">

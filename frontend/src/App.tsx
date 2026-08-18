@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useApp } from './lib/store';
 import { setApiHandlers } from './lib/api';
 import Layout from './components/Layout';
+import GlobalAnalysisPoller from './components/GlobalAnalysisPoller';
 import TodayPage from './pages/TodayPage';
 import DreamsPage from './pages/DreamsPage';
 import DreamPage from './pages/DreamPage';
@@ -37,6 +38,7 @@ export default function App() {
 
   return (
     <Layout>
+      <GlobalAnalysisPoller />
       <Routes>
         <Route path="/" element={<TodayPage />} />
         <Route path="/dreams" element={<DreamsPage />} />

@@ -139,6 +139,24 @@ async def _apply_schema_upgrades(conn):
         """,
         "CREATE INDEX IF NOT EXISTS ix_dream_archetypes_user_id ON dream_archetypes(user_id)",
         "CREATE INDEX IF NOT EXISTS ix_dream_archetypes_dream_id ON dream_archetypes(dream_id)",
+        """
+        CREATE TABLE IF NOT EXISTS notifications (
+            id UUID PRIMARY KEY,
+            user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+            scope VARCHAR(16) NOT NULL DEFAULT 'user',
+            type VARCHAR(64) NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            body TEXT,
+            data JSONB,
+            is_read BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """,
+        "CREATE INDEX IF NOT EXISTS ix_notifications_user_id ON notifications(user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_scope ON notifications(scope)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_type ON notifications(type)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_is_read ON notifications(is_read)",
+        "CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications(created_at)",
     ]
     for sql in statements:
         await conn.execute(text(sql))

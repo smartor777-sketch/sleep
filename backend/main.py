@@ -21,6 +21,7 @@ from api import users
 from api import stats
 from api import billing
 from api import admin
+from api import notifications
 
 # Настройка логирования
 logging.basicConfig(
@@ -132,6 +133,7 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(stats.router, prefix="/api/v1")
 app.include_router(billing.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
+app.include_router(notifications.router, prefix="/api/v1")
 
 # TODO: Подключить остальные роутеры
 # app.include_router(user.router, prefix="/api/v1")

@@ -126,6 +126,12 @@ const ru: Dict = {
   'symbol.openDream': 'Открыть последний сон',
   'symbol.occurrences': 'вхождений в',
   'symbol.dreams': 'снах',
+  'notif.title': 'Уведомления',
+  'notif.empty': 'Нет уведомлений',
+  'notif.markAll': 'Прочитать все',
+  'notif.started': 'Анализ запущен',
+  'notif.completed': 'Анализ готов',
+  'notif.failed': 'Анализ не удался',
 };
 
 const en: Dict = {
@@ -252,6 +258,12 @@ const en: Dict = {
   'symbol.openDream': 'Open latest dream',
   'symbol.occurrences': 'occurrences in',
   'symbol.dreams': 'dreams',
+  'notif.title': 'Notifications',
+  'notif.empty': 'No notifications',
+  'notif.markAll': 'Mark all read',
+  'notif.started': 'Analysis started',
+  'notif.completed': 'Analysis ready',
+  'notif.failed': 'Analysis failed',
 };
 
 const dicts: Record<Lang, Dict> = { ru, en };

@@ -90,6 +90,15 @@ async def create_analysis(
     await db.commit()
 
     logger.info(f"Analysis {analysis.id} created with task_id {task.id}")
+
+    # Контроль очереди: если в очереди >= порога — уведомить администратора
+    # (панель + email). Ошибки не должны ронять создание анализа.
+    try:
+        from services.notification_service import maybe_alert_admin_queue
+        await maybe_alert_admin_queue(db)
+    except Exception as alert_err:
+        logger.warning("Admin queue alert check failed: %s", alert_err)
+
     return analysis, task.id
 
 

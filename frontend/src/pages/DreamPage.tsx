@@ -247,6 +247,13 @@ export default function DreamPage() {
             className="w-14 h-14 mx-auto rounded-full object-cover mb-3 animate-pulse-soft"
           />
           <p className="muted-text">{t('dream.analyzing', lang)}</p>
+          {dream.queue_position != null && dream.queue_position > 0 && (
+            <p className="muted-text text-sm mt-1" data-testid="dream-queue-position">
+              {lang === 'ru'
+                ? `В очереди анализа: №${dream.queue_position}`
+                : `Analysis queue position: #${dream.queue_position}`}
+            </p>
+          )}
         </div>
       )}
 

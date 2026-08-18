@@ -44,17 +44,60 @@ def test_map_analysis_status_variants():
 
 
 @pytest.mark.asyncio
-async def test_create_dream_endpoint_returns_saved_status(monkeypatch):
+async def test_create_dream_endpoint_auto_analyzes(monkeypatch):
     dream = _dream_with_analysis()
     current_user = SimpleNamespace(id=uuid4())
 
     async def fake_create_dream(_db, _user, _dream_data):
         return dream
 
+    async def fake_create_analysis(_db, _dream, _user, allow_retry=False):
+        _dream.analysis = SimpleNamespace(
+            id=uuid4(),
+            status=AnalysisStatus.PENDING.value,
+            error_message=None,
+            created_at=datetime.now(timezone.utc),
+        )
+        return _dream.analysis, "task-123"
+
+    async def fake_refresh(_dream):
+        return None
+
+    async def fake_queue_position(_db, _analysis_id):
+        return 1
+
+    monkeypatch.setattr(dreams_api, "create_dream", fake_create_dream)
+    monkeypatch.setattr(dreams_api, "create_analysis", fake_create_analysis)
+    monkeypatch.setattr(dreams_api, "get_queue_position", fake_queue_position)
+
+    response = await dreams_api.create_dream_endpoint(
+        DreamCreate(content="This is a long enough dream text for validation."),
+        current_user,
+        db=SimpleNamespace(refresh=fake_refresh),
+    )
+
+    assert response.analysis_status == "analyzing"
+    assert response.has_analysis is False
+    assert response.analysis_error_message is None
+    assert response.queue_position == 1
+
+
+@pytest.mark.asyncio
+async def test_create_dream_endpoint_keeps_saved_when_analysis_enqueue_fails(monkeypatch):
+    dream = _dream_with_analysis()
+    current_user = SimpleNamespace(id=uuid4())
+
+    async def fake_create_dream(_db, _user, _dream_data):
+        return dream
+
+    async def fake_create_analysis(_db, _dream, _user, allow_retry=False):
+        raise RuntimeError("redis down")
+
     async def fake_refresh(_dream):
         return None
 
     monkeypatch.setattr(dreams_api, "create_dream", fake_create_dream)
+    monkeypatch.setattr(dreams_api, "create_analysis", fake_create_analysis)
 
     response = await dreams_api.create_dream_endpoint(
         DreamCreate(content="This is a long enough dream text for validation."),
@@ -64,7 +107,6 @@ async def test_create_dream_endpoint_returns_saved_status(monkeypatch):
 
     assert response.analysis_status == "saved"
     assert response.has_analysis is False
-    assert response.analysis_error_message is None
 
 
 @pytest.mark.asyncio

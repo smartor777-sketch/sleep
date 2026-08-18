@@ -46,6 +46,7 @@ export interface Dream {
   has_analysis: boolean;
   analysis_status: AnalysisStatus;
   analysis_error_message?: string | null;
+  queue_position?: number | null;
   gradient_color_1?: string | null;
   gradient_color_2?: string | null;
 }
@@ -168,6 +169,37 @@ export interface AdminStats {
   total_anonymous: number;
   total_premium: number;
   active_last_7d: number;
+  analysis_queue?: number;
+}
+
+export type NotificationType =
+  | 'analysis_started'
+  | 'analysis_completed'
+  | 'analysis_failed'
+  | 'queue_alert'
+  | string;
+
+export interface AppNotification {
+  id: string;
+  user_id: string | null;
+  scope: 'user' | 'admin';
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  data?: Record<string, any> | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface NotificationList {
+  items: AppNotification[];
+  total: number;
+  unread_count: number;
+}
+
+export interface NotificationAck {
+  ok: boolean;
+  marked: number;
 }
 
 export interface AdminUser {

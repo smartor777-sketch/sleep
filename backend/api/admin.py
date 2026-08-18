@@ -16,9 +16,19 @@ from schemas import (
     AdminUserListItem,
     AdminUserUpdate,
     AdminEmailAuthSetting,
+    NotificationAckResponse,
+    NotificationListResponse,
+    NotificationResponse,
 )
 from services.auth_service import get_password_hash
 from services import settings_service
+from services.notification_service import (
+    SCOPE_ADMIN,
+    get_analysis_queue_size,
+    list_notifications,
+    mark_all_notifications_read,
+    mark_notification_read,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +69,7 @@ async def admin_stats(db: DatabaseSession, _admin: AdminUser):
         total_anonymous=total_anonymous,
         total_premium=total_premium,
         active_last_7d=active_last_7d,
+        analysis_queue=await get_analysis_queue_size(db),
     )
 
 
@@ -323,3 +334,58 @@ async def set_email_auth_setting(
         db, settings_service.EMAIL_AUTH_ENABLED, data.email_auth_enabled
     )
     return AdminEmailAuthSetting(email_auth_enabled=data.email_auth_enabled)
+
+
+@router.get("/notifications", response_model=NotificationListResponse)
+async def admin_notifications(
+    db: DatabaseSession,
+    _admin: AdminUser,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """Системные уведомления для админ-панели (scope=admin)."""
+    items, total, unread = await list_notifications(
+        db,
+        scope=SCOPE_ADMIN,
+        user_id=None,
+        limit=limit,
+        offset=offset,
+    )
+    return NotificationListResponse(
+        items=[NotificationResponse.model_validate(n) for n in items],
+        total=total,
+        unread_count=unread,
+    )
+
+
+@router.post("/notifications/read-all", response_model=NotificationAckResponse)
+async def admin_mark_all_notifications_read(
+    db: DatabaseSession,
+    _admin: AdminUser,
+):
+    marked = await mark_all_notifications_read(db, scope=SCOPE_ADMIN, user_id=None)
+    return NotificationAckResponse(ok=True, marked=marked)
+
+
+@router.post("/notifications/{notification_id}/read", response_model=NotificationAckResponse)
+async def admin_mark_notification_read(
+    notification_id: str,
+    db: DatabaseSession,
+    _admin: AdminUser,
+):
+    from uuid import UUID
+
+    try:
+        nid = UUID(notification_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid notification id",
+        )
+    marked = await mark_notification_read(db, nid, scope=SCOPE_ADMIN, user_id=None)
+    if not marked:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Notification not found",
+        )
+    return NotificationAckResponse(ok=True, marked=1)

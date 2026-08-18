@@ -27,6 +27,32 @@ def _run_in_worker_loop(coro):
     return _worker_loop.run_until_complete(coro)
 
 
+async def _notify_analysis_started_safe(db, analysis, dream):
+    try:
+        from services.notification_service import notify_analysis_started
+        await notify_analysis_started(db, analysis, dream)
+    except Exception as e:
+        logger.warning("Failed to notify analysis start for %s: %s", analysis.id, e)
+
+
+async def _notify_analysis_completed_safe(db, analysis, dream):
+    try:
+        from services.notification_service import notify_analysis_completed, maybe_alert_admin_queue
+        await notify_analysis_completed(db, analysis, dream)
+        await maybe_alert_admin_queue(db)
+    except Exception as e:
+        logger.warning("Failed to notify analysis completion for %s: %s", analysis.id, e)
+
+
+async def _notify_analysis_failed_safe(db, analysis, dream, error=None):
+    try:
+        from services.notification_service import notify_analysis_failed, maybe_alert_admin_queue
+        await notify_analysis_failed(db, analysis, dream, error)
+        await maybe_alert_admin_queue(db)
+    except Exception as e:
+        logger.warning("Failed to notify analysis failure for %s: %s", analysis.id, e)
+
+
 @celery_app.task(
     bind=True,
     name="tasks.analyze_dream",
@@ -104,6 +130,9 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 return None
 
             logger.info(f"Starting analysis {analysis_id} for dream {dream.id}")
+
+            # Уведомляем пользователя, что анализ начался
+            await _notify_analysis_started_safe(db, analysis, dream)
 
             # Создаём user-сообщение (текст сна) в analysis_messages.
             # Идемпотентно: при celery-retry или повторном запуске задачи (после
@@ -237,6 +266,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     await db.rollback()
 
                 logger.info(f"Analysis {analysis_id} completed successfully")
+                await _notify_analysis_completed_safe(db, analysis, dream)
                 return result_text
 
             except LLMTransientError as e:
@@ -245,6 +275,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     analysis.status = AnalysisStatus.FAILED.value
                     analysis.error_message = f"Max retries exhausted: {e}"
                     await db.commit()
+                    await _notify_analysis_failed_safe(db, analysis, dream, f"Max retries exhausted: {e}")
                     raise
                 logger.warning("Transient LLM error for analysis %s (retry %s/%s): %s",
                                analysis_id, task_instance.request.retries, task_instance.max_retries, e)
@@ -266,6 +297,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     analysis.status = AnalysisStatus.FAILED.value
                     analysis.error_message = f"LLM Service error: {str(e)}"
                     await db.commit()
+                await _notify_analysis_failed_safe(db, analysis, dream, f"LLM Service error: {str(e)}")
                 raise
 
         except LLMTransientError:
@@ -285,6 +317,7 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     analysis.status = AnalysisStatus.FAILED.value
                     analysis.error_message = str(e)
                     await db.commit()
+                    await _notify_analysis_failed_safe(db, analysis, dream, str(e))
             except Exception as cleanup_error:
                 logger.error(
                     "Failed to mark analysis %s as FAILED after error: %s",
@@ -319,6 +352,7 @@ async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str)
     from services import user_memory_service
 
     async with AsyncSessionLocal() as db:
+        dream = None
         try:
             # Получаем пользователя
             result = await db.execute(

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { api, clearTokens, getDeviceId, getAccessToken } from './api';
 import { applySettings, AccentSwatch, ACCENTS, FontSize, Lang, loadSettings, saveSettings, ThemeMode } from './settings';
-import { BillingStatus, Dream, User, UserStats } from './types';
+import { AppNotification, BillingStatus, Dream, User, UserStats } from './types';
 
 function needsOnboarding(user: User): boolean {
   return !user.profile?.onboarding_completed || !user.profile?.about_me;
@@ -26,6 +26,11 @@ interface AppState {
   dreamsTotal: number;
   dreamsLoaded: boolean;
 
+  // Notifications
+  notifications: AppNotification[];
+  notificationsUnread: number;
+  notificationsLoaded: boolean;
+
   // UI
   paywallOpen: boolean;
   paywallReason: string;
@@ -42,6 +47,9 @@ interface AppState {
   addDreamToCache: (d: Dream) => void;
   updateDreamInCache: (d: Dream) => void;
   removeDreamFromCache: (id: string) => void;
+  loadNotifications: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
 
   setTheme: (t: ThemeMode) => void;
   setAccent: (id: string) => void;
@@ -74,6 +82,10 @@ export const useApp = create<AppState>((set, get) => ({
   dreams: [],
   dreamsTotal: 0,
   dreamsLoaded: false,
+
+  notifications: [],
+  notificationsUnread: 0,
+  notificationsLoaded: false,
 
   paywallOpen: false,
   paywallReason: '',
@@ -160,6 +172,37 @@ export const useApp = create<AppState>((set, get) => ({
       dreamsTotal: Math.max(0, s.dreamsTotal - 1),
     })),
 
+  loadNotifications: async () => {
+    try {
+      const data = await api.listNotifications({ limit: 50, offset: 0 });
+      set({ notifications: data.items, notificationsUnread: data.unread_count, notificationsLoaded: true });
+    } catch {
+      // fail soft — notifications are a secondary feature
+    }
+  },
+
+  markNotificationRead: async (id) => {
+    try {
+      await api.markNotificationRead(id);
+    } catch {}
+    set((s) => ({
+      notifications: s.notifications.map((n) =>
+        n.id === id ? { ...n, is_read: true } : n
+      ),
+      notificationsUnread: Math.max(0, s.notificationsUnread - 1),
+    }));
+  },
+
+  markAllNotificationsRead: async () => {
+    try {
+      await api.markAllNotificationsRead();
+    } catch {}
+    set((s) => ({
+      notifications: s.notifications.map((n) => ({ ...n, is_read: true })),
+      notificationsUnread: 0,
+    }));
+  },
+
   setTheme: (t) => {
     set({ theme: t });
     const s = { theme: t, accentId: get().accentId, fontSize: get().fontSize, lang: get().lang };
@@ -193,7 +236,7 @@ export const useApp = create<AppState>((set, get) => ({
   signOut: async () => {
     try { await api.logout(); } catch {}
     clearTokens();
-    set({ user: null, dreams: [], dreamsTotal: 0, billing: null, stats: null, onboardingOpen: false, authPromptOpen: false });
+    set({ user: null, dreams: [], dreamsTotal: 0, billing: null, stats: null, onboardingOpen: false, authPromptOpen: false, notifications: [], notificationsUnread: 0, notificationsLoaded: false });
     // re-bootstrap to anonymous
     await get().bootstrap();
   },

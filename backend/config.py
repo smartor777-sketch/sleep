@@ -134,6 +134,14 @@ class Settings(BaseSettings):
     # Лимиты
     dreams_per_day_limit: int = 5
     map_cache_ttl_seconds: int = 3600
+
+    # Уведомления / очередь анализов
+    # Email администратора(ов) для системных алертов (через запятую).
+    # Если не задан — используется email_verified-адрес пользователей с is_admin=True.
+    admin_email: str | None = None
+    # Порог очереди анализов (pending+processing), при достижении которого
+    # админ получает уведомление в панель и на почту.
+    analysis_queue_alert_threshold: int = 10
     
     model_config = SettingsConfigDict(
         env_file=".env",

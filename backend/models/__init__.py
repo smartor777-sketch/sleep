@@ -3,6 +3,7 @@
 from .user import User, UserRole, GPTRole, UserArchetype
 from .dream import Dream
 from .analysis import Analysis, AnalysisStatus
+from .notification import Notification
 from .analysis_message import AnalysisMessage, MessageRole
 from .oauth import OAuthIdentity, EmailVerification, PasswordReset
 from .rag import DreamChunk, DreamSymbol, DreamArchetype, DreamSymbolEntity
@@ -18,6 +19,7 @@ __all__ = [
     "Dream",
     "Analysis",
     "AnalysisStatus",
+    "Notification",
     "AnalysisMessage",
     "MessageRole",
     "DreamChunk",

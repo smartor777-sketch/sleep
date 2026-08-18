@@ -160,6 +160,7 @@ import {
   User, Dream, DreamListResponse, Analysis, Message,
   DreamMap, SymbolDetail, BillingStatus, PaymentCreateResponse, UserStats, LinkResponse,
   AdminStats, AdminUser, AdminUserList,
+  NotificationList, NotificationAck,
 } from './types';
 
 export const api = {
@@ -260,6 +261,20 @@ export const api = {
     put<{ email_auth_enabled: boolean }>('/api/v1/admin/settings/email-auth', { email_auth_enabled }),
   adminDeleteUser: (id: string) =>
     del<{ user_id: string; email?: string; message: string }>(`/api/v1/admin/users/${id}`),
+  adminNotifications: (params?: { limit?: number; offset?: number }) =>
+    get<NotificationList>('/api/v1/admin/notifications', params),
+  adminMarkNotificationRead: (id: string) =>
+    post<NotificationAck>(`/api/v1/admin/notifications/${id}/read`, {}),
+  adminMarkAllNotificationsRead: () =>
+    post<NotificationAck>('/api/v1/admin/notifications/read-all', {}),
+
+  // ---- Notifications ----
+  listNotifications: (params?: { limit?: number; offset?: number }) =>
+    get<NotificationList>('/api/v1/notifications', params),
+  markNotificationRead: (id: string) =>
+    post<NotificationAck>(`/api/v1/notifications/${id}/read`, {}),
+  markAllNotificationsRead: () =>
+    post<NotificationAck>('/api/v1/notifications/read-all', {}),
 
   // ---- Dreams ----
   createDream: (body: { content: string; title?: string; emoji?: string; comment?: string }) =>

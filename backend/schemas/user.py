@@ -125,6 +125,7 @@ class AdminStatsResponse(BaseModel):
     total_anonymous: int
     total_premium: int
     active_last_7d: int
+    analysis_queue: int = 0  # Текущий размер очереди анализов (pending + processing)
 
 
 class AdminResetPasswordResponse(BaseModel):

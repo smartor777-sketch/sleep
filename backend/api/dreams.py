@@ -25,6 +25,7 @@ from services.dream_service import (
     search_dreams_semantic,
 )
 from services.analysis_service import create_analysis
+from services.notification_service import get_queue_position
 from models import AnalysisStatus
 
 
@@ -55,6 +56,17 @@ router = APIRouter(prefix="/dreams", tags=["Dreams"])
 logger = logging.getLogger(__name__)
 
 
+async def _attach_queue_position(db, response_data, dream, analysis=None):
+    """Заполнить queue_position в ответе, если сон в очереди анализа."""
+    target = analysis if analysis is not None else (dream.analysis if dream is not None else None)
+    if response_data.analysis_status == "analyzing" and target is not None:
+        try:
+            response_data.queue_position = await get_queue_position(db, target.id)
+        except Exception as pos_err:
+            logger.debug("Failed to compute queue position for dream %s: %s", dream.id, pos_err)
+    return response_data
+
+
 @router.post("", response_model=DreamResponse, status_code=status.HTTP_201_CREATED)
 async def create_dream_endpoint(
     dream_data: DreamCreate,
@@ -66,6 +78,7 @@ async def create_dream_endpoint(
     
     - Проверяет лимит снов за день (5 снов)
     - Создаёт сон с текущей датой и временем
+    - Автоматически запускает анализ сна (ставит задачу в очередь celery)
     """
     try:
         dream = await create_dream(db, current_user, dream_data)
@@ -74,6 +87,19 @@ async def create_dream_endpoint(
         response_data.has_analysis = False
         response_data.analysis_status = "saved"
         response_data.analysis_error_message = None
+
+        # Автозапуск анализа: если enqueue не удалась (Redis/celery недоступны),
+        # не роняем создание сна — статус остаётся "saved", и пользователь может
+        # запустить анализ вручную.
+        try:
+            analysis, _task_id = await create_analysis(db, dream, current_user)
+            response_data.analysis_status = "analyzing"
+            await _attach_queue_position(db, response_data, dream, analysis)
+        except ValueError:
+            # Анализ уже существует — оставляем текущий статус
+            pass
+        except Exception as auto_err:
+            logger.warning("Auto-analysis enqueue failed for dream %s: %s", dream.id, auto_err)
 
         return response_data
     
@@ -138,6 +164,8 @@ async def trigger_analysis_endpoint(
     response_data.has_analysis = has_analysis
     response_data.analysis_status = analysis_status
     response_data.analysis_error_message = analysis_error_message
+
+    await _attach_queue_position(db, response_data, dream)
 
     return response_data
 
@@ -253,7 +281,9 @@ async def get_dream_endpoint(
     response_data.has_analysis = has_analysis
     response_data.analysis_status = analysis_status
     response_data.analysis_error_message = analysis_error_message
-    
+
+    await _attach_queue_position(db, response_data, dream)
+
     return response_data
 
 

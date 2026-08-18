@@ -1,0 +1,16 @@
+[Unit]
+Description=InnerCore Celery Worker
+After=network.target postgresql.service redis-server.service innercore-prod.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/srv/sleep-prod/backend/backend
+ExecStart=/srv/sleep-prod/backend/backend/.venv/bin/celery -A celery_app worker --loglevel=info --concurrency=2
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/srv/sleep-prod/backend/backend
+
+[Install]
+WantedBy=multi-user.target

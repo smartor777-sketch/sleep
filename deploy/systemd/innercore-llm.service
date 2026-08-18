@@ -1,0 +1,15 @@
+[Unit]
+Description=InnerCore LLM Service (Gemini)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/srv/sleep-prod/backend/llm_service
+Environment=PYTHONPATH=/srv/sleep-prod/backend/llm_service
+ExecStart=/srv/sleep-prod/backend/llm_service/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target

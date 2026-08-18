@@ -1,9 +1,9 @@
 # InnerCore — статус разработки (dev-sleep-test)
 
-Сервер: `sleep-test.kuban-forum.ru` → `2.26.51.8`
+Прод-сервер: `sleep.kuban-forum.ru` → `87.120.186.100` (DE-LC-Production.play2go.cloud)
 Репозиторий: `smartor777-sketch/sleep.git`, ветка `dev-sleep-test`
 
-Последнее обновление: 2026-08-03
+Последнее обновление: 2026-08-18
 
 ## Текущее состояние
 
@@ -54,15 +54,15 @@
 
 ### Фронтенд
 - **Сборка**: `tsc --noEmit && vite build` → `frontend/dist/`.
-- **Деплой**: `/srv/sleep-test-web/frontend/dist/` (не `/srv/sleep-test/frontend/`).
+- **Деплой**: `/srv/sleep-prod/backend/frontend/dist/` (Caddy отдаёт как статику).
 - **Caddy**: `Cache-Control: no-cache` для `index.html` (кеш-бастинг).
 - **Google GSI скрипт удалён** из `index.html` (источник «Готовлю ссылку...»).
 - **Блок «Мобильное приложение»** удалён из `ProfilePage.tsx`.
 
 ### Тестовый пользователь
-- `test.sleep@innercore.example.com` / `Test12345!`
-- 4 сна: «Полёт над морем», «Лес и волк», «Запертая комната», «Разговор с бабушкой»
-- Проанализирован 1 сон → карта строится (5 узлов).
+- `test.sleep@innercore.example.com` / `Test12345!` (пароль сброшен 2026-08-18)
+- 14 снов (10 добавлено 2026-08-18 для нагрузки), анализы строятся через celery.
+- `sub_type=pro` (биллинг форсирует Pro для всех).
 
 ## Коммиты (новые)
 
@@ -73,15 +73,17 @@
 
 ## Серверные заметки
 
-- SSH: `plink -ssh -batch -pw "yO3aN0cU6efK" root@2.26.51.8 "…"`; upload — `pscp.exe -batch -pw …`.
-- systemd: `innercore-backend`, `innercore-celery`, `innercore-llm` (конфиг `/srv/sleep-test/llm_service/.env`).
-- PostgreSQL: `PGPASSWORD=inn3rc0re_dev_2026 psql -U innercore -h 127.0.0.1 -d innercore`.
-- Caddy: `/etc/caddy/Caddyfile` (reverse proxy на :8000, статика из `/srv/sleep-test-web/frontend/dist/`).
-- Backend restart: ~35 секунд, проверять по `journalctl -u innercore-backend` «Uvicorn running on http://127.0.0.1:8000».
+- SSH: `plink -ssh -batch -pw "<prod-password>" root@87.120.186.100 "…"`.
+- systemd: `innercore-prod`, `celery-prod` (+ drop-in `--autoscale=2,1 --max-memory-per-child=300000`), `innercore-llm`.
+- PostgreSQL: `PGPASSWORD=inn3rc0re_prod_2026 psql -U innercore -h 127.0.0.1 -d innercore`.
+- Caddy: `/etc/caddy/Caddyfile` (reverse proxy :8000, статика из `/srv/sleep-prod/backend/frontend/dist/`).
+- Деплой: `bash /srv/sleep-prod/backend/deploy/systemd-deploy.sh origin/dev-sleep-test` (pip install + **обязательный** рестарт сервисов).
+- Backend restart: `systemctl restart innercore-prod`, проверять `journalctl -u innercore-prod` «Uvicorn running on http://127.0.0.1:8000».
+- ⚠️ **SIGILL celery (инцидент 2026-08-18)**: воркер, стартовавший ДО пересборки C-расширений (`.so`), падает с SIGILL (`invalid opcode in immutabledict.so`), анализы зависают в pending. Лечится `systemctl restart celery-prod`. После любого pip install рестарт обязателен.
 - Админ: `admin@innercore.example.com` / `Admin12345!`.
 
 ## Next Move
 
 1. Подключить соц-авторизацию (Google, Яндекс, VK, Telegram) — см. `SOCIAL_AUTH.md`.
 2. При деплое фронта заливать 4 иконки + assets.
-3. Запускать анализ остальных тестовых снов для насыщения карты.
+3. Авто-триггер анализа после создания сна (сейчас фронт не зовёт `POST /api/v1/analyses`, а бэкенд не запускает анализ сам — жалоба «Юхер»).

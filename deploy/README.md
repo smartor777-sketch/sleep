@@ -1,108 +1,105 @@
 # InnerCore — production deploy
 
-Production environment runs on **msk-1** (`5.42.100.202`) via Docker Compose.
-Images are built by GitHub Actions and pushed to `ghcr.io/core-euler/sna_net-*`.
+**Реальный прод**: bare-metal systemd на `87.120.186.100` (DE-LC-Production.play2go.cloud), домен **`sleep.kuban-forum.ru`**. Docker-деплой ниже — legacy-путь для старой инфраструктуры (msk-1), НЕ используется.
 
-## Layout
+## Актуальный прод (systemd, 87.120.186.100)
 
-```
-deploy/
-├── Caddyfile                # Reverse-proxy + auto-TLS (Let's Encrypt)
-├── docker-compose.prod.yml  # All prod services
-├── deploy.sh                # Pull-and-restart script (called by CI over SSH)
-└── README.md                # This file
-```
+| Компонент | systemd-юнит | Порт | Путь |
+|-----------|--------------|------|------|
+| Backend (FastAPI) | `innercore-prod.service` | 8000 | `/srv/sleep-prod/backend/backend` |
+| LLM-сервис (Gemini) | `innercore-llm.service` | 8001 | `/srv/sleep-prod/backend/llm_service` |
+| Celery worker | `celery-prod.service` | — | venv backend, drop-in `celery-prod.service.d/memory.conf` |
+| PostgreSQL 17 (native, systemd) | `postgresql@17-main.service` | 5432 | кластер Debian |
+| Redis (native, systemd) | `redis-server.service` | 6379 | стандартный конфиг |
+| Caddy (reverse proxy + TLS) | `caddy.service` | 80/443 | `/etc/caddy/Caddyfile` |
 
-## Domains
+Caddy: `sleep.kuban-forum.ru` → `/api/*` → `127.0.0.1:8000`, статика — `/srv/sleep-prod/backend/frontend/dist`.
 
-| Host                 | Service       | Container       |
-|---------------------|---------------|-----------------|
-| `innercore.art`     | landing       | `landing` → :80 |
-| `app.innercore.art` | web app       | `frontend` → :80|
-| `api.innercore.art` | backend API   | `backend` → :8000|
+## Деплой (systemd)
 
-DNS A-records must all point to `5.42.100.202`. Caddy obtains TLS automatically
-on first request to each host.
-
-## One-time server bootstrap (manual)
+Скрипт **`deploy/systemd-deploy.sh`** запускается на сервере от root:
 
 ```bash
-ssh msk-1
-mkdir -p ~/innercore/deploy
-# Copy from local machine:
-#   scp deploy/* msk-1:~/innercore/deploy/
-#   scp .env     msk-1:~/innercore/deploy/.env
+bash /srv/sleep-prod/backend/deploy/systemd-deploy.sh origin/dev-sleep-test
 ```
 
-Update `~/innercore/deploy/.env` for prod values:
-- `CORS_ORIGINS=https://innercore.art,https://app.innercore.art`
-- `DATABASE_URL=postgresql+asyncpg://USER:PASS@postgres:5432/DB`
-- `REDIS_URL=redis://redis:6379/0`
-- `S3_ENDPOINT=http://minio:9000`
-- `LLM_SERVICE_URL=http://llm_service:8001`
-- `YANDEX_CLIENT_ID=<client id from Yandex OAuth>`
-- `YANDEX_CLIENT_SECRET=<secret key from Yandex OAuth>`
-- `VK_CLIENT_ID=<web app id from VK ID>`
-- `VK_CLIENT_SECRET=<protected key from VK ID web app>`
-- `YOOKASSA_SHOP_ID=<shop id from YooKassa>`
-- `YOOKASSA_SECRET_KEY=<secret key from YooKassa>`
-- `YOOKASSA_RETURN_URL=https://app.innercore.art/profile`
-- If YooKassa fiscal receipts are enabled: `YOOKASSA_RECEIPTS_ENABLED=true`,
-  `YOOKASSA_VAT_CODE=<vat code>`, optionally `YOOKASSA_TAX_SYSTEM_CODE=<tax system code>`
-- Strong `JWT_SECRET_KEY`, `POSTGRES_PASSWORD`, `MINIO_ROOT_PASSWORD`
+Что делает:
+1. `git fetch + checkout` нужного ref в `/srv/sleep-prod/backend`.
+2. venv + `pip install` для `backend/` и `llm_service/`.
+3. `npm ci && npm run build` фронтенда (dist).
+4. `systemctl restart innercore-llm innercore-prod celery-prod` — **обязательно** после каждого pip install.
+5. Health-check статуса юнитов и слушающих портов.
 
-In YooKassa dashboard configure the webhook URL:
-`https://api.innercore.art/api/v1/billing/webhook`.
+> ⚠️ Рестарт обязателен: pip может пересобрать C-расширения (SQLAlchemy Cython,
+> pydantic_core и т.п.). Работающий процесс держит в памяти старые страницы `.so`;
+> вызов нового кода падает с **SIGILL/SIGSEGV** (инцидент 2026-08-18: celery
+> упал с `invalid opcode in immutabledict.so`, сны зависли в pending). Полный
+> рестарт подхватывает свежие бинарники с диска.
 
-First-time start (after images are available in GHCR):
-```bash
-cd ~/innercore/deploy
-echo "$GHCR_PAT" | docker login ghcr.io -u <GH_USER> --password-stdin
-IMAGE_TAG=latest ./deploy.sh
-```
+### systemd-юниты
 
-## CI/CD — required GitHub repo secrets
+Копии фактических юнитов лежат в `deploy/systemd/`:
 
-| Secret                  | Value |
-|-------------------------|-------|
-| `MSK1_SSH_HOST`         | `5.42.100.202` |
-| `MSK1_SSH_PORT`         | `2222` |
-| `MSK1_SSH_USER`         | `work` |
-| `MSK1_SSH_KEY`          | Private SSH key (ed25519, no passphrase) for deploy user |
-| `GHCR_DEPLOY_TOKEN`     | PAT with `read:packages` (server pulls images) |
-| `VITE_GOOGLE_CLIENT_ID` | Google OAuth Web Client ID (baked into frontend bundle) |
+| Файл | Назначение |
+|------|-----------|
+| `systemd/innercore-prod.service` | uvicorn backend на :8000 |
+| `systemd/innercore-llm.service` | uvicorn LLM на :8001 |
+| `systemd/celery-prod.service` | celery worker |
+| `systemd/celery-prod.service.d/memory.conf` | override: `--autoscale=2,1 --max-memory-per-child=300000` |
 
-Add deploy public key to `/home/work/.ssh/authorized_keys` on msk-1.
-
-## CI flow
-
-1. Push to `main`
-2. GH Actions builds 4 images in parallel (backend, llm_service, frontend, landing)
-3. Pushed to `ghcr.io/core-euler/sna_net-*:main-<sha7>` + `:latest`
-4. Deploy job SSHs into msk-1, exports `IMAGE_TAG`, runs `deploy.sh`
-5. `deploy.sh` does `docker compose pull && up -d`
-
-Rollback: SSH to server, `IMAGE_TAG=main-<previous-sha7> ./deploy.sh`.
-
-## Operational commands
+Установка:
 
 ```bash
-# Tail logs
-cd ~/innercore/deploy
-docker compose -f docker-compose.prod.yml logs -f backend
-
-# Check status
-docker compose -f docker-compose.prod.yml ps
-
-# Force-pull latest and restart
-IMAGE_TAG=latest ./deploy.sh
-
-# Restart single service
-docker compose -f docker-compose.prod.yml restart backend
+cp deploy/systemd/*.service /etc/systemd/system/
+mkdir -p /etc/systemd/system/celery-prod.service.d
+cp deploy/systemd/celery-prod.service.d/memory.conf /etc/systemd/system/celery-prod.service.d/
+systemctl daemon-reload
+systemctl enable --now innercore-prod innercore-llm celery-prod
 ```
 
-## Notes
+### .env
 
-- Postgres, Redis, MinIO ports are **not** exposed to host — only on `innercore_network`.
-- Caddy holds 80/443; only services that need to be public go through it.
-- Postgres backups are NOT configured here — add a separate cron + `pg_dump` to S3 before going to real prod.
+- Backend: `/srv/sleep-prod/backend/backend/.env`
+- LLM: `/srv/sleep-prod/backend/llm_service/.env`
+- Frontend: `/srv/sleep-prod/backend/frontend/.env` (`VITE_API_BASE_URL=https://sleep.kuban-forum.ru`, `VITE_APP_VERSION=0.4.2`)
+
+Ключевые переменные backend: `DATABASE_URL=postgresql+asyncpg://innercore:...@127.0.0.1:5432/innercore`, `REDIS_URL=redis://127.0.0.1:6379/0`, `LLM_SERVICE_URL=http://127.0.0.1:8001`, `S3_ENDPOINT=http://127.0.0.1:9000`, `EMBEDDINGS_PROVIDER=gemini`.
+
+## Операционные команды
+
+```bash
+# Статус
+systemctl status innercore-prod innercore-llm celery-prod
+# Логи backend
+journalctl -u innercore-prod -f
+# Логи celery (там падают SIGILL и задачи)
+journalctl -u celery-prod -f
+# Рестарт одного сервиса
+systemctl restart celery-prod
+# Celery: посмотреть очередь
+redis-cli -n 0 llen celery
+```
+
+## Сборка фронтенда
+
+```bash
+cd /srv/sleep-prod/backend/frontend
+cat > .env << 'EOF'
+VITE_API_BASE_URL=https://sleep.kuban-forum.ru
+VITE_APP_VERSION=0.4.2
+VITE_GOOGLE_CLIENT_ID=
+EOF
+npm ci && npm run build
+```
+
+Готовый дистрибутив — `frontend/dist/` (Caddy отдаёт его как статику).
+
+---
+
+## Legacy: Docker-деплой (msk-1) — НЕ используется
+
+Прошлая схема разворачивалась на `msk-1` (`5.42.100.202`) через Docker Compose
+(`deploy/docker-compose.prod.yml`, `deploy/deploy.sh`, GHCR-образы
+`ghcr.io/core-euler/sna_net-*`, CI — `.github/workflows/deploy.yml`). Текущий прод
+на неё НЕ переведён: реальный сервер — 87.120.186.100, PostgreSQL/Redis native,
+frontend собирается из исходников. Сохранено для истории/отката.

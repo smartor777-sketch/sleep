@@ -238,23 +238,38 @@ export default function DreamPage() {
         </div>
       )}
 
-      {dream.analysis_status === 'analyzing' && (
-        <div className="card-surface rounded-[24px] p-6 text-center" data-testid="dream-analyzing">
-          <img
-            src="/icon-background.png"
-            alt=""
-            aria-hidden="true"
-            className="w-14 h-14 mx-auto rounded-full object-cover mb-3 animate-pulse-soft"
-          />
-          <p className="muted-text">{t('dream.analyzing', lang)}</p>
-          {dream.queue_position != null && dream.queue_position > 0 && (
-            <p className="muted-text text-sm mt-1" data-testid="dream-queue-position">
-              {lang === 'ru'
-                ? `В очереди анализа: №${dream.queue_position}`
-                : `Analysis queue position: #${dream.queue_position}`}
-            </p>
-          )}
-        </div>
+      {(dream.analysis_status === 'analyzing' || (dream.analysis_status === 'analyzed' && analysis)) && (
+        <section
+          className="card-surface rounded-[24px] p-4 sm:p-6 lg:p-7"
+          data-testid={dream.analysis_status === 'analyzing' ? 'dream-analyzing' : 'dream-analysis-section'}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 rounded-full accent-bg" />
+            <h2 className="font-display text-lg accent-text">
+              {lang === 'ru' ? 'Разбор InnerCore' : 'InnerCore reading'}
+            </h2>
+          </div>
+          {dream.analysis_status === 'analyzing' ? (
+            <div className="py-6 text-center">
+              <img
+                src="/icon-background.png"
+                alt=""
+                aria-hidden="true"
+                className="w-12 h-12 mx-auto rounded-full object-cover mb-3 animate-pulse-soft"
+              />
+              <p className="muted-text">{t('dream.analyzing', lang)}</p>
+              {dream.queue_position != null && dream.queue_position > 0 && (
+                <p className="muted-text text-sm mt-1" data-testid="dream-queue-position">
+                  {lang === 'ru'
+                    ? `В очереди анализа: №${dream.queue_position}`
+                    : `Analysis queue position: #${dream.queue_position}`}
+                </p>
+              )}
+            </div>
+          ) : analysis ? (
+            <Markdown text={analysis.result || ''} />
+          ) : null}
+        </section>
       )}
 
       {dream.analysis_status === 'analysis_failed' && (
@@ -269,16 +284,6 @@ export default function DreamPage() {
 
       {dream.analysis_status === 'analyzed' && analysis && (
         <>
-          <section className="card-surface rounded-[24px] p-4 sm:p-6 lg:p-7" data-testid="dream-analysis-section">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full accent-bg" />
-              <h2 className="font-display text-lg accent-text">
-                {lang === 'ru' ? 'Разбор InnerCore' : 'InnerCore reading'}
-              </h2>
-            </div>
-            <Markdown text={analysis.result || ''} />
-          </section>
-
           {/* Chat */}
           <section className="card-surface rounded-[24px] p-4 sm:p-5" data-testid="chat-section">
             <h3 className="font-display text-lg mb-3 px-1">

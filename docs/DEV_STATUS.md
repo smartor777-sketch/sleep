@@ -89,6 +89,7 @@
 - Деплой: `bash /srv/sleep-prod/backend/deploy/systemd-deploy.sh origin/dev-sleep-test` (pip install + **обязательный** рестарт сервисов).
 - Backend restart: `systemctl restart innercore-prod`, проверять `journalctl -u innercore-prod` «Uvicorn running on http://127.0.0.1:8000».
 - ⚠️ **SIGILL celery (инцидент 2026-08-18)**: воркер, стартовавший ДО пересборки C-расширений (`.so`), падает с SIGILL (`invalid opcode in immutabledict.so`), анализы зависают в pending. Лечится `systemctl restart celery-prod`. После любого pip install рестарт обязателен.
+- ⚠️ **Race user_memory_docs (2026-08-18)**: при параллельных анализах одного юзера `get_or_create` падал с UniqueViolation (`user_memory_docs_user_id_key`). Исправлено `ON CONFLICT DO NOTHING` + перечитывание (`ca65a23`).
 - Админ: `admin@innercore.example.com` / `Admin12345!`.
 
 ## Next Move

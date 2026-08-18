@@ -143,6 +143,7 @@ async def notify_analysis_started(db: AsyncSession, analysis: Analysis, dream) -
     data = {
         "dream_id": str(dream.id),
         "analysis_id": str(analysis.id),
+        "dream_title": dream.title or _dream_preview(dream),
         "queue_position": await get_queue_position(db, analysis.id),
     }
     await create_notification(
@@ -162,6 +163,7 @@ async def notify_analysis_completed(db: AsyncSession, analysis: Analysis, dream)
     data = {
         "dream_id": str(dream.id),
         "analysis_id": str(analysis.id),
+        "dream_title": dream.title or _dream_preview(dream),
     }
     await create_notification(
         db,
@@ -180,6 +182,7 @@ async def notify_analysis_failed(db: AsyncSession, analysis: Analysis, dream, er
     data = {
         "dream_id": str(dream.id) if dream else None,
         "analysis_id": str(analysis.id),
+        "dream_title": dream.title if dream else None,
         "error": error,
     }
     await create_notification(

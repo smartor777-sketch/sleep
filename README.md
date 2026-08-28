@@ -42,6 +42,8 @@ Celery Worker
 
 ## Quick Start
 
+**Live app:** [sleep.kuban-forum.ru](https://sleep.kuban-forum.ru) · [О проекте](https://sleep.kuban-forum.ru/about)
+
 ### Prerequisites
 
 - Docker + Docker Compose
@@ -122,18 +124,13 @@ celery -A celery_app worker --loglevel=info
 
 ## Contact
 
-**Оригинальная версия InnerCore:**
-
-- Telegram: [@CoreEuler](https://t.me/CoreEuler)
-- GitHub: [core-euler](https://github.com/core-euler)
-
-> Указанные выше контакты относятся к оригинальной версии проекта.
-
 **Данный проект (форк):**
 
-- GitHub: [smartor777-sketch](https://github.com/smartor777-sketch)
+- GitHub: [smartor777-sketch](https://github.com/smartor777-sketch/sleep)
 - Telegram: [@Latinosaur](https://t.me/Latinosaur)
 - Issues / обратная связь: [smartor777-sketch/sleep](https://github.com/smartor777-sketch/sleep/issues)
+
+> Оригинальная версия InnerCore: Telegram [@CoreEuler](https://t.me/CoreEuler), GitHub [core-euler](https://github.com/core-euler). Контакты относятся к оригинальному проекту.
 
 ## License
 

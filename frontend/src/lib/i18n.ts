@@ -132,6 +132,8 @@ const ru: Dict = {
   'notif.started': 'Анализ запущен',
   'notif.completed': 'Анализ готов',
   'notif.failed': 'Анализ не удался',
+  'about.title': 'О проекте',
+  'about.link': 'О проекте',
 };
 
 const en: Dict = {
@@ -264,6 +266,8 @@ const en: Dict = {
   'notif.started': 'Analysis started',
   'notif.completed': 'Analysis ready',
   'notif.failed': 'Analysis failed',
+  'about.title': 'About',
+  'about.link': 'About',
 };
 
 const dicts: Record<Lang, Dict> = { ru, en };

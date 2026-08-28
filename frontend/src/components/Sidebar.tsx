@@ -138,7 +138,7 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
         </nav>
 
         {/* Plan widget at bottom */}
-        <div className="px-4 pb-5 mt-2">
+        <div className="px-4 pb-2 mt-2">
           <div className="card-surface rounded-2xl p-4" data-testid="sidebar-plan-widget">
             <div className="flex items-center gap-3 mb-1">
               <img
@@ -172,6 +172,28 @@ export default function Sidebar({ open, onClose, onNewDream }: Props) {
               </button>
             )}
           </div>
+        </div>
+
+        {/* About link — under user block, bottom-left */}
+        <div className="px-4 pb-4 pt-1" data-testid="sidebar-about">
+          <Link
+            to="/about"
+            onClick={onClose}
+            className="muted-text text-xs hover:accent-text hover:underline underline-offset-4"
+            data-testid="sidebar-about-link"
+          >
+            {lang === 'ru' ? 'О проекте' : 'About'}
+          </Link>
+          <span className="muted-text text-xs mx-1">·</span>
+          <a
+            href="https://github.com/smartor777-sketch/sleep"
+            target="_blank"
+            rel="noreferrer"
+            className="muted-text text-xs hover:accent-text hover:underline underline-offset-4"
+            data-testid="sidebar-github-link"
+          >
+            GitHub
+          </a>
         </div>
       </aside>
     </>

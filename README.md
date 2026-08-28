@@ -122,8 +122,18 @@ celery -A celery_app worker --loglevel=info
 
 ## Contact
 
+**Оригинальная версия InnerCore:**
+
 - Telegram: [@CoreEuler](https://t.me/CoreEuler)
 - GitHub: [core-euler](https://github.com/core-euler)
+
+> Указанные выше контакты относятся к оригинальной версии проекта.
+
+**Данный проект (форк):**
+
+- GitHub: [smartor777-sketch](https://github.com/smartor777-sketch)
+- Telegram: [@Latinosaur](https://t.me/Latinosaur)
+- Issues / обратная связь: [smartor777-sketch/sleep](https://github.com/smartor777-sketch/sleep/issues)
 
 ## License
 

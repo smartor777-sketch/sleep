@@ -39,7 +39,7 @@ google-cloud-speech==2.24.0
 SpeechRecognition==3.10.1
 pydub==0.25.1
 # audioop был удалён из stdlib в Python 3.13 — pydub требует его (LTS-бэкпорт)
-audioop-lts>=0.2.2
+audioop-lts>=0.2.2; python_version >= "3.13"
 # Локальная транскрибация голосовых (on-device, без платных API и системного ffmpeg)
 faster-whisper>=1.2.1
 

@@ -61,6 +61,8 @@ async def send_message(
 
         # Запускаем Celery задачу для ответа
         from tasks import reply_to_dream_chat_task
+        from celery_guard import ensure_celery_running
+        ensure_celery_running()
         task = reply_to_dream_chat_task.delay(
             str(current_user.id),
             str(data.dream_id),

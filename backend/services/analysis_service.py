@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Analysis, Dream, User, AnalysisStatus
 from celery_app import celery_app
+from celery_guard import ensure_celery_running
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,8 @@ async def create_analysis(
     await db.commit()
     await db.refresh(analysis)
 
+
+    ensure_celery_running()
     task = analyze_dream_task.delay(str(analysis.id))
     analysis.celery_task_id = task.id
     await db.commit()

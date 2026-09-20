@@ -6,7 +6,7 @@ After=network.target postgresql.service redis-server.service innercore-prod.serv
 Type=simple
 User=root
 WorkingDirectory=/srv/sleep-prod/backend/backend
-ExecStart=/srv/sleep-prod/backend/backend/.venv/bin/celery -A celery_app worker --loglevel=info --concurrency=2
+ExecStart=/srv/sleep-prod/backend/backend/.venv/bin/celery -A celery_app worker --loglevel=info --concurrency=1
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1

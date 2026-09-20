@@ -1,12 +1,12 @@
 [Unit]
-Description=InnerCore Backend (FastAPI)
+Description=InnerCore Backend (FastAPI + Gunicorn)
 After=network.target postgresql.service redis-server.service
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/srv/sleep-prod/backend/backend
-ExecStart=/srv/sleep-prod/backend/backend/.venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000
+ExecStart=/srv/sleep-prod/backend/backend/.venv/bin/gunicorn main:app -k uvicorn.workers.UvicornWorker --workers 1 --max-requests 100 --max-requests-jitter 20 --timeout 600 --bind 127.0.0.1:8000 --access-logfile /var/log/innercore-access.log --error-logfile /var/log/innercore-error.log
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1

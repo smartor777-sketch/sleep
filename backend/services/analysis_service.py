@@ -8,8 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Analysis, Dream, User, AnalysisStatus
-from celery_app import celery_app
-from celery_guard import ensure_celery_running
 
 logger = logging.getLogger(__name__)
 
@@ -19,17 +17,6 @@ async def get_analysis_by_dream_id(
     dream_id: UUID,
     user: User
 ) -> Analysis | None:
-    """
-    Получить анализ по ID сна
-    
-    Args:
-        db: Сессия базы данных
-        dream_id: ID сна
-        user: Пользователь
-    
-    Returns:
-        Анализ или None
-    """
     result = await db.execute(
         select(Analysis).where(
             Analysis.dream_id == dream_id,
@@ -45,26 +32,15 @@ async def create_analysis(
     user: User,
     allow_retry: bool = False,
 ) -> tuple[Analysis, str]:
-    """
-    Создать анализ сна и запустить фоновую задачу
-    
-    Args:
-        db: Сессия базы данных
-        dream: Сон для анализа
-        user: Пользователь
-    
-    Returns:
-        Кортеж (анализ, task_id)
-    
-    Raises:
-        ValueError: Если анализ уже существует
-    """
-    from tasks import analyze_dream_task
+    from jobs import enqueue_analyze_dream
 
     existing_analysis = await get_analysis_by_dream_id(db, dream.id, user)
 
     if existing_analysis:
-        if existing_analysis.status in {AnalysisStatus.PENDING.value, AnalysisStatus.PROCESSING.value}:
+        if existing_analysis.status in {
+            AnalysisStatus.PENDING.value,
+            AnalysisStatus.PROCESSING.value,
+        }:
             raise ValueError("analysis_already_exists")
         if existing_analysis.status == AnalysisStatus.COMPLETED.value:
             raise ValueError("analysis_already_exists")
@@ -86,23 +62,19 @@ async def create_analysis(
     await db.commit()
     await db.refresh(analysis)
 
-
-    ensure_celery_running()
-    task = analyze_dream_task.delay(str(analysis.id))
-    analysis.celery_task_id = task.id
+    job_id = await enqueue_analyze_dream(str(analysis.id))
+    analysis.celery_task_id = job_id
     await db.commit()
 
-    logger.info(f"Analysis {analysis.id} created with task_id {task.id}")
+    logger.info(f"Analysis {analysis.id} created with job_id {job_id}")
 
-    # Контроль очереди: если в очереди >= порога — уведомить администратора
-    # (панель + email). Ошибки не должны ронять создание анализа.
     try:
         from services.notification_service import maybe_alert_admin_queue
         await maybe_alert_admin_queue(db)
     except Exception as alert_err:
         logger.warning("Admin queue alert check failed: %s", alert_err)
 
-    return analysis, task.id
+    return analysis, job_id
 
 
 async def get_analysis_by_id(
@@ -110,17 +82,6 @@ async def get_analysis_by_id(
     analysis_id: UUID,
     user: User
 ) -> Analysis | None:
-    """
-    Получить анализ по ID
-    
-    Args:
-        db: Сессия базы данных
-        analysis_id: ID анализа
-        user: Пользователь
-    
-    Returns:
-        Анализ или None
-    """
     result = await db.execute(
         select(Analysis).where(
             Analysis.id == analysis_id,
@@ -131,34 +92,8 @@ async def get_analysis_by_id(
 
 
 async def get_task_status(task_id: str) -> dict:
-    """
-    Получить статус Celery задачи
-    
-    Args:
-        task_id: ID задачи
-    
-    Returns:
-        Словарь со статусом задачи
-    """
-    from celery.result import AsyncResult
-    
-    task_result = AsyncResult(task_id, app=celery_app)
-    
-    status_dict = {
-        "task_id": task_id,
-        "status": task_result.status,
-        "result": None,
-        "error": None,
-        "progress": None
-    }
-    
-    if task_result.ready():
-        if task_result.successful():
-            status_dict["result"] = task_result.result
-        elif task_result.failed():
-            status_dict["error"] = str(task_result.info)
-    
-    return status_dict
+    from jobs import get_job_status
+    return await get_job_status(task_id)
 
 
 async def get_user_analyses(
@@ -166,17 +101,6 @@ async def get_user_analyses(
     user: User,
     limit: int = 10
 ) -> list[Analysis]:
-    """
-    Получить список анализов пользователя
-    
-    Args:
-        db: Сессия базы данных
-        user: Пользователь
-        limit: Максимальное количество анализов
-    
-    Returns:
-        Список анализов
-    """
     result = await db.execute(
         select(Analysis)
         .where(Analysis.user_id == user.id)

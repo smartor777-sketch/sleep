@@ -1,31 +1,26 @@
-"""Celery задачи для фоновой обработки"""
+"""arq worker для InnerCore — фоновые задачи (замена Celery)."""
 
 import logging
-import asyncio
 from datetime import datetime
 from uuid import UUID
 
-from celery_app import celery_app
+from arq import cron
+from arq.connections import RedisSettings
+
+from config import settings
 from database import AsyncSessionLocal
 from models import Analysis, Dream, User, AnalysisStatus, MessageRole, AnalysisMessage
-from llm_client import llm_client
+from llm_client import llm_client, LLMTransientError
 from sqlalchemy import select
 from services.embedding_service import recalculate_dream_embedding
-from llm_client import LLMTransientError
 from services.map_service import invalidate_user_map_cache
 
 logger = logging.getLogger(__name__)
-_worker_loop: asyncio.AbstractEventLoop | None = None
 
 
-def _run_in_worker_loop(coro):
-    """Reuse a single event loop per Celery worker process to avoid cross-loop asyncpg usage."""
-    global _worker_loop
-    if _worker_loop is None or _worker_loop.is_closed():
-        _worker_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_worker_loop)
-    return _worker_loop.run_until_complete(coro)
-
+# ---------------------------------------------------------------------------
+# Helper: notifications (safe wrappers)
+# ---------------------------------------------------------------------------
 
 async def _notify_analysis_started_safe(db, analysis, dream):
     try:
@@ -53,34 +48,14 @@ async def _notify_analysis_failed_safe(db, analysis, dream, error=None):
         logger.warning("Failed to notify analysis failure for %s: %s", analysis.id, e)
 
 
-@celery_app.task(
-    bind=True,
-    name="tasks.analyze_dream",
-    autoretry_for=(LLMTransientError,),
-    retry_backoff=True,
-    retry_backoff_max=120,
-    retry_jitter=True,
-    max_retries=4,
-    soft_time_limit=600,   # 10 min — SoftTimeLimitExceeded raised, caught by except Exception → marks analysis FAILED
-    time_limit=660,        # 11 min — hard kill (only used if soft handler hangs)
-)
-def analyze_dream_task(self, analysis_id: str):
-    """
-    Фоновая задача для анализа сна
+# ---------------------------------------------------------------------------
+# Task: analyze_dream
+# ---------------------------------------------------------------------------
 
-    Args:
-        self: Celery task instance
-        analysis_id: UUID анализа
+async def analyze_dream_task(ctx, analysis_id: str):
     """
-    # Запускаем асинхронную функцию в event loop
-    return _run_in_worker_loop(_analyze_dream_async(self, analysis_id))
-
-
-async def _analyze_dream_async(task_instance, analysis_id: str):
-    """
-    Асинхронная функция для анализа сна.
-    Создаёт user-сообщение, собирает контекст, вызывает LLM, сохраняет assistant-сообщение.
-    Загружает user.md и обновляет его по diff из LLM-ответа.
+    Фоновая задача для анализа сна.
+    arq automatically retries on unhandled exception if max_retries configured via job kwargs.
     """
     from services.message_service import create_message
     from services.archetype_service import apply_archetypes_delta
@@ -89,7 +64,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
 
     async with AsyncSessionLocal() as db:
         try:
-            # Получаем анализ
             result = await db.execute(
                 select(Analysis).where(Analysis.id == UUID(analysis_id))
             )
@@ -99,11 +73,9 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 logger.error(f"Analysis {analysis_id} not found")
                 return None
 
-            # Обновляем статус на "processing"
             analysis.status = AnalysisStatus.PROCESSING.value
             await db.commit()
 
-            # Получаем сон
             result = await db.execute(
                 select(Dream).where(Dream.id == analysis.dream_id)
             )
@@ -116,7 +88,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 await db.commit()
                 return None
 
-            # Получаем пользователя для настроек
             result = await db.execute(
                 select(User).where(User.id == analysis.user_id)
             )
@@ -130,14 +101,8 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 return None
 
             logger.info(f"Starting analysis {analysis_id} for dream {dream.id}")
-
-            # Уведомляем пользователя, что анализ начался
             await _notify_analysis_started_safe(db, analysis, dream)
 
-            # Создаём user-сообщение (текст сна) в analysis_messages.
-            # Идемпотентно: при celery-retry или повторном запуске задачи (после
-            # failed) уже созданное сообщение не дублируем — иначе текст сна
-            # расплодится в «Диалоге о сне».
             existing_user_msg = (
                 await db.execute(
                     select(AnalysisMessage).where(
@@ -157,14 +122,10 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     content=dream.content,
                 )
 
-            # Загружаем user.md для контекста (нужно ДО построения system_prompt)
             memory_doc = await user_memory_service.get_or_create(db, user.id)
             user_memory_md = memory_doc.content_md or ""
             memory_version = memory_doc.version
 
-            # RAG-контекст из похожих прошлых снов. Раньше строился, но не
-            # передавался в первичный анализ — теперь включаем его в промпт
-            # первичного разбора, чтобы LLM учитывала повторяющиеся темы/архетипы.
             rag_block = None
             try:
                 retrieval = await build_retrieval_context(
@@ -174,10 +135,9 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     archetypes_delta={},
                 )
                 rag_block = retrieval.to_prompt_block().strip() or None
-            except Exception as rag_err:  # pragma: no cover
+            except Exception as rag_err:
                 logger.warning("Failed to build RAG context for analysis %s: %s", analysis_id, rag_err)
 
-            # Отправляем запрос в LLM Service
             try:
                 was_completed_before = analysis.completed_at is not None
                 payload = await llm_client.analyze_dream_structured(
@@ -188,9 +148,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 )
                 result_text = payload.analysis_text
 
-                # Сохраняем assistant-сообщение в analysis_messages.
-                # Идемпотентно: если повторный запуск анализа уже записал
-                # разбор, новый дубликат не создаём.
                 existing_asst_msg = (
                     await db.execute(
                         select(AnalysisMessage).where(
@@ -210,7 +167,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                         content=result_text,
                     )
 
-                # Backward compat: записываем результат в Analysis.result
                 analysis.result = result_text
                 analysis.status = AnalysisStatus.COMPLETED.value
                 analysis.completed_at = datetime.utcnow()
@@ -225,7 +181,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 await db.commit()
                 logger.info("Analysis %s committed, starting background indexing", analysis_id)
 
-                # Apply user.md memory update if LLM returned one
                 if payload.memory_update:
                     try:
                         update_dict = {
@@ -235,7 +190,6 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                             db, user.id, update_dict, memory_version,
                         )
                         if updated_doc is None:
-                            # Optimistic lock conflict — retry once with fresh version
                             fresh_doc = await user_memory_service.get_or_create(db, user.id)
                             await user_memory_service.apply_memory_update(
                                 db, user.id, update_dict, fresh_doc.version,
@@ -270,25 +224,14 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                 return result_text
 
             except LLMTransientError as e:
-                if task_instance.request.retries >= task_instance.max_retries:
-                    logger.error("Max retries exhausted for analysis %s: %s", analysis_id, e)
-                    analysis.status = AnalysisStatus.FAILED.value
-                    analysis.error_message = f"Max retries exhausted: {e}"
-                    await db.commit()
-                    await _notify_analysis_failed_safe(db, analysis, dream, f"Max retries exhausted: {e}")
-                    raise
-                logger.warning("Transient LLM error for analysis %s (retry %s/%s): %s",
-                               analysis_id, task_instance.request.retries, task_instance.max_retries, e)
+                logger.warning("Transient LLM error for analysis %s: %s", analysis_id, e)
                 analysis.status = AnalysisStatus.PENDING.value
                 analysis.error_message = str(e)
                 await db.commit()
-                raise
+                raise  # arq will retry
+
             except Exception as e:
                 logger.error(f"LLM Service error for analysis {analysis_id}: {e}")
-                # A DB error (e.g. deadlock) leaves the session needing an
-                # explicit rollback before it can be used again — otherwise the
-                # commit below raises PendingRollbackError and the analysis
-                # gets stuck in PROCESSING forever instead of FAILED.
                 await db.rollback()
                 analysis = (
                     await db.execute(select(Analysis).where(Analysis.id == UUID(analysis_id)))
@@ -304,15 +247,12 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
             raise
         except Exception as e:
             logger.error(f"Failed to analyze dream {analysis_id}: {e}")
-
-            # Обновляем статус на failed
             try:
                 await db.rollback()
                 result = await db.execute(
                     select(Analysis).where(Analysis.id == UUID(analysis_id))
                 )
                 analysis = result.scalar_one_or_none()
-
                 if analysis:
                     analysis.status = AnalysisStatus.FAILED.value
                     analysis.error_message = str(e)
@@ -323,38 +263,20 @@ async def _analyze_dream_async(task_instance, analysis_id: str):
                     "Failed to mark analysis %s as FAILED after error: %s",
                     analysis_id, cleanup_error,
                 )
-
             raise
 
 
-@celery_app.task(
-    bind=True,
-    name="tasks.reply_to_dream_chat",
-    autoretry_for=(LLMTransientError,),
-    retry_backoff=True,
-    retry_backoff_max=120,
-    retry_jitter=True,
-    max_retries=4,
-)
-def reply_to_dream_chat_task(self, user_id: str, dream_id: str):
-    """
-    Фоновая задача для ответа на follow-up сообщение в чате по сну.
+# ---------------------------------------------------------------------------
+# Task: reply_to_dream_chat
+# ---------------------------------------------------------------------------
 
-    User-сообщение уже сохранено в analysis_messages (в API-хэндлере).
-    Эта задача собирает контекст, вызывает LLM, сохраняет assistant-сообщение.
-    """
-    return _run_in_worker_loop(_reply_to_dream_chat_async(self, user_id, dream_id))
-
-
-async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str):
-    """Асинхронная реализация ответа на follow-up."""
+async def reply_to_dream_chat_task(ctx, user_id: str, dream_id: str):
+    """Фоновая задача для ответа на follow-up сообщение в чате по сну."""
     from services.message_service import create_message, build_llm_context
     from services import user_memory_service
 
     async with AsyncSessionLocal() as db:
-        dream = None
         try:
-            # Получаем пользователя
             result = await db.execute(
                 select(User).where(User.id == UUID(user_id))
             )
@@ -363,11 +285,9 @@ async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str)
                 logger.error(f"User {user_id} not found for chat reply")
                 return None
 
-            # Загружаем user.md (read-only for chat)
             memory_doc = await user_memory_service.get_or_create(db, UUID(user_id))
             user_memory_md = memory_doc.content_md or ""
 
-            # Собираем контекст
             from prompts import get_chat_system_prompt
             system_prompt = get_chat_system_prompt(user.self_description, user_memory_md)
 
@@ -378,13 +298,11 @@ async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str)
                 system_prompt=system_prompt,
             )
 
-            # Вызываем LLM
             result_text = await llm_client.chat_completion(
                 messages=llm_messages,
                 user_memory_md=user_memory_md,
             )
 
-            # Сохраняем assistant-сообщение
             await create_message(
                 db,
                 user_id=UUID(user_id),
@@ -404,16 +322,12 @@ async def _reply_to_dream_chat_async(task_instance, user_id: str, dream_id: str)
             raise
 
 
-@celery_app.task(name="tasks.send_email_task")
-def send_email_task(to: str, subject: str, body: str):
-    """
-    Фоновая задача для отправки email
+# ---------------------------------------------------------------------------
+# Task: send_email
+# ---------------------------------------------------------------------------
 
-    Args:
-        to: Email получателя
-        subject: Тема письма
-        body: Содержимое письма
-    """
+async def send_email_task(ctx, to: str, subject: str, body: str):
+    """Фоновая задача для отправки email."""
     from services.email_service import email_service
 
     try:
@@ -422,3 +336,18 @@ def send_email_task(to: str, subject: str, body: str):
     except Exception as e:
         logger.error(f"Failed to send email to {to}: {e}")
         raise
+
+
+# ---------------------------------------------------------------------------
+# arq Worker Settings
+# ---------------------------------------------------------------------------
+
+class WorkerSettings:
+    """Настройки arq worker."""
+    functions = [analyze_dream_task, reply_to_dream_chat_task, send_email_task]
+    redis_settings = RedisSettings.from_dsn(settings.redis_url)
+    max_jobs = 3
+    poll_delay = 0.5
+    job_timeout = 660  # 11 min — same as celery hard limit
+    max_tries = 4
+    retry_delay = 10  # seconds between retries

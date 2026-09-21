@@ -32,7 +32,7 @@ async def send_message(
     Отправить follow-up сообщение в чат по сну.
 
     - Сохраняет user-сообщение
-    - Запускает Celery-задачу для ответа LLM
+    - Запускает arq-задачу для ответа LLM
     - Возвращает task_id для отслеживания
     """
     if not await has_full_access(db, current_user):
@@ -59,17 +59,15 @@ async def send_message(
             content=data.content,
         )
 
-        # Запускаем Celery задачу для ответа
-        from tasks import reply_to_dream_chat_task
-        from celery_guard import ensure_celery_running
-        ensure_celery_running()
-        task = reply_to_dream_chat_task.delay(
+        # Запускаем arq задачу для ответа
+        from jobs import enqueue_reply_chat
+        job_id = await enqueue_reply_chat(
             str(current_user.id),
             str(data.dream_id),
         )
 
         return ChatMessageTaskResponse(
-            task_id=task.id,
+            task_id=job_id,
             status="processing",
             user_message=ChatMessageResponse.model_validate(user_msg),
         )
@@ -151,4 +149,4 @@ async def get_message_task(task_id: str, current_user: CurrentUser, db: Database
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail="premium_required",
         )
-    return get_message_task_status(task_id)
+    return await get_message_task_status(task_id)

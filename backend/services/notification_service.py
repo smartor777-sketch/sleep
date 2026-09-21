@@ -233,7 +233,7 @@ async def maybe_alert_admin_queue(db: AsyncSession) -> None:
                 type_=TYPE_QUEUE_ALERT,
                 title="Очередь анализов перегружена",
                 body=f"В очереди {queue_size} анализов (порог {threshold}). "
-                     "Проверьте состояние celery-воркеров (innercore-llm / celery-prod).",
+                     "Проверьте состояние arq-воркера и LLM-сервиса.",
                 data={"queue_size": queue_size, "threshold": threshold},
             )
         except Exception as notif_err:  # pragma: no cover
@@ -265,12 +265,12 @@ async def _email_admins_queue_alert(db: AsyncSession, queue_size: int) -> None:
     body = (
         "<p>Очередь анализов снов превысила порог.</p>"
         f"<p>Текущий размер очереди: <b>{queue_size}</b>.</p>"
-        "<p>Проверьте состояние celery-воркеров и LLM-сервиса.</p>"
+        "<p>Проверьте состояние arq-воркера и LLM-сервиса.</p>"
     )
     for to in recipients:
         try:
-            from tasks import send_email_task
-            send_email_task.delay(to, subject, body)
+            from jobs import enqueue_send_email
+            await enqueue_send_email(to, subject, body)
         except Exception as e:
             logger.error("Failed to enqueue queue-alert email to %s: %s", to, e)
 

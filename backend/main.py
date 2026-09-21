@@ -41,6 +41,8 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     logger.info("Shutting down InnerCore Backend...")
+    from jobs import close_redis_pool
+    await close_redis_pool()
     await close_db()
     logger.info("Database connection closed")
 
